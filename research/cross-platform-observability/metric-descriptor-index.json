@@ -1,0 +1,1076 @@
+{
+  "scope": "Discovery index only: NewDesc names and Name fields in Prometheus-related Go files. Not a guaranteed list of emitted series; conditional registration and false positives require manual review.",
+  "metrics": [
+    {
+      "repository": "ascend-device-plugin",
+      "metric": "hami_host_gpu_memory_used_bytes",
+      "path": "internal/monitor/collector.go",
+      "line": 13,
+      "source": "https://github.com/Project-HAMi/ascend-device-plugin/blob/6f6ee0240641e9f03e6e46356910a1579b3cf276/internal/monitor/collector.go#L13"
+    },
+    {
+      "repository": "ascend-device-plugin",
+      "metric": "hami_host_gpu_utilization_ratio",
+      "path": "internal/monitor/collector.go",
+      "line": 19,
+      "source": "https://github.com/Project-HAMi/ascend-device-plugin/blob/6f6ee0240641e9f03e6e46356910a1579b3cf276/internal/monitor/collector.go#L19"
+    },
+    {
+      "repository": "ascend-device-plugin",
+      "metric": "hami_vgpu_memory_used_bytes",
+      "path": "internal/monitor/collector.go",
+      "line": 25,
+      "source": "https://github.com/Project-HAMi/ascend-device-plugin/blob/6f6ee0240641e9f03e6e46356910a1579b3cf276/internal/monitor/collector.go#L25"
+    },
+    {
+      "repository": "ascend-device-plugin",
+      "metric": "hami_vgpu_memory_limit_bytes",
+      "path": "internal/monitor/collector.go",
+      "line": 31,
+      "source": "https://github.com/Project-HAMi/ascend-device-plugin/blob/6f6ee0240641e9f03e6e46356910a1579b3cf276/internal/monitor/collector.go#L31"
+    },
+    {
+      "repository": "ascend-device-plugin",
+      "metric": "hami_container_device_utilization_ratio",
+      "path": "internal/monitor/collector.go",
+      "line": 37,
+      "source": "https://github.com/Project-HAMi/ascend-device-plugin/blob/6f6ee0240641e9f03e6e46356910a1579b3cf276/internal/monitor/collector.go#L37"
+    },
+    {
+      "repository": "ascend-device-plugin",
+      "metric": "hami_vgpu_memory_context_bytes",
+      "path": "internal/monitor/collector.go",
+      "line": 43,
+      "source": "https://github.com/Project-HAMi/ascend-device-plugin/blob/6f6ee0240641e9f03e6e46356910a1579b3cf276/internal/monitor/collector.go#L43"
+    },
+    {
+      "repository": "ascend-device-plugin",
+      "metric": "hami_vgpu_memory_module_bytes",
+      "path": "internal/monitor/collector.go",
+      "line": 49,
+      "source": "https://github.com/Project-HAMi/ascend-device-plugin/blob/6f6ee0240641e9f03e6e46356910a1579b3cf276/internal/monitor/collector.go#L49"
+    },
+    {
+      "repository": "ascend-device-plugin",
+      "metric": "hami_vgpu_memory_buffer_bytes",
+      "path": "internal/monitor/collector.go",
+      "line": 55,
+      "source": "https://github.com/Project-HAMi/ascend-device-plugin/blob/6f6ee0240641e9f03e6e46356910a1579b3cf276/internal/monitor/collector.go#L55"
+    },
+    {
+      "repository": "ascend-device-plugin",
+      "metric": "hami_enpu_memory_request_bytes",
+      "path": "internal/monitor/enpu_collector.go",
+      "line": 17,
+      "source": "https://github.com/Project-HAMi/ascend-device-plugin/blob/6f6ee0240641e9f03e6e46356910a1579b3cf276/internal/monitor/enpu_collector.go#L17"
+    },
+    {
+      "repository": "ascend-device-plugin",
+      "metric": "hami_enpu_aicore_quota_percent",
+      "path": "internal/monitor/enpu_collector.go",
+      "line": 18,
+      "source": "https://github.com/Project-HAMi/ascend-device-plugin/blob/6f6ee0240641e9f03e6e46356910a1579b3cf276/internal/monitor/enpu_collector.go#L18"
+    },
+    {
+      "repository": "ascend-device-plugin",
+      "metric": "hami_enpu_allocation_info",
+      "path": "internal/monitor/enpu_collector.go",
+      "line": 19,
+      "source": "https://github.com/Project-HAMi/ascend-device-plugin/blob/6f6ee0240641e9f03e6e46356910a1579b3cf276/internal/monitor/enpu_collector.go#L19"
+    },
+    {
+      "repository": "ascend-device-plugin",
+      "metric": "hami_enpu_memory_collection_success",
+      "path": "internal/monitor/enpu_collector.go",
+      "line": 20,
+      "source": "https://github.com/Project-HAMi/ascend-device-plugin/blob/6f6ee0240641e9f03e6e46356910a1579b3cf276/internal/monitor/enpu_collector.go#L20"
+    },
+    {
+      "repository": "ascend-device-plugin",
+      "metric": "hami_enpu_config_collection_success",
+      "path": "internal/monitor/enpu_collector.go",
+      "line": 21,
+      "source": "https://github.com/Project-HAMi/ascend-device-plugin/blob/6f6ee0240641e9f03e6e46356910a1579b3cf276/internal/monitor/enpu_collector.go#L21"
+    },
+    {
+      "repository": "ascend-device-plugin",
+      "metric": "hami_enpu_device_collection_success",
+      "path": "internal/monitor/enpu_collector.go",
+      "line": 22,
+      "source": "https://github.com/Project-HAMi/ascend-device-plugin/blob/6f6ee0240641e9f03e6e46356910a1579b3cf276/internal/monitor/enpu_collector.go#L22"
+    },
+    {
+      "repository": "dcu-exporter",
+      "metric": "dcu_temp",
+      "path": "main.go",
+      "line": 46,
+      "source": "https://github.com/Project-HAMi/dcu-exporter/blob/30408d074cd420729f5698710d54fb30abefb0b1/main.go#L46"
+    },
+    {
+      "repository": "dcu-exporter",
+      "metric": "dcu_power_usage",
+      "path": "main.go",
+      "line": 53,
+      "source": "https://github.com/Project-HAMi/dcu-exporter/blob/30408d074cd420729f5698710d54fb30abefb0b1/main.go#L53"
+    },
+    {
+      "repository": "dcu-exporter",
+      "metric": "dcu_powercap",
+      "path": "main.go",
+      "line": 61,
+      "source": "https://github.com/Project-HAMi/dcu-exporter/blob/30408d074cd420729f5698710d54fb30abefb0b1/main.go#L61"
+    },
+    {
+      "repository": "dcu-exporter",
+      "metric": "dcu_sclk",
+      "path": "main.go",
+      "line": 69,
+      "source": "https://github.com/Project-HAMi/dcu-exporter/blob/30408d074cd420729f5698710d54fb30abefb0b1/main.go#L69"
+    },
+    {
+      "repository": "dcu-exporter",
+      "metric": "dcu_utilizationrate",
+      "path": "main.go",
+      "line": 77,
+      "source": "https://github.com/Project-HAMi/dcu-exporter/blob/30408d074cd420729f5698710d54fb30abefb0b1/main.go#L77"
+    },
+    {
+      "repository": "dcu-exporter",
+      "metric": "dcu_usedmemory_bytes",
+      "path": "main.go",
+      "line": 85,
+      "source": "https://github.com/Project-HAMi/dcu-exporter/blob/30408d074cd420729f5698710d54fb30abefb0b1/main.go#L85"
+    },
+    {
+      "repository": "dcu-exporter",
+      "metric": "dcu_memorycap_bytes",
+      "path": "main.go",
+      "line": 93,
+      "source": "https://github.com/Project-HAMi/dcu-exporter/blob/30408d074cd420729f5698710d54fb30abefb0b1/main.go#L93"
+    },
+    {
+      "repository": "dcu-exporter",
+      "metric": "dcu_pciebw_mb",
+      "path": "main.go",
+      "line": 101,
+      "source": "https://github.com/Project-HAMi/dcu-exporter/blob/30408d074cd420729f5698710d54fb30abefb0b1/main.go#L101"
+    },
+    {
+      "repository": "dcu-exporter",
+      "metric": "dcu_compute_unit_count",
+      "path": "main.go",
+      "line": 109,
+      "source": "https://github.com/Project-HAMi/dcu-exporter/blob/30408d074cd420729f5698710d54fb30abefb0b1/main.go#L109"
+    },
+    {
+      "repository": "dcu-exporter",
+      "metric": "dcu_compute_unit_remaining_count",
+      "path": "main.go",
+      "line": 116,
+      "source": "https://github.com/Project-HAMi/dcu-exporter/blob/30408d074cd420729f5698710d54fb30abefb0b1/main.go#L116"
+    },
+    {
+      "repository": "dcu-exporter",
+      "metric": "dcu_memory_remaining",
+      "path": "main.go",
+      "line": 123,
+      "source": "https://github.com/Project-HAMi/dcu-exporter/blob/30408d074cd420729f5698710d54fb30abefb0b1/main.go#L123"
+    },
+    {
+      "repository": "dcu-exporter",
+      "metric": "dcu_ce_count",
+      "path": "main.go",
+      "line": 130,
+      "source": "https://github.com/Project-HAMi/dcu-exporter/blob/30408d074cd420729f5698710d54fb30abefb0b1/main.go#L130"
+    },
+    {
+      "repository": "dcu-exporter",
+      "metric": "dcu_ue_count",
+      "path": "main.go",
+      "line": 137,
+      "source": "https://github.com/Project-HAMi/dcu-exporter/blob/30408d074cd420729f5698710d54fb30abefb0b1/main.go#L137"
+    },
+    {
+      "repository": "dcu-exporter",
+      "metric": "vdcu_temp",
+      "path": "main.go",
+      "line": 148,
+      "source": "https://github.com/Project-HAMi/dcu-exporter/blob/30408d074cd420729f5698710d54fb30abefb0b1/main.go#L148"
+    },
+    {
+      "repository": "dcu-exporter",
+      "metric": "vdcu_sclk",
+      "path": "main.go",
+      "line": 156,
+      "source": "https://github.com/Project-HAMi/dcu-exporter/blob/30408d074cd420729f5698710d54fb30abefb0b1/main.go#L156"
+    },
+    {
+      "repository": "dcu-exporter",
+      "metric": "vdcu_utilizationrate",
+      "path": "main.go",
+      "line": 164,
+      "source": "https://github.com/Project-HAMi/dcu-exporter/blob/30408d074cd420729f5698710d54fb30abefb0b1/main.go#L164"
+    },
+    {
+      "repository": "dcu-exporter",
+      "metric": "vdcu_usedmemory_bytes",
+      "path": "main.go",
+      "line": 172,
+      "source": "https://github.com/Project-HAMi/dcu-exporter/blob/30408d074cd420729f5698710d54fb30abefb0b1/main.go#L172"
+    },
+    {
+      "repository": "HAMi",
+      "metric": "hami_gpu_memory_limit_bytes",
+      "path": "cmd/scheduler/metrics.go",
+      "line": 161,
+      "source": "https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/scheduler/metrics.go#L161"
+    },
+    {
+      "repository": "HAMi",
+      "metric": "hami_gpu_core_limit_ratio",
+      "path": "cmd/scheduler/metrics.go",
+      "line": 166,
+      "source": "https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/scheduler/metrics.go#L166"
+    },
+    {
+      "repository": "HAMi",
+      "metric": "hami_gpu_memory_allocated_bytes",
+      "path": "cmd/scheduler/metrics.go",
+      "line": 171,
+      "source": "https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/scheduler/metrics.go#L171"
+    },
+    {
+      "repository": "HAMi",
+      "metric": "hami_gpu_shared_count",
+      "path": "cmd/scheduler/metrics.go",
+      "line": 176,
+      "source": "https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/scheduler/metrics.go#L176"
+    },
+    {
+      "repository": "HAMi",
+      "metric": "hami_gpu_core_allocated_ratio",
+      "path": "cmd/scheduler/metrics.go",
+      "line": 181,
+      "source": "https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/scheduler/metrics.go#L181"
+    },
+    {
+      "repository": "HAMi",
+      "metric": "hami_node_gpu_overview",
+      "path": "cmd/scheduler/metrics.go",
+      "line": 186,
+      "source": "https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/scheduler/metrics.go#L186"
+    },
+    {
+      "repository": "HAMi",
+      "metric": "hami_node_gpu_memory_allocated_ratio",
+      "path": "cmd/scheduler/metrics.go",
+      "line": 191,
+      "source": "https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/scheduler/metrics.go#L191"
+    },
+    {
+      "repository": "HAMi",
+      "metric": "hami_node_gpu_mig_instance_info",
+      "path": "cmd/scheduler/metrics.go",
+      "line": 196,
+      "source": "https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/scheduler/metrics.go#L196"
+    },
+    {
+      "repository": "HAMi",
+      "metric": "GPUDeviceMemoryLimit",
+      "path": "cmd/scheduler/metrics.go",
+      "line": 214,
+      "source": "https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/scheduler/metrics.go#L214"
+    },
+    {
+      "repository": "HAMi",
+      "metric": "GPUDeviceCoreLimit",
+      "path": "cmd/scheduler/metrics.go",
+      "line": 219,
+      "source": "https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/scheduler/metrics.go#L219"
+    },
+    {
+      "repository": "HAMi",
+      "metric": "GPUDeviceMemoryAllocated",
+      "path": "cmd/scheduler/metrics.go",
+      "line": 224,
+      "source": "https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/scheduler/metrics.go#L224"
+    },
+    {
+      "repository": "HAMi",
+      "metric": "GPUDeviceSharedNum",
+      "path": "cmd/scheduler/metrics.go",
+      "line": 229,
+      "source": "https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/scheduler/metrics.go#L229"
+    },
+    {
+      "repository": "HAMi",
+      "metric": "GPUDeviceCoreAllocated",
+      "path": "cmd/scheduler/metrics.go",
+      "line": 234,
+      "source": "https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/scheduler/metrics.go#L234"
+    },
+    {
+      "repository": "HAMi",
+      "metric": "nodeGPUOverview",
+      "path": "cmd/scheduler/metrics.go",
+      "line": 239,
+      "source": "https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/scheduler/metrics.go#L239"
+    },
+    {
+      "repository": "HAMi",
+      "metric": "nodeGPUMemoryPercentage",
+      "path": "cmd/scheduler/metrics.go",
+      "line": 244,
+      "source": "https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/scheduler/metrics.go#L244"
+    },
+    {
+      "repository": "HAMi",
+      "metric": "nodeGPUMigInstance",
+      "path": "cmd/scheduler/metrics.go",
+      "line": 249,
+      "source": "https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/scheduler/metrics.go#L249"
+    },
+    {
+      "repository": "HAMi",
+      "metric": "hami_resource_quota_used",
+      "path": "cmd/scheduler/metrics.go",
+      "line": 347,
+      "source": "https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/scheduler/metrics.go#L347"
+    },
+    {
+      "repository": "HAMi",
+      "metric": "hami_resource_quota_limit",
+      "path": "cmd/scheduler/metrics.go",
+      "line": 352,
+      "source": "https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/scheduler/metrics.go#L352"
+    },
+    {
+      "repository": "HAMi",
+      "metric": "QuotaUsed",
+      "path": "cmd/scheduler/metrics.go",
+      "line": 359,
+      "source": "https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/scheduler/metrics.go#L359"
+    },
+    {
+      "repository": "HAMi",
+      "metric": "hami_vgpu_memory_allocated_bytes",
+      "path": "cmd/scheduler/metrics.go",
+      "line": 389,
+      "source": "https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/scheduler/metrics.go#L389"
+    },
+    {
+      "repository": "HAMi",
+      "metric": "hami_vgpu_core_allocated_ratio",
+      "path": "cmd/scheduler/metrics.go",
+      "line": 394,
+      "source": "https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/scheduler/metrics.go#L394"
+    },
+    {
+      "repository": "HAMi",
+      "metric": "vGPUMemoryAllocated",
+      "path": "cmd/scheduler/metrics.go",
+      "line": 407,
+      "source": "https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/scheduler/metrics.go#L407"
+    },
+    {
+      "repository": "HAMi",
+      "metric": "vGPUCoreAllocated",
+      "path": "cmd/scheduler/metrics.go",
+      "line": 412,
+      "source": "https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/scheduler/metrics.go#L412"
+    },
+    {
+      "repository": "HAMi",
+      "metric": "hami_remote_gpu_memory_limit_bytes",
+      "path": "cmd/scheduler/metrics.go",
+      "line": 473,
+      "source": "https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/scheduler/metrics.go#L473"
+    },
+    {
+      "repository": "HAMi",
+      "metric": "hami_remote_gpu_allocated",
+      "path": "cmd/scheduler/metrics.go",
+      "line": 478,
+      "source": "https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/scheduler/metrics.go#L478"
+    },
+    {
+      "repository": "HAMi",
+      "metric": "hami_remote_gpu_overview",
+      "path": "cmd/scheduler/metrics.go",
+      "line": 483,
+      "source": "https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/scheduler/metrics.go#L483"
+    },
+    {
+      "repository": "HAMi",
+      "metric": "hami_scheduler_is_leader",
+      "path": "cmd/scheduler/metrics.go",
+      "line": 510,
+      "source": "https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/scheduler/metrics.go#L510"
+    },
+    {
+      "repository": "HAMi",
+      "metric": "hami_scheduler_cache_synced",
+      "path": "cmd/scheduler/metrics.go",
+      "line": 515,
+      "source": "https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/scheduler/metrics.go#L515"
+    },
+    {
+      "repository": "HAMi",
+      "metric": "hami_host_gpu_memory_used_bytes",
+      "path": "cmd/vGPUmonitor/metrics.go",
+      "line": 57,
+      "source": "https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/vGPUmonitor/metrics.go#L57"
+    },
+    {
+      "repository": "HAMi",
+      "metric": "hami_host_gpu_utilization_ratio",
+      "path": "cmd/vGPUmonitor/metrics.go",
+      "line": 63,
+      "source": "https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/vGPUmonitor/metrics.go#L63"
+    },
+    {
+      "repository": "HAMi",
+      "metric": "hami_host_gpu_memory_controller_utilization_ratio",
+      "path": "cmd/vGPUmonitor/metrics.go",
+      "line": 69,
+      "source": "https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/vGPUmonitor/metrics.go#L69"
+    },
+    {
+      "repository": "HAMi",
+      "metric": "hami_host_gpu_temperature_celsius",
+      "path": "cmd/vGPUmonitor/metrics.go",
+      "line": 75,
+      "source": "https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/vGPUmonitor/metrics.go#L75"
+    },
+    {
+      "repository": "HAMi",
+      "metric": "hami_host_gpu_power_usage_watts",
+      "path": "cmd/vGPUmonitor/metrics.go",
+      "line": 81,
+      "source": "https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/vGPUmonitor/metrics.go#L81"
+    },
+    {
+      "repository": "HAMi",
+      "metric": "hami_host_gpu_ecc_errors_total",
+      "path": "cmd/vGPUmonitor/metrics.go",
+      "line": 87,
+      "source": "https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/vGPUmonitor/metrics.go#L87"
+    },
+    {
+      "repository": "HAMi",
+      "metric": "hami_vgpu_memory_used_bytes",
+      "path": "cmd/vGPUmonitor/metrics.go",
+      "line": 92,
+      "source": "https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/vGPUmonitor/metrics.go#L92"
+    },
+    {
+      "repository": "HAMi",
+      "metric": "hami_vgpu_memory_limit_bytes",
+      "path": "cmd/vGPUmonitor/metrics.go",
+      "line": 98,
+      "source": "https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/vGPUmonitor/metrics.go#L98"
+    },
+    {
+      "repository": "HAMi",
+      "metric": "hami_container_device_memory_bytes",
+      "path": "cmd/vGPUmonitor/metrics.go",
+      "line": 103,
+      "source": "https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/vGPUmonitor/metrics.go#L103"
+    },
+    {
+      "repository": "HAMi",
+      "metric": "hami_container_device_utilization_ratio",
+      "path": "cmd/vGPUmonitor/metrics.go",
+      "line": 108,
+      "source": "https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/vGPUmonitor/metrics.go#L108"
+    },
+    {
+      "repository": "HAMi",
+      "metric": "hami_container_last_kernel_elapsed_seconds",
+      "path": "cmd/vGPUmonitor/metrics.go",
+      "line": 113,
+      "source": "https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/vGPUmonitor/metrics.go#L113"
+    },
+    {
+      "repository": "HAMi",
+      "metric": "hami_mig_device_info",
+      "path": "cmd/vGPUmonitor/metrics.go",
+      "line": 118,
+      "source": "https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/vGPUmonitor/metrics.go#L118"
+    },
+    {
+      "repository": "HAMi",
+      "metric": "hami_vgpu_memory_context_bytes",
+      "path": "cmd/vGPUmonitor/metrics.go",
+      "line": 123,
+      "source": "https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/vGPUmonitor/metrics.go#L123"
+    },
+    {
+      "repository": "HAMi",
+      "metric": "hami_vgpu_memory_module_bytes",
+      "path": "cmd/vGPUmonitor/metrics.go",
+      "line": 129,
+      "source": "https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/vGPUmonitor/metrics.go#L129"
+    },
+    {
+      "repository": "HAMi",
+      "metric": "hami_vgpu_memory_buffer_bytes",
+      "path": "cmd/vGPUmonitor/metrics.go",
+      "line": 135,
+      "source": "https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/vGPUmonitor/metrics.go#L135"
+    },
+    {
+      "repository": "HAMi",
+      "metric": "HostGPUMemoryUsage",
+      "path": "cmd/vGPUmonitor/metrics.go",
+      "line": 155,
+      "source": "https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/vGPUmonitor/metrics.go#L155"
+    },
+    {
+      "repository": "HAMi",
+      "metric": "HostCoreUtilization",
+      "path": "cmd/vGPUmonitor/metrics.go",
+      "line": 160,
+      "source": "https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/vGPUmonitor/metrics.go#L160"
+    },
+    {
+      "repository": "HAMi",
+      "metric": "vGPU_device_memory_usage_in_bytes",
+      "path": "cmd/vGPUmonitor/metrics.go",
+      "line": 165,
+      "source": "https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/vGPUmonitor/metrics.go#L165"
+    },
+    {
+      "repository": "HAMi",
+      "metric": "vGPU_device_memory_limit_in_bytes",
+      "path": "cmd/vGPUmonitor/metrics.go",
+      "line": 170,
+      "source": "https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/vGPUmonitor/metrics.go#L170"
+    },
+    {
+      "repository": "HAMi",
+      "metric": "Device_memory_desc_of_container",
+      "path": "cmd/vGPUmonitor/metrics.go",
+      "line": 175,
+      "source": "https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/vGPUmonitor/metrics.go#L175"
+    },
+    {
+      "repository": "HAMi",
+      "metric": "Device_utilization_desc_of_container",
+      "path": "cmd/vGPUmonitor/metrics.go",
+      "line": 180,
+      "source": "https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/vGPUmonitor/metrics.go#L180"
+    },
+    {
+      "repository": "HAMi",
+      "metric": "Device_last_kernel_of_container",
+      "path": "cmd/vGPUmonitor/metrics.go",
+      "line": 185,
+      "source": "https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/vGPUmonitor/metrics.go#L185"
+    },
+    {
+      "repository": "HAMi",
+      "metric": "MigInfo",
+      "path": "cmd/vGPUmonitor/metrics.go",
+      "line": 190,
+      "source": "https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/vGPUmonitor/metrics.go#L190"
+    },
+    {
+      "repository": "HAMi",
+      "metric": "hami_build_info",
+      "path": "pkg/metrics/metrics.go",
+      "line": 30,
+      "source": "https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/pkg/metrics/metrics.go#L30"
+    },
+    {
+      "repository": "HAMi-DRA",
+      "metric": "hami_dra_gpu_memory_limit_bytes",
+      "path": "pkg/metrics/metrics.go",
+      "line": 22,
+      "source": "https://github.com/Project-HAMi/HAMi-DRA/blob/ab103e2f93d743e8140bf4431437dc86b7718a22/pkg/metrics/metrics.go#L22"
+    },
+    {
+      "repository": "HAMi-DRA",
+      "metric": "hami_dra_gpu_core_limit_ratio",
+      "path": "pkg/metrics/metrics.go",
+      "line": 27,
+      "source": "https://github.com/Project-HAMi/HAMi-DRA/blob/ab103e2f93d743e8140bf4431437dc86b7718a22/pkg/metrics/metrics.go#L27"
+    },
+    {
+      "repository": "HAMi-DRA",
+      "metric": "hami_dra_gpu_memory_allocated_bytes",
+      "path": "pkg/metrics/metrics.go",
+      "line": 32,
+      "source": "https://github.com/Project-HAMi/HAMi-DRA/blob/ab103e2f93d743e8140bf4431437dc86b7718a22/pkg/metrics/metrics.go#L32"
+    },
+    {
+      "repository": "HAMi-DRA",
+      "metric": "hami_dra_gpu_core_allocated_ratio",
+      "path": "pkg/metrics/metrics.go",
+      "line": 37,
+      "source": "https://github.com/Project-HAMi/HAMi-DRA/blob/ab103e2f93d743e8140bf4431437dc86b7718a22/pkg/metrics/metrics.go#L37"
+    },
+    {
+      "repository": "HAMi-DRA",
+      "metric": "hami_dra_vgpu_memory_allocated_bytes",
+      "path": "pkg/metrics/metrics.go",
+      "line": 42,
+      "source": "https://github.com/Project-HAMi/HAMi-DRA/blob/ab103e2f93d743e8140bf4431437dc86b7718a22/pkg/metrics/metrics.go#L42"
+    },
+    {
+      "repository": "HAMi-DRA",
+      "metric": "hami_dra_vgpu_core_allocated_ratio",
+      "path": "pkg/metrics/metrics.go",
+      "line": 47,
+      "source": "https://github.com/Project-HAMi/HAMi-DRA/blob/ab103e2f93d743e8140bf4431437dc86b7718a22/pkg/metrics/metrics.go#L47"
+    },
+    {
+      "repository": "HAMi-DRA",
+      "metric": "GPUDeviceMemoryLimit",
+      "path": "pkg/metrics/metrics.go",
+      "line": 58,
+      "source": "https://github.com/Project-HAMi/HAMi-DRA/blob/ab103e2f93d743e8140bf4431437dc86b7718a22/pkg/metrics/metrics.go#L58"
+    },
+    {
+      "repository": "HAMi-DRA",
+      "metric": "GPUDeviceCoreLimit",
+      "path": "pkg/metrics/metrics.go",
+      "line": 63,
+      "source": "https://github.com/Project-HAMi/HAMi-DRA/blob/ab103e2f93d743e8140bf4431437dc86b7718a22/pkg/metrics/metrics.go#L63"
+    },
+    {
+      "repository": "HAMi-DRA",
+      "metric": "GPUDeviceMemoryAllocated",
+      "path": "pkg/metrics/metrics.go",
+      "line": 68,
+      "source": "https://github.com/Project-HAMi/HAMi-DRA/blob/ab103e2f93d743e8140bf4431437dc86b7718a22/pkg/metrics/metrics.go#L68"
+    },
+    {
+      "repository": "HAMi-DRA",
+      "metric": "GPUDeviceCoreAllocated",
+      "path": "pkg/metrics/metrics.go",
+      "line": 73,
+      "source": "https://github.com/Project-HAMi/HAMi-DRA/blob/ab103e2f93d743e8140bf4431437dc86b7718a22/pkg/metrics/metrics.go#L73"
+    },
+    {
+      "repository": "HAMi-DRA",
+      "metric": "vGPUDeviceMemoryAllocated",
+      "path": "pkg/metrics/metrics.go",
+      "line": 78,
+      "source": "https://github.com/Project-HAMi/HAMi-DRA/blob/ab103e2f93d743e8140bf4431437dc86b7718a22/pkg/metrics/metrics.go#L78"
+    },
+    {
+      "repository": "HAMi-DRA",
+      "metric": "vGPUDeviceCoreAllocated",
+      "path": "pkg/metrics/metrics.go",
+      "line": 83,
+      "source": "https://github.com/Project-HAMi/HAMi-DRA/blob/ab103e2f93d743e8140bf4431437dc86b7718a22/pkg/metrics/metrics.go#L83"
+    },
+    {
+      "repository": "HAMi-WebUI",
+      "metric": "hami_vcore_scaling",
+      "path": "server/internal/exporter/metrics.go",
+      "line": 54,
+      "source": "https://github.com/Project-HAMi/HAMi-WebUI/blob/846c0e2d3360cc7240bb61968e4cc7e3cea53443/server/internal/exporter/metrics.go#L54"
+    },
+    {
+      "repository": "HAMi-WebUI",
+      "metric": "hami_vmemory_scaling",
+      "path": "server/internal/exporter/metrics.go",
+      "line": 59,
+      "source": "https://github.com/Project-HAMi/HAMi-WebUI/blob/846c0e2d3360cc7240bb61968e4cc7e3cea53443/server/internal/exporter/metrics.go#L59"
+    },
+    {
+      "repository": "HAMi-WebUI",
+      "metric": "hami_vgpu_count",
+      "path": "server/internal/exporter/metrics.go",
+      "line": 64,
+      "source": "https://github.com/Project-HAMi/HAMi-WebUI/blob/846c0e2d3360cc7240bb61968e4cc7e3cea53443/server/internal/exporter/metrics.go#L64"
+    },
+    {
+      "repository": "HAMi-WebUI",
+      "metric": "hami_vmemory_size",
+      "path": "server/internal/exporter/metrics.go",
+      "line": 69,
+      "source": "https://github.com/Project-HAMi/HAMi-WebUI/blob/846c0e2d3360cc7240bb61968e4cc7e3cea53443/server/internal/exporter/metrics.go#L69"
+    },
+    {
+      "repository": "HAMi-WebUI",
+      "metric": "hami_vcore_size",
+      "path": "server/internal/exporter/metrics.go",
+      "line": 74,
+      "source": "https://github.com/Project-HAMi/HAMi-WebUI/blob/846c0e2d3360cc7240bb61968e4cc7e3cea53443/server/internal/exporter/metrics.go#L74"
+    },
+    {
+      "repository": "HAMi-WebUI",
+      "metric": "hami_memory_used",
+      "path": "server/internal/exporter/metrics.go",
+      "line": 79,
+      "source": "https://github.com/Project-HAMi/HAMi-WebUI/blob/846c0e2d3360cc7240bb61968e4cc7e3cea53443/server/internal/exporter/metrics.go#L79"
+    },
+    {
+      "repository": "HAMi-WebUI",
+      "metric": "hami_memory_size",
+      "path": "server/internal/exporter/metrics.go",
+      "line": 84,
+      "source": "https://github.com/Project-HAMi/HAMi-WebUI/blob/846c0e2d3360cc7240bb61968e4cc7e3cea53443/server/internal/exporter/metrics.go#L84"
+    },
+    {
+      "repository": "HAMi-WebUI",
+      "metric": "hami_memory_util",
+      "path": "server/internal/exporter/metrics.go",
+      "line": 89,
+      "source": "https://github.com/Project-HAMi/HAMi-WebUI/blob/846c0e2d3360cc7240bb61968e4cc7e3cea53443/server/internal/exporter/metrics.go#L89"
+    },
+    {
+      "repository": "HAMi-WebUI",
+      "metric": "hami_core_size",
+      "path": "server/internal/exporter/metrics.go",
+      "line": 94,
+      "source": "https://github.com/Project-HAMi/HAMi-WebUI/blob/846c0e2d3360cc7240bb61968e4cc7e3cea53443/server/internal/exporter/metrics.go#L94"
+    },
+    {
+      "repository": "HAMi-WebUI",
+      "metric": "hami_core_used",
+      "path": "server/internal/exporter/metrics.go",
+      "line": 99,
+      "source": "https://github.com/Project-HAMi/HAMi-WebUI/blob/846c0e2d3360cc7240bb61968e4cc7e3cea53443/server/internal/exporter/metrics.go#L99"
+    },
+    {
+      "repository": "HAMi-WebUI",
+      "metric": "hami_core_util",
+      "path": "server/internal/exporter/metrics.go",
+      "line": 104,
+      "source": "https://github.com/Project-HAMi/HAMi-WebUI/blob/846c0e2d3360cc7240bb61968e4cc7e3cea53443/server/internal/exporter/metrics.go#L104"
+    },
+    {
+      "repository": "HAMi-WebUI",
+      "metric": "hami_core_used_avg",
+      "path": "server/internal/exporter/metrics.go",
+      "line": 109,
+      "source": "https://github.com/Project-HAMi/HAMi-WebUI/blob/846c0e2d3360cc7240bb61968e4cc7e3cea53443/server/internal/exporter/metrics.go#L109"
+    },
+    {
+      "repository": "HAMi-WebUI",
+      "metric": "hami_core_util_avg",
+      "path": "server/internal/exporter/metrics.go",
+      "line": 114,
+      "source": "https://github.com/Project-HAMi/HAMi-WebUI/blob/846c0e2d3360cc7240bb61968e4cc7e3cea53443/server/internal/exporter/metrics.go#L114"
+    },
+    {
+      "repository": "HAMi-WebUI",
+      "metric": "hami_device_temperature",
+      "path": "server/internal/exporter/metrics.go",
+      "line": 119,
+      "source": "https://github.com/Project-HAMi/HAMi-WebUI/blob/846c0e2d3360cc7240bb61968e4cc7e3cea53443/server/internal/exporter/metrics.go#L119"
+    },
+    {
+      "repository": "HAMi-WebUI",
+      "metric": "hami_device_memory_temperature",
+      "path": "server/internal/exporter/metrics.go",
+      "line": 124,
+      "source": "https://github.com/Project-HAMi/HAMi-WebUI/blob/846c0e2d3360cc7240bb61968e4cc7e3cea53443/server/internal/exporter/metrics.go#L124"
+    },
+    {
+      "repository": "HAMi-WebUI",
+      "metric": "hami_device_power",
+      "path": "server/internal/exporter/metrics.go",
+      "line": 129,
+      "source": "https://github.com/Project-HAMi/HAMi-WebUI/blob/846c0e2d3360cc7240bb61968e4cc7e3cea53443/server/internal/exporter/metrics.go#L129"
+    },
+    {
+      "repository": "HAMi-WebUI",
+      "metric": "hami_device_last_xid_error_code",
+      "path": "server/internal/exporter/metrics.go",
+      "line": 134,
+      "source": "https://github.com/Project-HAMi/HAMi-WebUI/blob/846c0e2d3360cc7240bb61968e4cc7e3cea53443/server/internal/exporter/metrics.go#L134"
+    },
+    {
+      "repository": "HAMi-WebUI",
+      "metric": "hami_device_fan_speed_p",
+      "path": "server/internal/exporter/metrics.go",
+      "line": 139,
+      "source": "https://github.com/Project-HAMi/HAMi-WebUI/blob/846c0e2d3360cc7240bb61968e4cc7e3cea53443/server/internal/exporter/metrics.go#L139"
+    },
+    {
+      "repository": "HAMi-WebUI",
+      "metric": "hami_device_fan_speed_r",
+      "path": "server/internal/exporter/metrics.go",
+      "line": 144,
+      "source": "https://github.com/Project-HAMi/HAMi-WebUI/blob/846c0e2d3360cc7240bb61968e4cc7e3cea53443/server/internal/exporter/metrics.go#L144"
+    },
+    {
+      "repository": "HAMi-WebUI",
+      "metric": "hami_container_vgpu_allocated",
+      "path": "server/internal/exporter/metrics.go",
+      "line": 149,
+      "source": "https://github.com/Project-HAMi/HAMi-WebUI/blob/846c0e2d3360cc7240bb61968e4cc7e3cea53443/server/internal/exporter/metrics.go#L149"
+    },
+    {
+      "repository": "HAMi-WebUI",
+      "metric": "hami_container_vmemory_allocated",
+      "path": "server/internal/exporter/metrics.go",
+      "line": 154,
+      "source": "https://github.com/Project-HAMi/HAMi-WebUI/blob/846c0e2d3360cc7240bb61968e4cc7e3cea53443/server/internal/exporter/metrics.go#L154"
+    },
+    {
+      "repository": "HAMi-WebUI",
+      "metric": "hami_container_vcore_allocated",
+      "path": "server/internal/exporter/metrics.go",
+      "line": 159,
+      "source": "https://github.com/Project-HAMi/HAMi-WebUI/blob/846c0e2d3360cc7240bb61968e4cc7e3cea53443/server/internal/exporter/metrics.go#L159"
+    },
+    {
+      "repository": "HAMi-WebUI",
+      "metric": "hami_container_vcore_allocation_known",
+      "path": "server/internal/exporter/metrics.go",
+      "line": 164,
+      "source": "https://github.com/Project-HAMi/HAMi-WebUI/blob/846c0e2d3360cc7240bb61968e4cc7e3cea53443/server/internal/exporter/metrics.go#L164"
+    },
+    {
+      "repository": "HAMi-WebUI",
+      "metric": "hami_container_memory_used",
+      "path": "server/internal/exporter/metrics.go",
+      "line": 169,
+      "source": "https://github.com/Project-HAMi/HAMi-WebUI/blob/846c0e2d3360cc7240bb61968e4cc7e3cea53443/server/internal/exporter/metrics.go#L169"
+    },
+    {
+      "repository": "HAMi-WebUI",
+      "metric": "hami_container_memory_util",
+      "path": "server/internal/exporter/metrics.go",
+      "line": 174,
+      "source": "https://github.com/Project-HAMi/HAMi-WebUI/blob/846c0e2d3360cc7240bb61968e4cc7e3cea53443/server/internal/exporter/metrics.go#L174"
+    },
+    {
+      "repository": "HAMi-WebUI",
+      "metric": "hami_container_core_used",
+      "path": "server/internal/exporter/metrics.go",
+      "line": 179,
+      "source": "https://github.com/Project-HAMi/HAMi-WebUI/blob/846c0e2d3360cc7240bb61968e4cc7e3cea53443/server/internal/exporter/metrics.go#L179"
+    },
+    {
+      "repository": "HAMi-WebUI",
+      "metric": "hami_container_core_util",
+      "path": "server/internal/exporter/metrics.go",
+      "line": 184,
+      "source": "https://github.com/Project-HAMi/HAMi-WebUI/blob/846c0e2d3360cc7240bb61968e4cc7e3cea53443/server/internal/exporter/metrics.go#L184"
+    },
+    {
+      "repository": "HAMi-WebUI",
+      "metric": "hami_pool_vgpu_count",
+      "path": "server/internal/exporter/metrics.go",
+      "line": 189,
+      "source": "https://github.com/Project-HAMi/HAMi-WebUI/blob/846c0e2d3360cc7240bb61968e4cc7e3cea53443/server/internal/exporter/metrics.go#L189"
+    },
+    {
+      "repository": "HAMi-WebUI",
+      "metric": "hami_pool_vmemory_size",
+      "path": "server/internal/exporter/metrics.go",
+      "line": 194,
+      "source": "https://github.com/Project-HAMi/HAMi-WebUI/blob/846c0e2d3360cc7240bb61968e4cc7e3cea53443/server/internal/exporter/metrics.go#L194"
+    },
+    {
+      "repository": "HAMi-WebUI",
+      "metric": "hami_pool_vcore_size",
+      "path": "server/internal/exporter/metrics.go",
+      "line": 199,
+      "source": "https://github.com/Project-HAMi/HAMi-WebUI/blob/846c0e2d3360cc7240bb61968e4cc7e3cea53443/server/internal/exporter/metrics.go#L199"
+    },
+    {
+      "repository": "HAMi-WebUI",
+      "metric": "hami_system_component_health",
+      "path": "server/internal/exporter/metrics.go",
+      "line": 204,
+      "source": "https://github.com/Project-HAMi/HAMi-WebUI/blob/846c0e2d3360cc7240bb61968e4cc7e3cea53443/server/internal/exporter/metrics.go#L204"
+    },
+    {
+      "repository": "HAMi-WebUI",
+      "metric": "hami_webui_metrics_refresh_success",
+      "path": "server/internal/exporter/metrics.go",
+      "line": 209,
+      "source": "https://github.com/Project-HAMi/HAMi-WebUI/blob/846c0e2d3360cc7240bb61968e4cc7e3cea53443/server/internal/exporter/metrics.go#L209"
+    },
+    {
+      "repository": "HAMi-WebUI",
+      "metric": "hami_webui_metrics_refresh_duration_seconds",
+      "path": "server/internal/exporter/metrics.go",
+      "line": 214,
+      "source": "https://github.com/Project-HAMi/HAMi-WebUI/blob/846c0e2d3360cc7240bb61968e4cc7e3cea53443/server/internal/exporter/metrics.go#L214"
+    },
+    {
+      "repository": "HAMi-WebUI",
+      "metric": "hami_webui_metrics_refresh_last_success_timestamp_seconds",
+      "path": "server/internal/exporter/metrics.go",
+      "line": 219,
+      "source": "https://github.com/Project-HAMi/HAMi-WebUI/blob/846c0e2d3360cc7240bb61968e4cc7e3cea53443/server/internal/exporter/metrics.go#L219"
+    },
+    {
+      "repository": "KAI-resource-isolator",
+      "metric": "hami_host_gpu_memory_used_bytes",
+      "path": "cmd/monitor/metrics.go",
+      "line": 53,
+      "source": "https://github.com/Project-HAMi/KAI-resource-isolator/blob/09c0bb90b360503ac3ec5ca987d07fcae852ae0a/cmd/monitor/metrics.go#L53"
+    },
+    {
+      "repository": "KAI-resource-isolator",
+      "metric": "hami_host_gpu_utilization_ratio",
+      "path": "cmd/monitor/metrics.go",
+      "line": 59,
+      "source": "https://github.com/Project-HAMi/KAI-resource-isolator/blob/09c0bb90b360503ac3ec5ca987d07fcae852ae0a/cmd/monitor/metrics.go#L59"
+    },
+    {
+      "repository": "KAI-resource-isolator",
+      "metric": "hami_vgpu_memory_used_bytes",
+      "path": "cmd/monitor/metrics.go",
+      "line": 65,
+      "source": "https://github.com/Project-HAMi/KAI-resource-isolator/blob/09c0bb90b360503ac3ec5ca987d07fcae852ae0a/cmd/monitor/metrics.go#L65"
+    },
+    {
+      "repository": "KAI-resource-isolator",
+      "metric": "hami_vgpu_memory_limit_bytes",
+      "path": "cmd/monitor/metrics.go",
+      "line": 71,
+      "source": "https://github.com/Project-HAMi/KAI-resource-isolator/blob/09c0bb90b360503ac3ec5ca987d07fcae852ae0a/cmd/monitor/metrics.go#L71"
+    },
+    {
+      "repository": "KAI-resource-isolator",
+      "metric": "hami_container_device_memory_bytes",
+      "path": "cmd/monitor/metrics.go",
+      "line": 76,
+      "source": "https://github.com/Project-HAMi/KAI-resource-isolator/blob/09c0bb90b360503ac3ec5ca987d07fcae852ae0a/cmd/monitor/metrics.go#L76"
+    },
+    {
+      "repository": "KAI-resource-isolator",
+      "metric": "hami_container_device_utilization_ratio",
+      "path": "cmd/monitor/metrics.go",
+      "line": 81,
+      "source": "https://github.com/Project-HAMi/KAI-resource-isolator/blob/09c0bb90b360503ac3ec5ca987d07fcae852ae0a/cmd/monitor/metrics.go#L81"
+    },
+    {
+      "repository": "KAI-resource-isolator",
+      "metric": "hami_container_last_kernel_elapsed_seconds",
+      "path": "cmd/monitor/metrics.go",
+      "line": 86,
+      "source": "https://github.com/Project-HAMi/KAI-resource-isolator/blob/09c0bb90b360503ac3ec5ca987d07fcae852ae0a/cmd/monitor/metrics.go#L86"
+    },
+    {
+      "repository": "KAI-resource-isolator",
+      "metric": "hami_vgpu_memory_context_bytes",
+      "path": "cmd/monitor/metrics.go",
+      "line": 91,
+      "source": "https://github.com/Project-HAMi/KAI-resource-isolator/blob/09c0bb90b360503ac3ec5ca987d07fcae852ae0a/cmd/monitor/metrics.go#L91"
+    },
+    {
+      "repository": "KAI-resource-isolator",
+      "metric": "hami_vgpu_memory_module_bytes",
+      "path": "cmd/monitor/metrics.go",
+      "line": 97,
+      "source": "https://github.com/Project-HAMi/KAI-resource-isolator/blob/09c0bb90b360503ac3ec5ca987d07fcae852ae0a/cmd/monitor/metrics.go#L97"
+    },
+    {
+      "repository": "KAI-resource-isolator",
+      "metric": "hami_vgpu_memory_buffer_bytes",
+      "path": "cmd/monitor/metrics.go",
+      "line": 103,
+      "source": "https://github.com/Project-HAMi/KAI-resource-isolator/blob/09c0bb90b360503ac3ec5ca987d07fcae852ae0a/cmd/monitor/metrics.go#L103"
+    },
+    {
+      "repository": "KAI-resource-isolator",
+      "metric": "HostGPUMemoryUsage",
+      "path": "cmd/monitor/metrics.go",
+      "line": 123,
+      "source": "https://github.com/Project-HAMi/KAI-resource-isolator/blob/09c0bb90b360503ac3ec5ca987d07fcae852ae0a/cmd/monitor/metrics.go#L123"
+    },
+    {
+      "repository": "KAI-resource-isolator",
+      "metric": "HostCoreUtilization",
+      "path": "cmd/monitor/metrics.go",
+      "line": 128,
+      "source": "https://github.com/Project-HAMi/KAI-resource-isolator/blob/09c0bb90b360503ac3ec5ca987d07fcae852ae0a/cmd/monitor/metrics.go#L128"
+    },
+    {
+      "repository": "KAI-resource-isolator",
+      "metric": "vGPU_device_memory_usage_in_bytes",
+      "path": "cmd/monitor/metrics.go",
+      "line": 133,
+      "source": "https://github.com/Project-HAMi/KAI-resource-isolator/blob/09c0bb90b360503ac3ec5ca987d07fcae852ae0a/cmd/monitor/metrics.go#L133"
+    },
+    {
+      "repository": "KAI-resource-isolator",
+      "metric": "vGPU_device_memory_limit_in_bytes",
+      "path": "cmd/monitor/metrics.go",
+      "line": 138,
+      "source": "https://github.com/Project-HAMi/KAI-resource-isolator/blob/09c0bb90b360503ac3ec5ca987d07fcae852ae0a/cmd/monitor/metrics.go#L138"
+    },
+    {
+      "repository": "KAI-resource-isolator",
+      "metric": "Device_memory_desc_of_container",
+      "path": "cmd/monitor/metrics.go",
+      "line": 143,
+      "source": "https://github.com/Project-HAMi/KAI-resource-isolator/blob/09c0bb90b360503ac3ec5ca987d07fcae852ae0a/cmd/monitor/metrics.go#L143"
+    },
+    {
+      "repository": "KAI-resource-isolator",
+      "metric": "Device_utilization_desc_of_container",
+      "path": "cmd/monitor/metrics.go",
+      "line": 148,
+      "source": "https://github.com/Project-HAMi/KAI-resource-isolator/blob/09c0bb90b360503ac3ec5ca987d07fcae852ae0a/cmd/monitor/metrics.go#L148"
+    },
+    {
+      "repository": "KAI-resource-isolator",
+      "metric": "Device_last_kernel_of_container",
+      "path": "cmd/monitor/metrics.go",
+      "line": 153,
+      "source": "https://github.com/Project-HAMi/KAI-resource-isolator/blob/09c0bb90b360503ac3ec5ca987d07fcae852ae0a/cmd/monitor/metrics.go#L153"
+    },
+    {
+      "repository": "volcano-vgpu-device-plugin",
+      "metric": "HostGPUMemoryUsage",
+      "path": "cmd/vgpu-monitor/metrics.go",
+      "line": 84,
+      "source": "https://github.com/Project-HAMi/volcano-vgpu-device-plugin/blob/6063efe9806ee7bd2fd966fc65f155c65c95696b/cmd/vgpu-monitor/metrics.go#L84"
+    },
+    {
+      "repository": "volcano-vgpu-device-plugin",
+      "metric": "HostCoreUtilization",
+      "path": "cmd/vgpu-monitor/metrics.go",
+      "line": 90,
+      "source": "https://github.com/Project-HAMi/volcano-vgpu-device-plugin/blob/6063efe9806ee7bd2fd966fc65f155c65c95696b/cmd/vgpu-monitor/metrics.go#L90"
+    },
+    {
+      "repository": "volcano-vgpu-device-plugin",
+      "metric": "vGPU_device_memory_usage_in_bytes",
+      "path": "cmd/vgpu-monitor/metrics.go",
+      "line": 96,
+      "source": "https://github.com/Project-HAMi/volcano-vgpu-device-plugin/blob/6063efe9806ee7bd2fd966fc65f155c65c95696b/cmd/vgpu-monitor/metrics.go#L96"
+    },
+    {
+      "repository": "volcano-vgpu-device-plugin",
+      "metric": "vGPU_device_memory_limit_in_bytes",
+      "path": "cmd/vgpu-monitor/metrics.go",
+      "line": 102,
+      "source": "https://github.com/Project-HAMi/volcano-vgpu-device-plugin/blob/6063efe9806ee7bd2fd966fc65f155c65c95696b/cmd/vgpu-monitor/metrics.go#L102"
+    },
+    {
+      "repository": "volcano-vgpu-device-plugin",
+      "metric": "Device_memory_desc_of_container",
+      "path": "cmd/vgpu-monitor/metrics.go",
+      "line": 107,
+      "source": "https://github.com/Project-HAMi/volcano-vgpu-device-plugin/blob/6063efe9806ee7bd2fd966fc65f155c65c95696b/cmd/vgpu-monitor/metrics.go#L107"
+    },
+    {
+      "repository": "volcano-vgpu-device-plugin",
+      "metric": "Device_utilization_desc_of_container",
+      "path": "cmd/vgpu-monitor/metrics.go",
+      "line": 112,
+      "source": "https://github.com/Project-HAMi/volcano-vgpu-device-plugin/blob/6063efe9806ee7bd2fd966fc65f155c65c95696b/cmd/vgpu-monitor/metrics.go#L112"
+    },
+    {
+      "repository": "volcano-vgpu-device-plugin",
+      "metric": "Device_last_kernel_of_container",
+      "path": "cmd/vgpu-monitor/metrics.go",
+      "line": 117,
+      "source": "https://github.com/Project-HAMi/volcano-vgpu-device-plugin/blob/6063efe9806ee7bd2fd966fc65f155c65c95696b/cmd/vgpu-monitor/metrics.go#L117"
+    }
+  ]
+}
