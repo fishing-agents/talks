@@ -16,4 +16,4 @@ The audience brief calls for a portable GPU observability architecture, practica
 
 ## Deck organization
 
-20 audience-facing slides followed by 11 appendix slides (including divider). Style remains based on snow_corp_cncf.md. Full static audit and proposed hardware validation plan remain in inventory.md and its source reports.
+20 audience-facing slides followed by 10 appendix slides (including divider). Style remains based on snow_corp_cncf.md. Full static audit and proposed hardware validation plan remain in inventory.md and its source reports.
