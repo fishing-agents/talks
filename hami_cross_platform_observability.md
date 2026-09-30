@@ -43,7 +43,7 @@ Audience narrative supplied by Reza. Implementation audit spans all 23 public Pr
 
 @subtitle Connect scheduling intent, runtime usage and application outcomes
 
-@speaker name="Reza Jelveh" role="HAMi / Dynamia" github=github.com/fishman
+@speaker name="Reza Jelveh" role="Solution Architect, Dynamia AI - Makers of HAMi" github=github.com/fishman linkedin=linkedin.com/in/rezajelveh
 
 ---
 
