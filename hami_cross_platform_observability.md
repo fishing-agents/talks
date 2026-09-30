@@ -654,17 +654,3 @@ Review the documentation report for legacy dashboard references. A successful HT
 ::: notes
 Source: [legacy runtime descriptors](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/vGPUmonitor/metrics.go#L142-L194); [current NVIDIA selector](https://github.com/Project-HAMi/HAMi-WebUI/blob/846c0e2d3360cc7240bb61968e4cc7e3cea53443/server/internal/exporter/exporter.go#L713-L715)
 :::
-
----
-
-<!--
-Use the accompanying inventory and repository manifest for full coverage and exact versions. Local snapshots were not pulled or reset. Dependency modules and uninitialized submodules are not represented as audited first-party implementations.
--->
-
-## What this inventory establishes
-
-- All **23 public repositories** covered, including archived projects.
-- Commit-pinned implementation and documentation evidence.
-- Separate scheduler, hardware, tenant and application signals.
-- Conditional support and missing exporters are explicit.
-- **Static audit only:** no hardware or cluster validation.
