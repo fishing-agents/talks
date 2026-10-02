@@ -1,6 +1,6 @@
 ---
 theme: kubecon_japan
-title: HAMi Cross-Platform Observability
+title: "One Agent, Every GPU: Vendor-Neutral Observability from the Kubernetes Scheduler"
 logo: assets/brand/hami-logo.png
 logo_dark: assets/brand/hami-logo.png
 watermark: assets/brand/kubecon_japan/cncf_logo.svg
@@ -39,9 +39,9 @@ Audience narrative supplied by Reza. Implementation audit spans all 23 public Pr
 @variant dark
 @kicker Kubernetes GPU observability
 
-# One workload view across heterogeneous GPUs
+# One Agent, Every GPU: Vendor-Neutral Observability from the Kubernetes Scheduler
 
-@subtitle Connect scheduling intent, runtime usage and application outcomes
+@subtitle One workload view across heterogeneous GPUs: connect scheduling intent, runtime usage and application outcomes
 
 @speaker name="Reza Jelveh" role="Solution Architect, Dynamia AI - Makers of HAMi" github=github.com/fishman linkedin=linkedin.com/in/rezajelveh
 
@@ -207,6 +207,8 @@ Source: [AMD normalization](https://github.com/Project-HAMi/HAMi/blob/39699df260
 Scheduler reservation labels are namespace,node,pod,device_uuid; runtime labels include namespace,pod,container,vdevice_index,device_uuid. A common recording-rule layer must reconcile these scopes. The scheduler iterates container/device allocations without container labels in the new family, so multi-container same-device emission/aggregation must be validated. Never perform an arbitrary direct division. Runtime memory_limit_bytes has the same labels as memory_used_bytes and supports a scoped NVIDIA memory-use/limit comparison, subject to scrape freshness and positive limits.
 -->
 
+@layout image-right
+
 ## Reservation and consumption answer different questions
 
 ::: grid {cols=2}
@@ -224,8 +226,10 @@ Runtime accounting at container/vdevice scope.
 :::
 :::
 
+![HAMi WebUI overview: Memory Alloc 77.8% reserved vs Memory Usage 10.5% consumed; the Alloc Rate trend line stays flat near 80 while Usage Rate oscillates 10-45](assets/hami/webui-overview-cropped.png)
+
 ::: notes
-Source: [workload allocations](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/scheduler/metrics.go#L389-L455); [tenant runtime metrics](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/vGPUmonitor/metrics.go#L92-L140)
+Source: [workload allocations](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/scheduler/metrics.go#L389-L455); [tenant runtime metrics](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/vGPUmonitor/metrics.go#L92-L140). Screenshot: [Project-HAMi/website docs, userguide/hami-webui-user-guide.md#L45](https://github.com/Project-HAMi/website/blob/181dbd0e830b8ca190f6170284f3238c3597732d/docs/userguide/hami-webui-user-guide.md#L45), CC BY 4.0, live cluster not independently verified by this audit.
 :::
 
 ---
@@ -342,6 +346,8 @@ Source: [scheduler capacity](https://github.com/Project-HAMi/HAMi/blob/39699df26
 PORTABLE PATTERN, NOT AN AUTOMATED HAMi RIGHT-SIZER. GPU memory is not inferred from activity. Percentiles alone can miss startup peaks and short out-of-memory events. On shared GPUs, activity may be measured against full device capacity rather than the reserved fraction; normalize explicitly. Changes can affect contention or application throughput. No fabricated improvement percentages or production case study are supplied.
 -->
 
+@layout image-right
+
 ## Pattern 3: right-size with workload evidence
 
 - Measure startup peaks and steady-state demand across the workload lifecycle.
@@ -350,8 +356,10 @@ PORTABLE PATTERN, NOT AN AUTOMATED HAMi RIGHT-SIZER. GPU memory is not inferred 
 - Tune compute limits only after normalizing quota and activity semantics.
 - Canary the new request; compare latency, failures and placement outcomes.
 
+![HAMi WebUI workload detail: gpu-burn Pod at Compute Power Limit 0.5, GPU Compute Utilization spiking past 100 on a 0-180 axis while Memory Utilization oscillates 10-90%](assets/hami/webui-workload-detail.png)
+
 ::: notes
-Source: [tenant runtime metrics](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/vGPUmonitor/metrics.go#L92-L140); [scheduling outcome counters](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/pkg/metrics/scheduler.go#L29-L55)
+Source: [tenant runtime metrics](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/vGPUmonitor/metrics.go#L92-L140); [scheduling outcome counters](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/pkg/metrics/scheduler.go#L29-L55). Screenshot: [Project-HAMi/website docs, userguide/hami-webui-user-guide.md#L57](https://github.com/Project-HAMi/website/blob/181dbd0e830b8ca190f6170284f3238c3597732d/docs/userguide/hami-webui-user-guide.md#L57), CC BY 4.0, live cluster not independently verified by this audit.
 :::
 
 ---

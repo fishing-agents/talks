@@ -8,7 +8,7 @@ from urllib.parse import unquote
 
 HERE = Path(__file__).resolve().parent
 TALKS = HERE.parents[1]
-REPOS = HERE.parents[2]
+REPOS = TALKS / "references"
 
 
 def main():
