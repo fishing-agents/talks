@@ -432,7 +432,6 @@ PROPOSED INSTRUMENTATION. Do not invent current HAMi admission latency histogram
 - Emit separate scheduler events for reservation, no-fit and bind rollback.
 - Correlate runtime and application signals after the workload starts.
 - Use stable workload/device identity; avoid PID and request-level metric labels.
-- Proposed `hami.*` attributes are custom, not standard OTel conventions.
 
 ::: notes
 Source: [scheduling outcome counters](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/pkg/metrics/scheduler.go#L29-L55)
