@@ -356,10 +356,10 @@ PORTABLE PATTERN, NOT AN AUTOMATED HAMi RIGHT-SIZER. GPU memory is not inferred 
 - Tune compute limits only after normalizing quota and activity semantics.
 - Canary the new request; compare latency, failures and placement outcomes.
 
-![HAMi WebUI workload detail: gpu-burn Pod at Compute Power Limit 0.5, GPU Compute Utilization spiking past 100 on a 0-180 axis while Memory Utilization oscillates 10-90%](assets/hami/webui-workload-detail.png)
+![HAMi WebUI workload detail: gpu-burn Pod at Compute Power Limit 1, GPU Compute Utilization oscillates 0-100% while Memory Utilization oscillates 0-90%](assets/hami/webui-workload-gpu-burn.png)
 
 ::: notes
-Source: [tenant runtime metrics](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/vGPUmonitor/metrics.go#L92-L140); [scheduling outcome counters](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/pkg/metrics/scheduler.go#L29-L55). Screenshot: [Project-HAMi/website docs, userguide/hami-webui-user-guide.md#L57](https://github.com/Project-HAMi/website/blob/181dbd0e830b8ca190f6170284f3238c3597732d/docs/userguide/hami-webui-user-guide.md#L57), CC BY 4.0, live cluster not independently verified by this audit.
+Source: [tenant runtime metrics](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/vGPUmonitor/metrics.go#L92-L140); [scheduling outcome counters](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/pkg/metrics/scheduler.go#L29-L55). Screenshot: HAMi-WebUI 1.3.0 on a single-node A30 cluster.
 :::
 
 ---
