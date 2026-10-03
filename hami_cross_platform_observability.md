@@ -96,7 +96,7 @@ Source: [Kubernetes device-plugin contract](https://kubernetes.io/docs/concepts/
 CUDA context and MIG are NVIDIA-specific examples explaining the general identity problem. A claimed utilization percentage needs a scope, sampling interval and denominator. Do not sum arbitrary GPU activity percentages or compare whole-card activity to a tenant reservation.
 -->
 
-## Contexts and partitions change the denominator
+## Contexts and partitions change attribution and scope
 
 ::: grid {cols=2}
 ::: card {tag=cyan}
