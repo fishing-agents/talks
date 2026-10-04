@@ -24,4 +24,4 @@ The accepted CFP ("One Agent, Every GPU: Vendor-Neutral Observability from the K
 
 ## Deck organization
 
-20 audience-facing slides followed by 10 appendix slides (including divider). Style remains based on snow_corp_cncf.md. Full static audit and proposed hardware validation plan remain in inventory.md and its source reports.
+21 audience-facing slides followed by 10 appendix slides (including divider). Slide 6 states what DCGM exporter alone cannot answer, framed as complementary: WebUI consumes DCGM for physical panels. Style remains based on snow_corp_cncf.md. Full static audit and proposed hardware validation plan remain in inventory.md and its source reports.

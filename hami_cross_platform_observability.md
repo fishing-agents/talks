@@ -39,9 +39,9 @@ Audience narrative supplied by Reza. Implementation audit spans all 23 public Pr
 @variant dark
 @kicker Kubernetes GPU observability
 
-# One Agent, Every GPU: Vendor-Neutral Observability from the Kubernetes Scheduler
+# One Agent, Every GPU
 
-@subtitle One workload view across heterogeneous GPUs: connect scheduling intent, runtime usage and application outcomes
+@subtitle Vendor-Neutral Observability from the Kubernetes Scheduler
 
 @speaker name="Reza Jelveh" role="Solution Architect, Dynamia AI - Makers of HAMi" github=github.com/fishman linkedin=linkedin.com/in/rezajelveh
 
@@ -155,6 +155,37 @@ Source: [scheduler](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e506
 ---
 
 <!--
+Fair framing: DCGM exporter is the best NVIDIA physical sensor and HAMi WebUI itself consumes it for physical panels. The gap is the other three planes. Pod labels come from kubelet pod-resources device assignment. NVIDIA's GPU Operator docs state that DCGM-Exporter does not associate metrics to containers when time-slicing is enabled with the NVIDIA device plugin; newer releases add opt-in --kubernetes-virtual-gpus (default false) for NVIDIA-supported time-sharing or MPS assignments. HAMi advertises replica device IDs as <uuid>-<n> rather than NVIDIA's <uuid>::<n> time-slicing form; whether dcgm-exporter maps them is untested. DEV_ fields such as DCGM_FI_DEV_FB_USED and DCGM_FI_DEV_GPU_UTIL describe the whole GPU or MIG instance; HAMi-core hook accounting supplies the per-tenant memory and SM split. Do not claim DCGM is blind to contention or waste; claim it lacks reservation, limit and scheduling context.
+-->
+
+## What DCGM exporter alone cannot answer
+
+::: grid {cols=2}
+::: card {tag=green}
+### What it measures well
+Whole GPU or MIG instance: memory, utilization, power, thermals, XID errors and profiling counters.
+:::
+::: card {tag=yellow}
+### No per-tenant split
+DEV_ fields describe the whole GPU or MIG instance; co-tenants on one card share one number. Time-sharing attribution is opt-in.
+:::
+::: card {tag=cyan}
+### No budget or intent
+No per-container memory limit, reserved share, sharing count or quota. Utilization has no reservation to compare against.
+:::
+::: card {tag=red}
+### No decisions, one vendor
+Pending, no-fit and rolled-back Pods never reach a GPU. AMD, Ascend and Hygon need separate stacks.
+:::
+:::
+
+::: notes
+Source: [time-slicing limitation](https://docs.nvidia.com/datacenter/cloud-native/gpu-operator/latest/gpu-sharing.html#limitations); [dcgm-exporter flags](https://docs.nvidia.com/datacenter/dcgm/latest/reference/command-line-reference/dcgm-exporter.html); [container limit and use](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/vGPUmonitor/metrics.go#L92-L102); [reservation and sharing](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/scheduler/metrics.go#L171-L180); [outcomes](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/pkg/metrics/scheduler.go#L29-L55)
+:::
+
+---
+
+<!--
 Admission control, scheduling and runtime are distinct stages. HAMi is not a global observer for arbitrary device-plugin allocations; coverage requires a HAMi integration. The architecture combines existing HAMi accounting with runtime sources. Admission and scheduling traces described later are proposed additions.
 -->
 
@@ -207,9 +238,7 @@ Source: [AMD normalization](https://github.com/Project-HAMi/HAMi/blob/39699df260
 Scheduler reservation labels are namespace,node,pod,device_uuid; runtime labels include namespace,pod,container,vdevice_index,device_uuid. A common recording-rule layer must reconcile these scopes. The scheduler iterates container/device allocations without container labels in the new family, so multi-container same-device emission/aggregation must be validated. Never perform an arbitrary direct division. Runtime memory_limit_bytes has the same labels as memory_used_bytes and supports a scoped NVIDIA memory-use/limit comparison, subject to scrape freshness and positive limits.
 -->
 
-@layout image-right
-
-## Reservation and consumption answer different questions
+## Reservation is not consumption
 
 ::: grid {cols=2}
 ::: card {tag=cyan}
@@ -226,7 +255,7 @@ Runtime accounting at container/vdevice scope.
 :::
 :::
 
-![Grafana: vGPU memory reserved (hami_vgpu_memory_allocated_bytes) stays at 5 GiB while used (hami_vgpu_memory_used_bytes) oscillates 0-4.49 GiB](assets/hami/grafana-reserved-vs-used-memory.png)
+![Grafana: vGPU memory reserved (hami_vgpu_memory_allocated_bytes) stays at 5 GiB while used (hami_vgpu_memory_used_bytes) oscillates 0-4.49 GiB](assets/hami/grafana-reserved-vs-used-memory-plot.png)
 
 ::: notes
 Source: [workload allocations](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/scheduler/metrics.go#L389-L455); [tenant runtime metrics](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/vGPUmonitor/metrics.go#L92-L140). Screenshot: Grafana on a real cluster.
@@ -346,8 +375,6 @@ Source: [scheduler capacity](https://github.com/Project-HAMi/HAMi/blob/39699df26
 PORTABLE PATTERN, NOT AN AUTOMATED HAMi RIGHT-SIZER. GPU memory is not inferred from activity. Percentiles alone can miss startup peaks and short out-of-memory events. On shared GPUs, activity may be measured against full device capacity rather than the reserved fraction; normalize explicitly. Changes can affect contention or application throughput. No fabricated improvement percentages or production case study are supplied.
 -->
 
-@layout image-right
-
 ## Pattern 3: right-size with workload evidence
 
 - Measure startup peaks and steady-state demand across the workload lifecycle.
@@ -356,7 +383,7 @@ PORTABLE PATTERN, NOT AN AUTOMATED HAMi RIGHT-SIZER. GPU memory is not inferred 
 - Tune compute limits only after normalizing quota and activity semantics.
 - Canary the new request; compare latency, failures and placement outcomes.
 
-![HAMi WebUI workload detail: gpu-burn Pod at Compute Power Limit 1, GPU Compute Utilization oscillates 0-100% while Memory Utilization oscillates 0-90%](assets/hami/webui-workload-gpu-burn.png)
+![HAMi WebUI gpu-burn charts: allocated compute utilization and GPU memory utilization both cycle between 0 and about 100 and 90 percent](assets/hami/webui-workload-gpu-burn-charts.png)
 
 ::: notes
 Source: [tenant runtime metrics](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/vGPUmonitor/metrics.go#L92-L140); [scheduling outcome counters](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/pkg/metrics/scheduler.go#L29-L55). Screenshot: HAMi-WebUI 1.3.0 on a single-node A30 cluster.
@@ -594,19 +621,19 @@ The documentation report lists documented vendors and the corresponding source p
 ---
 
 <!--
-NVIDIA and HCU task activity conversions explicitly exclude elastic borrowing; other vendor paths differ. Physical-card activity must not substitute for an individual tenant on a shared card.
+Why "normalization layer": WebUI does not measure hardware. Every 30 s it reads HAMi allocation state from node and Pod annotations, sends one PromQL query per device to the vendor's own exporter (DCGM, npu-exporter, mlu, mx, dcu, hcu), converts units (bytes or KB to MiB, MetaX mW to W), maps vendor label keys (UUID, uuid, vdie_id, device_id) onto common node/provider/device_uuid labels, and re-exports one hami_* vocabulary. Boundaries: Ascend workload telemetry is unsupported, DCU workload queries do not match dcu-exporter, and MLU/DCU/MetaX keep a card-utilization fallback. NVIDIA and HCU task activity conversions explicitly exclude elastic borrowing; other vendor paths differ. Physical-card activity must not substitute for an individual tenant on a shared card.
 -->
 
 ## WebUI is a normalization layer with boundaries
 
 - Uses Kubernetes allocation state plus Prometheus vendor queries.
-- Re-exports common `hami_memory_*`, `hami_core_*` and container families.
+- Converts vendor units and label keys into common `hami_memory_*`, `hami_core_*` and container families.
 - Marks unknown core allocation instead of manufacturing capacity.
 - Exposes refresh health and last-success timestamp.
 - Common names do not guarantee common measurement semantics.
 
 ::: notes
-Source: [refresh health](https://github.com/Project-HAMi/HAMi-WebUI/blob/846c0e2d3360cc7240bb61968e4cc7e3cea53443/server/internal/exporter/metrics.go#L44-L49); [known/unknown and usage](https://github.com/Project-HAMi/HAMi-WebUI/blob/846c0e2d3360cc7240bb61968e4cc7e3cea53443/server/internal/exporter/metrics.go#L163-L180); [semantics](https://github.com/Project-HAMi/HAMi-WebUI/blob/846c0e2d3360cc7240bb61968e4cc7e3cea53443/server/internal/exporter/exporter.go#L744-L788)
+Source: [unit conversion](https://github.com/Project-HAMi/HAMi-WebUI/blob/846c0e2d3360cc7240bb61968e4cc7e3cea53443/server/internal/exporter/exporter.go#L655-L664); [refresh health](https://github.com/Project-HAMi/HAMi-WebUI/blob/846c0e2d3360cc7240bb61968e4cc7e3cea53443/server/internal/exporter/metrics.go#L44-L49); [known/unknown and usage](https://github.com/Project-HAMi/HAMi-WebUI/blob/846c0e2d3360cc7240bb61968e4cc7e3cea53443/server/internal/exporter/metrics.go#L163-L180); [semantics](https://github.com/Project-HAMi/HAMi-WebUI/blob/846c0e2d3360cc7240bb61968e4cc7e3cea53443/server/internal/exporter/exporter.go#L744-L788)
 :::
 
 ---
