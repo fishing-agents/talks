@@ -315,24 +315,6 @@ Source: [workload allocations](https://github.com/Project-HAMi/HAMi/blob/39699df
 ---
 
 <!--
-The deck describes source contracts, not inferred Prometheus naming conventions. Validate representative real samples before writing recording rules.
--->
-
-## The same suffix can hide different units
-
-- Runtime host GPU activity is described as **0-100**, despite `_ratio`.
-- Scheduler memory-allocation ratio is explicitly **0-1**.
-- Scheduler byte families convert internal **MiB to bytes**.
-- WebUI physical memory families use **MiB**, not bytes.
-- Normalize units at the boundary, before aggregation.
-
-::: notes
-Source: [0-100 contract](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/vGPUmonitor/metrics.go#L63-L72); [MiB conversion](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/scheduler/metrics.go#L116-L120); [0-1 contract](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/scheduler/metrics.go#L191-L195); [WebUI MiB](https://github.com/Project-HAMi/HAMi-WebUI/blob/846c0e2d3360cc7240bb61968e4cc7e3cea53443/server/internal/exporter/metrics.go#L68-L91)
-:::
-
----
-
-<!--
 PORTABLE PATTERN, NOT A MEASURED RESULT. For the NVIDIA runtime families, max_over_time(hami_vgpu_memory_used_bytes[1h]) divided by hami_vgpu_memory_limit_bytes is an illustrative same-label use/limit ratio. The window is an example, not an operational recommendation. Validate scrape coverage, series uniqueness, Pod restarts and limits. Current limit differs from historical limits if reconfigured. Map workload reservations separately before saying allocation efficiency. Memory pressure needs consumption/limit, memory errors and/or allocator signals; reservations alone are not measured pressure.
 -->
 
@@ -470,7 +452,7 @@ Source: [scheduling outcome counters](https://github.com/Project-HAMi/HAMi/blob/
 ---
 
 <!--
-PROPOSAL: this is a recommended normalization contract, not an implemented universal HAMi API. Preserve raw vendor metrics and document conversions.
+PROPOSAL: this is a recommended normalization contract, not an implemented universal HAMi API. Preserve raw vendor metrics and document conversions. The "Today" line is the evidence for explicit semantics: the deck describes source contracts, not inferred Prometheus naming conventions. Runtime host GPU activity is 0-100 despite _ratio; the scheduler memory-allocation ratio is 0-1; scheduler byte families convert internal MiB to bytes; WebUI physical memory families are MiB. Normalize units at the boundary, before aggregation, and validate representative real samples before writing recording rules.
 -->
 
 ## A cross-platform contract we should build
@@ -492,6 +474,12 @@ Measured, derived, unsupported or stale. Export the collection timestamp and err
 ### Bounded cost
 Avoid PID-level history by default. Control label churn and query fan-out.
 :::
+:::
+
+**Today:** `_ratio` means 0-100 at runtime but 0-1 in the scheduler; scheduler memory is bytes, WebUI memory is MiB.
+
+::: notes
+Source: [0-100 contract](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/vGPUmonitor/metrics.go#L63-L72); [MiB conversion](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/scheduler/metrics.go#L116-L120); [0-1 contract](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/scheduler/metrics.go#L191-L195); [WebUI MiB](https://github.com/Project-HAMi/HAMi-WebUI/blob/846c0e2d3360cc7240bb61968e4cc7e3cea53443/server/internal/exporter/metrics.go#L68-L91)
 :::
 
 ---
