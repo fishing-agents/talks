@@ -121,7 +121,7 @@ CUDA context and MIG are NVIDIA-specific examples explaining the general identit
 
 ## Contexts and partitions change attribution and scope
 
-::: grid {cols=2}
+::: grid {cols=3}
 ::: card {tag=cyan}
 ### CUDA context
 Memory and execution live in driver/runtime contexts. A Pod-to-device mapping does not reveal every operation.
@@ -134,10 +134,11 @@ Use instance/profile identity and partition capacity. Whole-card utilization can
 ### Soft-shared vGPU
 Limits and accounting depend on the runtime interposition and sharing mode.
 :::
+:::
+
 ::: card {tag=red}
 ### Comparison rule
 Compare matching physical, partition or tenant scopes with documented units.
-:::
 :::
 
 ::: notes
