@@ -226,10 +226,10 @@ Runtime accounting at container/vdevice scope.
 :::
 :::
 
-![HAMi WebUI overview: Memory Alloc 77.8% reserved vs Memory Usage 10.5% consumed; the Alloc Rate trend line stays flat near 80 while Usage Rate oscillates 10-45](assets/hami/webui-overview-cropped.png)
+![Grafana: vGPU memory reserved (hami_vgpu_memory_allocated_bytes) stays at 5 GiB while used (hami_vgpu_memory_used_bytes) oscillates 0-4.49 GiB](assets/hami/grafana-reserved-vs-used-memory.png)
 
 ::: notes
-Source: [workload allocations](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/scheduler/metrics.go#L389-L455); [tenant runtime metrics](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/vGPUmonitor/metrics.go#L92-L140). Screenshot: [Project-HAMi/website docs, userguide/hami-webui-user-guide.md#L45](https://github.com/Project-HAMi/website/blob/181dbd0e830b8ca190f6170284f3238c3597732d/docs/userguide/hami-webui-user-guide.md#L45), CC BY 4.0, live cluster not independently verified by this audit.
+Source: [workload allocations](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/scheduler/metrics.go#L389-L455); [tenant runtime metrics](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/vGPUmonitor/metrics.go#L92-L140). Screenshot: Grafana on a real cluster.
 :::
 
 ---
