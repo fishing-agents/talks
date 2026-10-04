@@ -423,7 +423,7 @@ The scheduler uses backend device metadata. Core semantics still require vendor 
 - **Per Pod and namespace:** what each Pod reserved on which GPU, and how much of each namespace's GPU quota is used.
 - **Scheduler health:** is this replica in charge, has it loaded cluster state, and why did placements fail (no GPU fits, lock, bind error)?
 - **AMD:** compute units are converted to a percentage, so they compare with other vendors.
-- These describe **placement and reservation**. Measured GPU work comes from vGPUmonitor; Prometheus keeps the history.
+- These describe **placement and reservation**. Measured GPU work comes from runtime collectors (vGPUmonitor on NVIDIA); Prometheus keeps the history.
 
 ::: notes
 Source: [AMD normalization](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/scheduler/metrics.go#L64-L74); [allocation families](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/scheduler/metrics.go#L157-L200); [pod reservations](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/scheduler/metrics.go#L389-L455); [namespace quotas](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/scheduler/metrics.go#L347-L356); [leader and cache sync](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/scheduler/metrics.go#L510-L519); [outcome counters](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/pkg/metrics/scheduler.go#L29-L55); [measured work](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/vGPUmonitor/metrics.go#L53-L140)
@@ -550,7 +550,7 @@ Measured or derived? Supported on this vendor/mode? Current or stale?
 ---
 
 <!--
-REFERENCE ARCHITECTURE, NOT AN EXISTING HAMi OTLP INTEGRATION. OpenTelemetry Collector contrib has a Prometheus receiver; deployment/component versions, enrichment and target discovery must be validated. The proposed architecture preserves vendor/runtime sources and adds intent correlation. Existing metric units do not automatically conform to OTel semantic conventions. Do not claim one Prometheus receiver somehow removes hardware-specific sensors.
+REFERENCE ARCHITECTURE, NOT AN EXISTING HAMi OTLP INTEGRATION. OpenTelemetry Collector contrib has a Prometheus receiver; deployment/component versions, enrichment and target discovery must be validated. The proposed architecture preserves vendor/runtime sources and adds intent correlation. Existing metric units do not automatically conform to OTel semantic conventions. Do not claim one Prometheus receiver somehow removes hardware-specific sensors. Admission and scheduler events are PROPOSED INSTRUMENTATION: admission records intent (requested resources, policy decision, rejection reason), not GPU work; the scheduler emits separate events for reservation, no-fit and bind rollback. Do not invent current HAMi admission latency histograms, GPU execution spans or trace-context propagation. Existing bounded outcome counters do not carry per-Pod trace correlation. A CREATE admission request may precede stable Pod UID assignment: use the admission request identity first and reconcile once the object exists. Use stable workload/device identity and avoid PID and request-level metric labels. The scheduler does not intercept CUDA calls.
 -->
 
 ## OpenTelemetry can carry the combined model
@@ -565,8 +565,8 @@ HAMi Prometheus allocation metrics plus compatible runtime metrics.
 A Prometheus receiver can scrape, enrich and export metrics through OTLP.
 :::
 ::: card {tag=yellow}
-### Additional instrumentation
-Proposed spans/events for admission, allocation and bind decisions.
+### Admission and scheduler events
+Proposed: request, policy decision and rejection; then reservation, no-fit and bind rollback.
 :::
 ::: card {tag=cyan}
 ### Common attributes
@@ -575,24 +575,7 @@ Workload identity, device/slice identity, scope, unit, source and freshness.
 :::
 
 ::: notes
-Source: [OpenTelemetry Collector](https://opentelemetry.io/docs/collector/); [Prometheus receiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/prometheusreceiver)
-:::
-
----
-
-<!--
-PROPOSED INSTRUMENTATION. Do not invent current HAMi admission latency histograms, GPU execution spans or trace-context propagation. Existing bounded outcome counters do not carry per-Pod trace correlation. Pod UID can be available at later lifecycle stages; a CREATE admission request may precede stable Pod UID assignment. Use admission request identity initially and reconcile once the object exists. Cardinality/security budgets need explicit design. The scheduler does not intercept CUDA calls.
--->
-
-## Admission telemetry records intent, not GPU work
-
-- Record requested resources, policy decisions and rejection reasons.
-- Emit separate scheduler events for reservation, no-fit and bind rollback.
-- Correlate runtime and application signals after the workload starts.
-- Use stable workload/device identity; avoid PID and request-level metric labels.
-
-::: notes
-Source: [scheduling outcome counters](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/pkg/metrics/scheduler.go#L29-L55)
+Source: [OpenTelemetry Collector](https://opentelemetry.io/docs/collector/); [Prometheus receiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/prometheusreceiver); [scheduling outcome counters](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/pkg/metrics/scheduler.go#L29-L55)
 :::
 
 ---
