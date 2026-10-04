@@ -200,7 +200,7 @@ ax.spines[["top", "right", "left", "bottom"]].set_visible(False)
 ax.tick_params(left=False, bottom=False, labelleft=False, labelbottom=False)
 ```
 
-- The launch returns before the kernel runs: CPU-side timing is not GPU time.
+- Starting GPU work only queues it. Timing that call on the CPU shows queuing time, not how long the GPU worked.
 - Contexts from different Pods take turns; streams overlap inside one context.
 - NVML "GPU utilization" means a kernel ran, not how many SMs were busy.
 
