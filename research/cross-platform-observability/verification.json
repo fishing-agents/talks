@@ -1,7 +1,7 @@
 {
   "repository_entries": 23,
-  "checked_source_references": 214,
-  "slides": 31,
-  "pdf_pages": 31,
+  "checked_source_references": 216,
+  "slides": 33,
+  "pdf_pages": 33,
   "scope": "Static source/citation and rendered artifact checks, not a live GPU observability test."
 }

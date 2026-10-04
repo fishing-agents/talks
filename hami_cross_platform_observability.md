@@ -1,5 +1,6 @@
 ---
 theme: kubecon_japan
+seaborn_theme: kubecon_japan
 title: "One Agent, Every GPU: Vendor-Neutral Observability from the Kubernetes Scheduler"
 logo: assets/brand/hami-logo.png
 logo_dark: assets/brand/hami-logo.png
@@ -75,42 +76,186 @@ Keep vendor sensors. Add a common workload identity and scheduling-intent layer.
 ---
 
 <!--
-These are operating-model differences, not a claim that CPU observability is perfect. A device plugin has resource discovery, health and allocation interfaces; a workload telemetry contract is separate. MIG has hardware resource/isolation boundaries and must not be conflated with soft vGPU sharing.
+Primer for attendees new to GPU internals. CUDA context: one process's GPU state (memory allocations, loaded kernels, streams); contexts on one card time-share the GPU. SM: Streaming Multiprocessor, the GPU's compute block (about 108 on an A100, 132 on an H100 SXM); a kernel is split into thread blocks that the hardware spreads across SMs. NVML: the NVIDIA Management Library behind nvidia-smi, shipped with the driver; device-level state plus sampled per-process data keyed by host PID, with no notion of Pod or container. DCGM builds on NVML. MIG: hardware partitioning, starting with Ampere, into up to seven GPU instances with dedicated SMs and memory. Other vendors: AMD's SM equivalent is a Compute Unit; the management libraries are AMD SMI/ROCm SMI, Huawei DCMI and Hygon rocm-smi/HY-DMI.
 -->
 
-## Why GPU observability is harder than CPU
+## GPU terms in one minute
 
-- CPU time is commonly charged to a process or cgroup.
-- A device-plugin allocation grants access; it does not report executed work.
-- Contexts, streams and asynchronous execution complicate attribution.
-- Shared GPUs and MIG introduce multiple capacity and identity scopes.
-- Device activity alone cannot explain request size or application latency.
+::: grid {cols=2}
+::: card {tag=cyan}
+### CUDA context
+A process's private workspace on the GPU: memory allocations, loaded kernels and work queues (streams).
+:::
+::: card {tag=green}
+### SM (Streaming Multiprocessor)
+The GPU's compute block. A GPU is many SMs; each kernel runs as thread blocks spread across them.
+:::
+::: card {tag=yellow}
+### NVML
+NVIDIA's library behind nvidia-smi: device state plus per-process samples keyed by host PID. It knows no Pods.
+:::
+::: card {tag=red}
+### MIG (Multi-Instance GPU)
+Hardware partitioning, Ampere and newer: up to seven instances, each with its own SMs and memory.
+:::
+:::
 
 ::: notes
-Source: [Kubernetes device-plugin contract](https://kubernetes.io/docs/concepts/extend-kubernetes/compute-storage-net/device-plugins/); [CUDA contexts](https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__DRIVER.html); [MIG isolation](https://docs.nvidia.com/datacenter/tesla/mig-user-guide/introduction.html)
+Source: [CUDA contexts](https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__DRIVER.html); [NVML API](https://docs.nvidia.com/deploy/nvml-api/index.html); [MIG introduction](https://docs.nvidia.com/datacenter/tesla/mig-user-guide/introduction.html)
 :::
 
 ---
 
 <!--
-Primer for attendees new to GPU internals. A CUDA context holds one process's GPU state: memory allocations, loaded kernels and streams. Contexts on one card time-share the GPU. MIG is hardware partitioning, starting with the NVIDIA Ampere architecture, into up to seven GPU instances, each with dedicated memory and compute. Keep it brief; the next slide covers what this means for observability.
+Operating-model difference, not a claim that CPU observability is perfect. CPU: the kernel scheduler charges CPU time to the running task, and cgroups aggregate it per container; kubelet/cAdvisor read it, so Pod CPU usage is a direct reading. GPU: the device plugin grants a device to a container (Allocate) and reports health, never executed work. Work flows Pod -> process -> CUDA context -> stream -> kernel on SMs. NVML sees the device and host PIDs; getting back to a Pod means joining host PID to container to Pod. A device-plugin allocation and a workload telemetry contract are separate interfaces.
 -->
 
-## CUDA contexts and MIG in one minute
+## CPU is charged; GPU is joined
 
-::: grid {cols=2}
-::: card {tag=cyan}
-### CUDA context
-A process's private workspace on the GPU: its memory allocations, loaded kernels and work queues. Contexts from several Pods take turns on one card.
-:::
-::: card {tag=green}
-### MIG (Multi-Instance GPU)
-Hardware partitioning, Ampere and newer: one card split into up to seven instances, each with its own memory and compute.
-:::
-:::
+```dot
+digraph G {
+  rankdir=LR
+  size="11,3"
+  bgcolor=transparent
+  nodesep=0.35
+  ranksep=0.45
+  node [shape=box style="rounded,filled" fontname="Arial" fontsize=14 margin="0.14,0.08" color="#3939D8" fillcolor="#e3f0ff" fontcolor="#2a2a5a"]
+  edge [fontname="Arial" fontsize=11 color="#6a7a99" fontcolor="#2a2a5a"]
+
+  subgraph cluster_gpu {
+    label="GPU" labeljust=l fontname="Arial Bold" fontsize=15 fontcolor="#DB1E3D" color="#DB1E3D" style=rounded
+    gpod [label="Pod"]
+    pid [label="process\n(host PID)"]
+    ctx [label="CUDA context\n+ streams"]
+    sm [label="kernels\non SMs"]
+    nvml [label="NVML: device %,\nper-PID samples" fillcolor="#fff9e6" color="#f9a825"]
+    back [label="Pod (joined)" fillcolor="#ffe8eb" color="#DB1E3D"]
+    gpod -> pid -> ctx -> sm
+    sm -> nvml [label="sampled"]
+    nvml -> back [label="join PID ->\ncontainer -> Pod" style=dashed color="#DB1E3D" fontcolor="#DB1E3D"]
+  }
+
+  subgraph cluster_cpu {
+    label="CPU" labeljust=l fontname="Arial Bold" fontsize=15 fontcolor="#2e7d32" color="#2e7d32" style=rounded
+    cpod [label="Pod"]
+    cg [label="cgroup"]
+    cpu [label="CPU time per Pod" fillcolor="#e8f5e9" color="#2e7d32"]
+    cpod -> cg [label="processes in"]
+    cg -> cpu [label="kernel charges\nevery tick"]
+  }
+
+}
+```
+
+- CPU: the kernel charges time to the cgroup, so Pod usage is a direct reading.
+- GPU: the device plugin grants access but reports no executed work.
+- NVML sees devices and host PIDs; attribution to a Pod must be joined back.
 
 ::: notes
-Source: [CUDA contexts](https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__DRIVER.html); [MIG introduction](https://docs.nvidia.com/datacenter/tesla/mig-user-guide/introduction.html)
+Source: [Kubernetes device-plugin contract](https://kubernetes.io/docs/concepts/extend-kubernetes/compute-storage-net/device-plugins/); [NVML process queries](https://docs.nvidia.com/deploy/nvml-api/group__nvmlDeviceQueries.html)
+:::
+
+---
+
+<!--
+ILLUSTRATIVE TIMELINE, NOT A MEASUREMENT. cudaLaunchKernel enqueues work and returns, so CPU-side timing measures enqueueing, not GPU execution, and a request's latency includes waiting behind another tenant's kernels. Contexts from different processes time-slice the GPU by default; streams inside one context can overlap. NVML's GPU utilization is the percent of time over the sample period during which one or more kernels was executing: one small kernel on a few SMs reads as 100 percent and says nothing about whose it was. DCGM's SM activity profiling field measures how many SMs were busy. Per-process utilization is a sample keyed by host PID.
+-->
+
+## Async launches blur who used the GPU
+
+```seaborn
+import matplotlib.pyplot as plt
+
+fg = plt.rcParams["text.color"]
+dimmed = plt.rcParams["xtick.color"]
+blue, red, grey = "#3939D8", "#DB1E3D", "#c0c4d6"
+
+fig, ax = plt.subplots(figsize=(10, 3.0))
+ax.set_facecolor("none")
+fig.patch.set_alpha(0)
+
+rows = {"Pod A: CPU launch": 3, "Pod A: kernels": 2, "Pod B: kernels": 1, "Device (NVML)": 0}
+for name, y in rows.items():
+    ax.text(-0.2, y, name, ha="right", va="center", fontsize=11, color=fg, fontweight="bold")
+
+for t in (0.3, 2.9):
+    ax.barh(3, 0.15, left=t, color=blue, height=0.5)
+ax.text(0.6, 3, "returns at once", ha="left", va="center", fontsize=9.5, color=dimmed)
+
+for left, w in ((1.2, 2.2), (4.6, 1.6)):
+    ax.barh(2, w, left=left, color=blue, height=0.5)
+for left, w in ((3.4, 1.2), (6.2, 2.6)):
+    ax.barh(1, w, left=left, color=red, height=0.5)
+
+ax.barh(0, 7.6, left=1.2, color=grey, height=0.5)
+ax.text(5.0, 0, "\"100% busy\": a kernel was running. Whose? On how many SMs?",
+        ha="center", va="center", fontsize=10, color=fg, fontweight="bold")
+
+ax.text(-0.2, 3.75, "ILLUSTRATIVE TIMELINE, NOT A MEASUREMENT", fontsize=9.5, color=dimmed, family="monospace")
+ax.text(10, -0.7, "time ->", ha="right", va="top", fontsize=9, color=dimmed)
+
+ax.set_xlim(-0.3, 10)
+ax.set_ylim(-0.9, 4.0)
+ax.spines[["top", "right", "left", "bottom"]].set_visible(False)
+ax.tick_params(left=False, bottom=False, labelleft=False, labelbottom=False)
+```
+
+- The launch returns before the kernel runs: CPU-side timing is not GPU time.
+- Contexts from different Pods take turns; streams overlap inside one context.
+- NVML "GPU utilization" means a kernel ran, not how many SMs were busy.
+
+::: notes
+Source: [NVML utilization definition](https://docs.nvidia.com/deploy/nvml-api/structs.html#structnvmlUtilization__t); [CUDA streams and concurrency](https://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#asynchronous-concurrent-execution)
+:::
+
+---
+
+<!--
+vGPUmonitor runs on each GPU node next to HAMi's device plugin. Device view: every scrape calls NVML for memory, utilization, memory-controller utilization, temperature, power and ECC, labeled by node and device UUID. Tenant view: HAMi-core, loaded inside each container, records every allocation per process and writes NVML per-process SM samples (matched by host PID) into a shared usage.cache file; vGPUmonitor maps those files and joins them to Pod names through the Kubernetes API. Caveats: tenant memory is HAMi-core's allocation accounting, not NVML's process memory; SM utilization is a share of the whole GPU, summed per container, not of the reservation; if the host-PID lookup fails, utilization reads 0 while the container may be busy. NVIDIA only; other vendors need their own collector.
+-->
+
+@layout two-col
+
+## Where vGPUmonitor fits
+
+- **Device view** from NVML: memory, utilization, power, temperature, ECC.
+- **Tenant view** from HAMi-core's per-container cache: memory used vs limit, SM utilization.
+- Joins both to Pods through the Kubernetes API and serves `:9394/metrics`.
+- Tenant SM utilization is a share of the whole GPU, not of the reservation.
+
+@col
+
+```dot
+digraph G {
+  rankdir=TB
+  bgcolor=transparent
+  nodesep=0.25
+  ranksep=0.35
+  node [shape=box style="rounded,filled" fontname="Arial" fontsize=14 margin="0.16,0.10" color="#3939D8" fillcolor="#e3f0ff" fontcolor="#2a2a5a"]
+  edge [fontname="Arial" fontsize=11 color="#6a7a99" fontcolor="#2a2a5a"]
+
+  core [label="Pod: app + HAMi-core"]
+  nvml [label="NVML (driver)" fillcolor="#fff9e6" color="#f9a825"]
+  cache [label="usage.cache\nmemory, sm_util per process"]
+  api [label="Kubernetes API\n(Pod names)" fillcolor="#e8f5e9" color="#2e7d32"]
+  mon [label="vGPUmonitor :9394" fillcolor="#ffe8eb" color="#DB1E3D"]
+  dev [label="hami_host_gpu_*\ndevice" fillcolor="#fff9e6" color="#f9a825"]
+  ten [label="hami_vgpu_*, hami_container_*\ntenant" fillcolor="#e3f0ff"]
+
+  { rank=same; core; nvml }
+  nvml -> core [label="per-PID samples"]
+  core -> cache [label="writes"]
+  cache -> mon [label="mmap"]
+  nvml -> mon [label="device"]
+  api -> mon [label="identity"]
+  { rank=same; cache; api }
+  mon -> dev
+  mon -> ten
+}
+```
+
+::: notes
+Source: [metric families](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/vGPUmonitor/metrics.go#L53-L140); [cache discovery](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/pkg/monitor/nvidia/cudevshr.go#L137-L140); [HAMi-core NVML samples](https://github.com/Project-HAMi/HAMi-core/blob/ec5d85a3d709e5ed138a1668ebfefd366c05ca1e/src/multiprocess/multiprocess_utilization_watcher.c#L232-L262)
 :::
 
 ---
