@@ -33,7 +33,7 @@ The only use of the AMD Device Metrics Exporter is a health check in `amd-device
 
 - `amd-device-plugin` sets the compute-unit limit as `HSA_CU_MASK` ([plugin.go](https://github.com/Project-HAMi/amd-device-plugin/blob/9a3e617def1f0a22d023e1cc2a5398ebd9283a5f/internal/pkg/plugin/plugin.go#L740-L762)).
 - `amd-hami-core` documents `ROC_GLOBAL_CU_MASK` as the variable "set by HAMi scheduler" ([README](https://github.com/Project-HAMi/amd-hami-core/blob/050cd7341dfe447483f087494fd0259eacd2006e/README.md#L42-L55)).
-- `amd-hami-core` restores variables from `/proc/1/environ` because inference servers such as vLLM and SGLang start engine processes with a clean environment. Its restore list includes `ROC_GLOBAL_CU_MASK` but not `HSA_CU_MASK` ([libamvgpu_audit.c](https://github.com/Project-HAMi/amd-hami-core/blob/050cd7341dfe447483f087494fd0259eacd2006e/src/hip/libamvgpu_audit.c#L421-L445)). If that clean-environment case applies, the plugin's compute-unit limit may not reach the engine process. Not tested.
+- `amd-hami-core` restores variables from `/proc/1/environ` because inference servers such as vLLM and SGLang start engine processes with a clean environment. Its restore list includes `ROC_GLOBAL_CU_MASK` and `HIP_DEVICE_MEMORY_LIMIT` but not `HSA_CU_MASK` ([libamvgpu_audit.c](https://github.com/Project-HAMi/amd-hami-core/blob/050cd7341dfe447483f087494fd0259eacd2006e/src/hip/libamvgpu_audit.c#L421-L445)). So for those engine processes, the memory limit is restored but the plugin's compute-unit limit appears to be lost. Not tested on hardware.
 
 ## Questions
 

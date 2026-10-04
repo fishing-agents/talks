@@ -768,8 +768,8 @@ Why "normalization layer": WebUI does not measure hardware. Every 30 s it reads 
 ## WebUI is a normalization layer with boundaries
 
 - Uses Kubernetes allocation state plus Prometheus vendor queries.
-- Converts vendor units and label keys into common `hami_memory_*`, `hami_core_*` and container families.
-- Marks unknown core allocation instead of manufacturing capacity.
+- Translates each vendor's units and label names into one set of `hami_*` metrics, so one query works for every vendor.
+- If a Pod's compute share can't be determined (some Ascend Pods today), it reports "unknown" instead of guessing.
 - Exposes refresh health and last-success timestamp.
 - Common names do not guarantee common measurement semantics.
 
