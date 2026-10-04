@@ -414,15 +414,15 @@ Source: [scheduler capacity](https://github.com/Project-HAMi/HAMi/blob/39699df26
 ---
 
 <!--
-The scheduler uses backend device metadata. Core semantics still require vendor review. Do not interpret every suffix _ratio as a normalized 0-1 value.
+The scheduler uses backend device metadata. Core semantics still require vendor review. Do not interpret every suffix _ratio as a normalized 0-1 value. Metric names behind each bullet. Per GPU: hami_gpu_memory_limit_bytes and hami_gpu_core_limit_ratio (what HAMi may hand out), hami_gpu_memory_allocated_bytes and hami_gpu_core_allocated_ratio (already reserved), hami_gpu_shared_count (containers sharing the GPU). Per Pod and namespace: hami_vgpu_memory_allocated_bytes and hami_vgpu_core_allocated_ratio (what each Pod reserved, on which GPU), hami_resource_quota_used and hami_resource_quota_limit. Scheduler health: hami_scheduler_is_leader (active replica), hami_scheduler_cache_synced (cluster state loaded), hami_scheduler_allocation_failures_total and hami_scheduler_bind_rollbacks_total with a fixed set of reasons such as no_fit, lock and bind. AMD reports compute in compute units; the scheduler converts it to a percentage of the device.
 -->
 
-## Scheduler observability is cross-vendor accounting
+## What the HAMi scheduler reports
 
-- Device limits, allocated memory, allocated cores and sharing count.
-- Pod reservations and namespace quotas.
-- Leader state, cache synchronization and bounded failure reasons.
-- AMD compute-unit reservations receive percentage normalization.
+- **Per GPU:** how much memory and compute HAMi can hand out, how much is already reserved, and how many containers share it.
+- **Per Pod and namespace:** what each Pod reserved on which GPU, and how much of each namespace's GPU quota is used.
+- **Scheduler health:** is this replica in charge, has it loaded cluster state, and why did placements fail (no GPU fits, lock, bind error)?
+- **AMD:** compute units are converted to a percentage, so they compare with other vendors.
 - These describe **placement and reservation**, not measured accelerator work.
 
 ::: notes
