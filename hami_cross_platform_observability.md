@@ -581,6 +581,25 @@ Source: [OpenTelemetry Collector](https://opentelemetry.io/docs/collector/); [Pr
 ---
 
 <!--
+PROPOSED INSTRUMENTATION. Do not invent current HAMi admission latency histograms, GPU execution spans or trace-context propagation. Existing bounded outcome counters do not carry per-Pod trace correlation. Pod UID can be available at later lifecycle stages; a CREATE admission request may precede stable Pod UID assignment. Use admission request identity initially and reconcile once the object exists. Cardinality/security budgets need explicit design. The scheduler does not intercept CUDA calls.
+-->
+
+@hidden
+
+## Admission telemetry records intent, not GPU work
+
+- Record requested resources, policy decisions and rejection reasons.
+- Emit separate scheduler events for reservation, no-fit and bind rollback.
+- Correlate runtime and application signals after the workload starts.
+- Use stable workload/device identity; avoid PID and request-level metric labels.
+
+::: notes
+Source: [scheduling outcome counters](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/pkg/metrics/scheduler.go#L29-L55)
+:::
+
+---
+
+<!--
 PROPOSAL: this is a recommended normalization contract, not an implemented universal HAMi API. Preserve raw vendor metrics and document conversions. The "Today" line is the evidence for explicit semantics: the deck describes source contracts, not inferred Prometheus naming conventions. Runtime host GPU activity is 0-100 despite _ratio; the scheduler memory-allocation ratio is 0-1; scheduler byte families convert internal MiB to bytes; WebUI physical memory families are MiB. Normalize units at the boundary, before aggregation, and validate representative real samples before writing recording rules.
 -->
 
@@ -616,6 +635,8 @@ Source: [0-100 contract](https://github.com/Project-HAMi/HAMi/blob/39699df26042b
 <!--
 PROPOSED TEST PLAN. No workload was deployed as part of this static inventory. Choose representative sharing modes and vendor-specific ground truth. Never present illustrative numbers as measurements.
 -->
+
+@hidden
 
 ## Validation before a live cross-platform demo
 

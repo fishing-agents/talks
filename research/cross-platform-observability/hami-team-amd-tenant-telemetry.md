@@ -29,16 +29,23 @@ The only use of the AMD Device Metrics Exporter is a health check in `amd-device
 - It keeps one field per GPU (healthy or not) and reports it only to the kubelet. The node annotation the scheduler reads always says healthy ([plugin.go](https://github.com/Project-HAMi/amd-device-plugin/blob/9a3e617def1f0a22d023e1cc2a5398ebd9283a5f/internal/pkg/plugin/plugin.go#L247)).
 - Results are keyed by the exporter's `gpu.Device`, but looked up by the plugin's device ID, which is `<id>#<splitIdx>` ([plugin.go](https://github.com/Project-HAMi/amd-device-plugin/blob/9a3e617def1f0a22d023e1cc2a5398ebd9283a5f/internal/pkg/plugin/plugin.go#L478)). Unless the exporter uses the same format, every lookup misses and the sysfs fallback decides health. Not verified against a running exporter.
 
+## Compute-limit variable mismatch
+
+- `amd-device-plugin` sets the compute-unit limit as `HSA_CU_MASK` ([plugin.go](https://github.com/Project-HAMi/amd-device-plugin/blob/9a3e617def1f0a22d023e1cc2a5398ebd9283a5f/internal/pkg/plugin/plugin.go#L740-L762)).
+- `amd-hami-core` documents `ROC_GLOBAL_CU_MASK` as the variable "set by HAMi scheduler" ([README](https://github.com/Project-HAMi/amd-hami-core/blob/050cd7341dfe447483f087494fd0259eacd2006e/README.md#L42-L55)).
+- `amd-hami-core` restores variables from `/proc/1/environ` because inference servers such as vLLM and SGLang start engine processes with a clean environment. Its restore list includes `ROC_GLOBAL_CU_MASK` but not `HSA_CU_MASK` ([libamvgpu_audit.c](https://github.com/Project-HAMi/amd-hami-core/blob/050cd7341dfe447483f087494fd0259eacd2006e/src/hip/libamvgpu_audit.c#L421-L445)). If that clean-environment case applies, the plugin's compute-unit limit may not reach the engine process. Not tested.
+
 ## Questions
 
 1. Is per-tenant usage on shared AMD GPUs on the roadmap? If so, a collector inside `amd-device-plugin` (as Ascend did) or vendor backends in vGPUmonitor?
-2. Should the plugin mount the HIP shared cache per container on the host, as the NVIDIA path does, so a node collector can read it? Is the cache layout stable enough to be read from outside?
+2. The plugin neither sets `HIP_DEVICE_MEMORY_SHARED_CACHE` nor mounts a per-container cache directory, so the HIP cache stays in the container's own `/tmp` and no node-level reader can see it. Should the plugin mount it per container on the host, as the NVIDIA path does? Is the cache layout stable enough to be read from outside?
 3. For compute: is building the utilization watcher planned, or should per-tenant compute come from AMD SMI per-process data (if its fields support it)?
 4. Health: should exporter health also reach the scheduler annotation, and is the device-ID key mismatch above real?
+5. Which compute-mask variable is the contract, `HSA_CU_MASK` or `ROC_GLOBAL_CU_MASK`? Should `HSA_CU_MASK` join the restore list?
 
 ## Smallest useful step
 
-Export `hami_vgpu_memory_used_bytes` and `hami_vgpu_memory_limit_bytes` for AMD containers with the same labels as NVIDIA. That needs the host-mounted cache (question 2) and a reader; compute can follow. It would let one dashboard compare reservation and use across NVIDIA, Ascend and AMD.
+Export `hami_vgpu_memory_used_bytes` and `hami_vgpu_memory_limit_bytes` for AMD containers with the same labels as NVIDIA. That needs a plugin change first (question 2: set and mount the cache per container), then a node reader; compute can follow. It would let one dashboard compare reservation and use across NVIDIA, Ascend and AMD.
 
 ## Until answered, the talk says
 
