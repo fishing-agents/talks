@@ -656,7 +656,7 @@ Source: [workload allocations](https://github.com/Project-HAMi/HAMi/blob/39699df
 ## Pattern 1: find unused reservations
 
 - Compare reserved memory with observed memory over a representative window.
-- Require fresh, supported runtime data and a positive limit.
+- Skip stale data and missing limits.
 - Separate idle periods, model loading and steady-state demand.
 - Rank sustained headroom alongside pending or rejected workloads.
 - Treat low compute activity as a separate signal, not proof of reclaimable memory.
