@@ -5,7 +5,7 @@ title: "Vendor-Neutral Observability from the Kubernetes Scheduler"
 logo: assets/brand/dynamia-logo.svg
 logo_dark: assets/brand/dynamia-logo-white.png
 watermark: assets/brand/ossummit_europe/watermark.svg
-footer: "HAMi Cross-Platform Observability | Source audit 2026-09-30"
+footer: "HAMi Cross-Platform Observability"
 transition: fade
 paginate: true
 size: 16:9
@@ -24,10 +24,9 @@ style: |
 
 # Vendor-Neutral GPU Observability
 
-@subtitle From the Kubernetes Scheduler
+@subtitle From the HAMi scheduler
 
 @speaker name="Reza Jelveh" role="Solution Architect, Dynamia AI - Makers of HAMi" github=github.com/fishman linkedin=linkedin.com/in/rezajelveh
-@speaker name="Thanh Loi Hoang" role="Research Engineer, CNLab.ai | LFX Mentee, HAMi" github=github.com/loiht2 linkedin=linkedin.com/in/loiht2
 
 ---
 
@@ -638,6 +637,12 @@ Runtime accounting at container/vdevice scope.
 ::: notes
 Source: [workload allocations](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/scheduler/metrics.go#L389-L455); [tenant runtime metrics](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/vGPUmonitor/metrics.go#L92-L140). Screenshot: Grafana on a real cluster.
 :::
+
+---
+
+# Patterns
+
+@subtitle What we actually want to know
 
 ---
 
