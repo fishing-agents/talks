@@ -660,6 +660,7 @@ Source: [scheduling outcome counters](https://github.com/Project-HAMi/HAMi/blob/
 - Keep raw vendor metrics and document every conversion
 - Today line: runtime _ratio is 0-100, scheduler memory ratio 0-1, scheduler bytes vs WebUI MiB
 - Check real samples before writing recording rules
+- Cost: legacy Device_memory_desc_of_container puts memory sizes in labels; hami_resource_quota_used puts the limit in a label
 -->
 
 ## One metric contract for every vendor
@@ -678,8 +679,8 @@ Reservation vs consumption; bytes vs MiB; ratio vs percent; physical vs slice vs
 Measured, derived, unsupported or stale. Export the collection timestamp and error state.
 :::
 ::: card {tag=red}
-### Bounded cost
-Avoid PID-level history by default. Control label churn and query fan-out.
+### Keep it cheap
+Report per container, not per process. Keep changing values like PIDs, sizes and limits out of labels.
 :::
 :::
 
