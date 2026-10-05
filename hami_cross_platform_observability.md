@@ -9,20 +9,22 @@ footer: "HAMi Cross-Platform Observability | Source audit 2026-09-30"
 transition: fade
 paginate: true
 size: 16:9
+style: |
+  section img[src$="grafana-reserved-vs-used-memory-plot.png"] { max-height: 11em; }
 
 ---
 
 <!--
 - Source review of all 23 Project-HAMi repos at pinned commits
 - Nothing measured on GPUs: no live cluster, scrape or OTLP deployment
-- "Every GPU" = every GPU HAMi schedules, not every device-plugin Pod
+- Scope: GPUs HAMi schedules, not every device-plugin Pod
 -->
 @variant dark
 @kicker Kubernetes GPU observability
 
-# One Agent, Every GPU
+# Vendor-Neutral GPU Observability
 
-@subtitle Vendor-Neutral Observability from the Kubernetes Scheduler
+@subtitle From the Kubernetes Scheduler
 
 @speaker name="Reza Jelveh" role="Solution Architect, Dynamia AI - Makers of HAMi" github=github.com/fishman linkedin=linkedin.com/in/rezajelveh
 @speaker name="Thanh Loi Hoang" role="LFX Foundation Mentee" github=github.com/loiht2
@@ -31,7 +33,7 @@ size: 16:9
 
 # The Problem
 
-@subtitle What we're actually looking at
+@subtitle Who used the GPU, and how much?
 
 
 ---
