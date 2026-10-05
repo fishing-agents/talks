@@ -1,37 +1,15 @@
 ---
-theme: kubecon_japan
+theme: ossummit_europe
 seaborn_theme: kubecon_japan
 title: "Vendor-Neutral Observability from the Kubernetes Scheduler"
-logo: assets/brand/hami-logo.png
-logo_dark: assets/brand/hami-logo.png
-watermark: assets/brand/kubecon_japan/cncf_logo.svg
+logo: assets/brand/dynamia-logo.svg
+logo_dark: assets/brand/dynamia-logo-white.png
+watermark: assets/brand/ossummit_europe/watermark.svg
 footer: "HAMi Cross-Platform Observability | Source audit 2026-09-30"
 transition: fade
 paginate: true
 size: 16:9
-style: |
-  :root {
-    --logo-hami: url("assets/brand/hami-logo.png");
-    --logo-dynamia: url("assets/brand/dynamia-logo.svg");
-    --logo-dynamia-white: url("assets/brand/dynamia-logo-white.png");
-  }
-  section::before {
-    width: 24%;
-    padding-bottom: 5%;
-    background:
-      var(--logo-hami) left center / auto 65% no-repeat,
-      var(--logo-dynamia) right center / auto 58% no-repeat;
-  }
-  section.layout-title::before,
-  section[data-theme="dark"]::before,
-  [data-theme="dark"] section::before {
-    background:
-      var(--logo-hami) left center / auto 65% no-repeat,
-      var(--logo-dynamia-white) right center / auto 58% no-repeat;
-  }
-  .notes { font-size: 0.55em; padding: 0.3em 0; background: none; border: none; margin-top: 1em; }
-  section.layout-title footer, section.layout-title .slide-num { color: rgba(255,255,255,0.6); }
-  :root { --list-style: "- "; }
+
 ---
 
 <!--
@@ -48,6 +26,13 @@ style: |
 
 @speaker name="Reza Jelveh" role="Solution Architect, Dynamia AI - Makers of HAMi" github=github.com/fishman linkedin=linkedin.com/in/rezajelveh
 @speaker name="Thanh Loi Hoang" role="LFX Foundation Mentee" github=github.com/loiht2
+
+---
+
+# Part 1: The Problem
+
+@subtitle What we're actually looking at
+
 
 ---
 
@@ -222,6 +207,164 @@ ax.tick_params(left=False, bottom=False, labelleft=False, labelbottom=False)
 Source: [NVML utilization definition](https://docs.nvidia.com/deploy/nvml-api/structs.html#structnvmlUtilization__t); [CUDA streams and concurrency](https://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#asynchronous-concurrent-execution)
 :::
 
+---
+
+## What is HAMi
+
+@subtitle Before: one device, one task
+
+<!--
+GPUs are expensive and often underutilized. HAMi is a heterogeneous GPU sharing framework for Kubernetes. It slices GPUs and shares them across workloads, without rewriting your stack.
+-->
+
+![Before HAMi](assets/hami_intro/before-hami.png)
+
+---
+
+## What is HAMi
+@transition none
+
+@subtitle After: one device, many agents
+
+![After HAMi](assets/hami_intro/after-hami.png)
+
+
+---
+
+## HAMi Capabilities
+
+@subtitle Six things HAMi brings to GPU scheduling
+
+<!--
+Six capabilities. The key ones for this talk: hard isolation, advanced scheduling, and unified monitoring. Heterogeneous management is the differentiator, not just NVIDIA.
+-->
+
+::: grid {cols=2}
+::: card
+### {icon:layers cls=accent-primary} Heterogeneous Management
+
+Manage GPU, NPU, MLU, and other accelerators in one workflow.
+:::
+::: card
+### {icon:shield-check cls=accent-primary} Hard Isolation
+
+Slice memory and compute with hard isolation at runtime.
+:::
+::: card
+### {icon:git-branch cls=accent-contrast} Advanced Scheduling
+
+Binpack, spread, and topology-aware placement policies.
+:::
+::: card
+### {icon:box cls=accent-primary} Kubernetes Native
+
+Kubernetes-native APIs, DRA, and CDI support.
+:::
+::: card
+### {icon:gauge cls=accent-primary} Resource Isolation & QoS
+
+Memory and core quotas for fair, stable sharing.
+:::
+::: card
+### {icon:chart-bar cls=accent-contrast} Unified Monitoring
+
+Consistent metrics and visibility across vendors.
+:::
+:::
+
+---
+
+# Part 2: How does HAMi help
+
+@subtitle One scheduling plane across heterogeneous accelerators
+
+---
+
+@layout two-col
+
+## How HAMi Works
+
+@subtitle From pod submission to isolated device
+
+<!--
+Five stages from pod submission to isolated GPU. The mutating webhook routes the pod, the scheduler picks a device, the HAMi core library enforces isolation in the container.
+-->
+
+- **Mutating webhook:** sees accelerator requests, routes pod to HAMi scheduler
+- **Scheduler:** selects device and node
+- **HAMi driver:** generates device config
+- **Container runtime:** reads config, injects HAMi-Core library
+- **HAMi core:** enforces isolation in-process
+
+@col
+
+```dot
+digraph G {
+  rankdir=TB
+  bgcolor=transparent
+  node [shape=box style="rounded,filled" fontname="Arial" fontsize=16 margin="0.25,0.18"]
+  edge [fontname="Arial" fontsize=12]
+
+  pod [label="Pod submitted" fillcolor="#F6ECD9" color="#F1C560" fontcolor="#3a2020"]
+  webhook [label="Mutating webhook" fillcolor="#fce8e8" color="#7A0504" fontcolor="#3a2020"]
+  sched [label="Scheduler" fillcolor="#fce8e8" color="#7A0504" fontcolor="#3a2020"]
+  device [label="HAMi driver" fillcolor="#fce8e8" color="#7A0504" fontcolor="#3a2020"]
+
+  runtime [label="Container runtime" fillcolor="#F6ECD9" color="#F1C560" fontcolor="#3a2020"]
+  core [label="HAMi core" fillcolor="#fce8e8" color="#7A0504" fontcolor="#3a2020"]
+  workload [label="Workload (isolated device)" fillcolor="#F6ECD9" color="#F1C560" fontcolor="#3a2020"]
+
+  { rank=same; pod; runtime }
+  { rank=same; webhook; core }
+  { rank=same; sched; workload }
+
+  pod -> webhook [label="set scheduler"]
+  webhook -> sched [label="select device"]
+  sched -> device [label="allocate device"]
+
+  device -> runtime [label="device config" constraint=false style=dashed exitX=1 exitY=0.5 entryX=0 entryY=0.5]
+
+  runtime -> core [label="inject library"]
+  core -> workload [label="sees isolated device"]
+}
+```
+
+---
+
+@layout two-col
+
+## The Magic: Runtime Hijacking
+
+@subtitle Your app does not change
+
+<!--
+HAMi ships a small library. The container runtime loads it before your app starts. On NVIDIA it intercepts CUDA calls and replies with your slice. Same pattern for other vendors: ACL calls on Ascend, CNRT on Cambricon. No code changes, no kernel modules, no driver changes. On closed NPU SDKs there is no hijack point: that is the enforcement gap.
+-->
+
+Your app calls CUDA. HAMi answers with a slice of the device.
+
+- Small library loaded before your app (`LD_PRELOAD`)
+- Intercepts CUDA calls, no app code changes
+- No kernel modules, no driver changes
+- Same pattern per vendor: ACL on Ascend, CNRT on Cambricon
+
+@col
+
+```dot
+digraph G {
+  rankdir=LR
+  bgcolor=transparent
+  node [shape=box style="rounded,filled" fontname="Arial" fontsize=16 margin="0.25,0.18"]
+  edge [fontname="Arial" fontsize=12]
+
+  app [label="Your app" fillcolor="#F6ECD9" color="#F1C560" fontcolor="#3a2020"]
+  lib [label="HAMi core\n(cuMemAlloc...)" fillcolor="#fce8e8" color="#7A0504" fontcolor="#3a2020"]
+  gpu [label="Device slice" fillcolor="#F6ECD9" color="#F1C560" fontcolor="#3a2020"]
+
+  app -> lib [label="CUDA calls"]
+  lib -> gpu [label="slice only"]
+}
+```
 ---
 
 <!--
