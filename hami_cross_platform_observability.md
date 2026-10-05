@@ -642,7 +642,7 @@ Source: [workload allocations](https://github.com/Project-HAMi/HAMi/blob/39699df
 
 # Patterns
 
-@subtitle What we actually want to know
+@subtitle Unused reservations, noisy neighbors, right-sizing
 
 ---
 
