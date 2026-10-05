@@ -1,57 +1,50 @@
 ---
-theme: kubecon_japan
-title: "One Agent, Every GPU: Vendor-Neutral Observability from the Kubernetes Scheduler"
-logo: assets/brand/hami-logo.png
-logo_dark: assets/brand/hami-logo.png
-watermark: assets/brand/kubecon_japan/cncf_logo.svg
+theme: ossummit_europe
+seaborn_theme: kubecon_japan
+title: "Vendor-Neutral Observability from the Kubernetes Scheduler"
+logo: assets/brand/dynamia-logo.svg
+logo_dark: assets/brand/dynamia-logo-white.png
+watermark: assets/brand/ossummit_europe/watermark.svg
 footer: "HAMi Cross-Platform Observability | Source audit 2026-09-30"
 transition: fade
 paginate: true
 size: 16:9
 style: |
-  :root {
-    --logo-hami: url("assets/brand/hami-logo.png");
-    --logo-dynamia: url("assets/brand/dynamia-logo.svg");
-    --logo-dynamia-white: url("assets/brand/dynamia-logo-white.png");
-  }
-  section::before {
-    width: 24%;
-    padding-bottom: 5%;
-    background:
-      var(--logo-hami) left center / auto 65% no-repeat,
-      var(--logo-dynamia) right center / auto 58% no-repeat;
-  }
-  section.layout-title::before,
-  section[data-theme="dark"]::before,
-  [data-theme="dark"] section::before {
-    background:
-      var(--logo-hami) left center / auto 65% no-repeat,
-      var(--logo-dynamia-white) right center / auto 58% no-repeat;
-  }
-  .notes { font-size: 0.55em; padding: 0.3em 0; background: none; border: none; margin-top: 1em; }
-  section.layout-title footer, section.layout-title .slide-num { color: rgba(255,255,255,0.6); }
-  :root { --list-style: "- "; }
+  section img[src$="grafana-reserved-vs-used-memory-plot.png"] { max-height: 11em; }
+
 ---
 
 <!--
-Audience narrative supplied by Reza. Implementation audit spans all 23 public Project-HAMi repositories at pinned local commits. No GPU hardware, workloads, runtime scrape, production observations or OTLP deployment were tested. Scheduling visibility covers HAMi-managed requests and allocations, not all device-plugin workloads or GPU operations.
+- Source review of all 23 Project-HAMi repos at pinned commits
+- Nothing measured on GPUs: no live cluster, scrape or OTLP deployment
+- Scope: GPUs HAMi schedules, not every device-plugin Pod
 -->
 @variant dark
 @kicker Kubernetes GPU observability
 
-# One Agent, Every GPU: Vendor-Neutral Observability from the Kubernetes Scheduler
+# Vendor-Neutral GPU Observability
 
-@subtitle One workload view across heterogeneous GPUs: connect scheduling intent, runtime usage and application outcomes
+@subtitle From the Kubernetes Scheduler
 
 @speaker name="Reza Jelveh" role="Solution Architect, Dynamia AI - Makers of HAMi" github=github.com/fishman linkedin=linkedin.com/in/rezajelveh
+@speaker name="Thanh Loi Hoang" role="Research Engineer, CNLab.ai | LFX Mentee, HAMi" github=github.com/loiht2 linkedin=linkedin.com/in/loiht2
+
+---
+
+# The Problem
+
+@subtitle Who used the GPU, and how much?
+
 
 ---
 
 <!--
-The supplied brief names vendor ecosystems as motivation. Intel XPU Manager is a context example, not an audited HAMi integration or a promise of Intel runtime support. Vendor tools can have Kubernetes/workload attribution; the gap is the complete intent-to-outcome correlation, not that vendor metrics can never be attributed.
+- Ask the room: who runs more than one GPU vendor today?
+- Intel XPU Manager is motivation only; Intel is not in this audit
+- Vendor tools can label workloads; the gap is joining request, reservation and outcome
 -->
 
-## One question, several vendor dashboards
+## One question, many dashboards
 
 ::: grid {cols=2}
 ::: card {tag=cyan}
@@ -75,30 +68,158 @@ Keep vendor sensors. Add a common workload identity and scheduling-intent layer.
 ---
 
 <!--
-These are operating-model differences, not a claim that CPU observability is perfect. A device plugin has resource discovery, health and allocation interfaces; a workload telemetry contract is separate. MIG has hardware resource/isolation boundaries and must not be conflated with soft vGPU sharing.
+- SM counts: about 108 on an A100, 132 on an H100 SXM
+- NVML ships with the driver; DCGM and dcgm-exporter build on it
+- MIG needs Ampere or newer, up to seven instances
+- AMD: Compute Unit instead of SM, AMD SMI instead of NVML; Ascend uses DCMI
 -->
 
-## Why GPU observability is harder than CPU
+## GPU terms in one minute
 
-- CPU time is commonly charged to a process or cgroup.
-- A device-plugin allocation grants access; it does not report executed work.
-- Contexts, streams and asynchronous execution complicate attribution.
-- Shared GPUs and MIG introduce multiple capacity and identity scopes.
-- Device activity alone cannot explain request size or application latency.
+::: grid {cols=2}
+::: card {tag=cyan}
+### CUDA context
+A process's private workspace on the GPU: memory allocations, loaded kernels and work queues (streams).
+:::
+::: card {tag=green}
+### SM (Streaming Multiprocessor)
+The GPU's compute block. A GPU is many SMs; each kernel runs as thread blocks spread across them.
+:::
+::: card {tag=yellow}
+### NVML
+NVIDIA's library behind nvidia-smi: device state plus per-process samples keyed by host PID. It knows no Pods.
+:::
+::: card {tag=red}
+### MIG (Multi-Instance GPU)
+Hardware partitioning, Ampere and newer: up to seven instances, each with its own SMs and memory.
+:::
+:::
 
 ::: notes
-Source: [Kubernetes device-plugin contract](https://kubernetes.io/docs/concepts/extend-kubernetes/compute-storage-net/device-plugins/); [CUDA contexts](https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__DRIVER.html); [MIG isolation](https://docs.nvidia.com/datacenter/tesla/mig-user-guide/introduction.html)
+Source: [CUDA contexts](https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__DRIVER.html); [NVML API](https://docs.nvidia.com/deploy/nvml-api/index.html); [MIG introduction](https://docs.nvidia.com/datacenter/tesla/mig-user-guide/introduction.html)
 :::
 
 ---
 
 <!--
-CUDA context and MIG are NVIDIA-specific examples explaining the general identity problem. A claimed utilization percentage needs a scope, sampling interval and denominator. Do not sum arbitrary GPU activity percentages or compare whole-card activity to a tenant reservation.
+- CPU: kernel charges time to the task, cgroups sum it, kubelet/cAdvisor read it
+- GPU: device plugin Allocate hands out a device and health, never executed work
+- NVML reports host PIDs; joining them to Pods needs extra code (HAMi-core on NVIDIA)
+- Not "CPU is perfect": the point is where the accounting lives
 -->
 
-## Contexts and partitions change attribution and scope
+## Why GPU usage is hard to attribute
 
-::: grid {cols=2}
+```dot
+digraph G {
+  rankdir=LR
+  size="11,3"
+  bgcolor=transparent
+  nodesep=0.35
+  ranksep=0.45
+  node [shape=box style="rounded,filled" fontname="Arial" fontsize=14 margin="0.14,0.08" color="#3939D8" fillcolor="#e3f0ff" fontcolor="#2a2a5a"]
+  edge [fontname="Arial" fontsize=11 color="#6a7a99" fontcolor="#2a2a5a"]
+
+  subgraph cluster_gpu {
+    label="GPU" labeljust=l fontname="Arial Bold" fontsize=15 fontcolor="#DB1E3D" color="#DB1E3D" style=rounded
+    gpod [label="Pod"]
+    pid [label="process\n(host PID)"]
+    ctx [label="CUDA context\n+ streams"]
+    sm [label="kernels\non SMs"]
+    nvml [label="NVML: device %,\nper-PID samples" fillcolor="#fff9e6" color="#f9a825"]
+    back [label="Pod (joined)" fillcolor="#ffe8eb" color="#DB1E3D"]
+    gpod -> pid -> ctx -> sm
+    sm -> nvml [label="sampled"]
+    nvml -> back [label="join PID ->\ncontainer -> Pod" style=dashed color="#DB1E3D" fontcolor="#DB1E3D"]
+  }
+
+  subgraph cluster_cpu {
+    label="CPU" labeljust=l fontname="Arial Bold" fontsize=15 fontcolor="#2e7d32" color="#2e7d32" style=rounded
+    cpod [label="Pod"]
+    cg [label="cgroup"]
+    cpu [label="CPU time per Pod" fillcolor="#e8f5e9" color="#2e7d32"]
+    cpod -> cg [label="processes in"]
+    cg -> cpu [label="kernel charges\nevery tick"]
+  }
+
+}
+```
+
+- CPU: the kernel charges time to the cgroup, so Pod usage is a direct reading.
+- GPU: the device plugin grants access but reports no executed work.
+- NVML sees devices and host PIDs; attribution to a Pod must be joined back.
+
+::: notes
+Source: [Kubernetes device-plugin contract](https://kubernetes.io/docs/concepts/extend-kubernetes/compute-storage-net/device-plugins/); [NVML process queries](https://docs.nvidia.com/deploy/nvml-api/group__nvmlDeviceQueries.html)
+:::
+
+---
+
+<!--
+- Timeline is illustrative, not measured
+- cudaLaunchKernel returns at once; timing it on the CPU gives enqueue time
+- Request latency includes waiting behind other tenants' kernels
+- NVML GPU util = share of time any kernel ran; DCGM SM_ACTIVE = how many SMs were busy
+-->
+
+## Queued GPU work blurs who used it
+
+```seaborn
+import matplotlib.pyplot as plt
+
+fg = plt.rcParams["text.color"]
+dimmed = plt.rcParams["xtick.color"]
+blue, red, grey = "#3939D8", "#DB1E3D", "#c0c4d6"
+
+fig, ax = plt.subplots(figsize=(10, 3.0))
+ax.set_facecolor("none")
+fig.patch.set_alpha(0)
+
+rows = {"Pod A: CPU launch": 3, "Pod A: kernels": 2, "Pod B: kernels": 1, "Device (NVML)": 0}
+for name, y in rows.items():
+    ax.text(-0.2, y, name, ha="right", va="center", fontsize=11, color=fg, fontweight="bold")
+
+for t in (0.3, 2.9):
+    ax.barh(3, 0.15, left=t, color=blue, height=0.5)
+ax.text(0.6, 3, "returns at once", ha="left", va="center", fontsize=9.5, color=dimmed)
+
+for left, w in ((1.2, 2.2), (4.6, 1.6)):
+    ax.barh(2, w, left=left, color=blue, height=0.5)
+for left, w in ((3.4, 1.2), (6.2, 2.6)):
+    ax.barh(1, w, left=left, color=red, height=0.5)
+
+ax.barh(0, 7.6, left=1.2, color=grey, height=0.5)
+ax.text(5.0, 0, "\"100% busy\": a kernel was running. Whose? On how many SMs?",
+        ha="center", va="center", fontsize=10, color=fg, fontweight="bold")
+
+ax.text(-0.2, 3.75, "ILLUSTRATIVE TIMELINE, NOT A MEASUREMENT", fontsize=9.5, color=dimmed, family="monospace")
+ax.text(10, -0.7, "time ->", ha="right", va="top", fontsize=9, color=dimmed)
+
+ax.set_xlim(-0.3, 10)
+ax.set_ylim(-0.9, 4.0)
+ax.spines[["top", "right", "left", "bottom"]].set_visible(False)
+ax.tick_params(left=False, bottom=False, labelleft=False, labelbottom=False)
+```
+
+- Starting GPU work only queues it. Timing that call on the CPU shows queuing time, not how long the GPU worked.
+- Contexts from different Pods take turns; streams overlap inside one context.
+- NVML "GPU utilization" means a kernel ran, not how many SMs were busy.
+
+::: notes
+Source: [NVML utilization definition](https://docs.nvidia.com/deploy/nvml-api/structs.html#structnvmlUtilization__t); [CUDA streams and concurrency](https://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#asynchronous-concurrent-execution)
+:::
+
+---
+
+<!--
+- Every utilization number needs a scope, a sampling window and a denominator
+- Never add up activity percentages from different scopes
+- Never compare whole-card activity with one tenant's reservation
+-->
+
+## Same GPU, three different scopes
+
+::: grid {cols=3}
 ::: card {tag=cyan}
 ### CUDA context
 Memory and execution live in driver/runtime contexts. A Pod-to-device mapping does not reveal every operation.
@@ -111,10 +232,11 @@ Use instance/profile identity and partition capacity. Whole-card utilization can
 ### Soft-shared vGPU
 Limits and accounting depend on the runtime interposition and sharing mode.
 :::
+:::
+
 ::: card {tag=red}
 ### Comparison rule
 Compare matching physical, partition or tenant scopes with documented units.
-:::
 :::
 
 ::: notes
@@ -124,121 +246,296 @@ Source: [CUDA runtime/context interaction](https://docs.nvidia.com/cuda/cuda-run
 ---
 
 <!--
-These are distinct signal planes. A reservation is not measured runtime consumption. The last plane is an architectural requirement, not automatically supplied by HAMi.
+- Operators and neoclouds ask about admission and usage first; device health comes later
+- Admission has no GPU usage yet: requests, decisions, rejections
+- On shared GPUs only per-tenant accounting answers usage; device metrics can't split it
+- HAMi only sees Pods it schedules, not arbitrary device-plugin Pods
 -->
 
-## Four questions, four signal planes
+## The common view operators need
 
-::: grid {cols=2}
-::: card {tag=cyan}
-### Capacity and reservations
-What can the scheduler place? Which workload owns each reservation?
-:::
-::: card {tag=green}
-### Physical-device activity
-Memory, compute, power, temperature and device errors.
-:::
-::: card {tag=yellow}
-### Workload attribution
-Which container consumes memory or compute on a shared device?
-:::
-::: card {tag=red}
-### Application service level
-Request latency, throughput, queue depth and failures.
-:::
-:::
+**GPU layer**
 
-::: notes
-Source: [scheduler](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/scheduler/metrics.go#L157-L200); [workload allocations](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/scheduler/metrics.go#L389-L455); [runtime](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/vGPUmonitor/metrics.go#L53-L140)
-:::
-
----
-
-<!--
-Admission control, scheduling and runtime are distinct stages. HAMi is not a global observer for arbitrary device-plugin allocations; coverage requires a HAMi integration. The architecture combines existing HAMi accounting with runtime sources. Admission and scheduling traces described later are proposed additions.
--->
-
-## Instrument intent and decisions at separate stages
-
-::: grid {cols=2}
+::: grid {cols=3}
 ::: card {tag=cyan}
 ### Admission
-Requested resources, policy changes and rejection. This stage has no measured GPU usage.
+Who requested what, what was reserved, and what was rejected or failed to fit?
 :::
 ::: card {tag=green}
-### Scheduling and allocation
-Selected device, reserved capacity, no-fit failures and bind rollback.
+### Usage
+How much of its reservation does each tenant use on a shared device?
 :::
 ::: card {tag=yellow}
-### Runtime
-Measured activity, memory consumption and collector health after the workload starts.
+### Device
+Memory, compute, power, temperature and errors: the hardware view.
 :::
+:::
+
+**Application layer**
+
 ::: card {tag=red}
-### Application
-Latency, throughput, queue depth and errors. Connect to device observations through workload identity.
-:::
+### Associate, don't re-measure
+Latency, throughput, queue depth and errors, joined to the GPU layer through workload identity.
 :::
 
 ::: notes
-Source: [scheduler capacity](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/scheduler/metrics.go#L157-L200); [scheduling outcome counters](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/pkg/metrics/scheduler.go#L29-L55); [tenant runtime metrics](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/vGPUmonitor/metrics.go#L92-L140)
+Source: [scheduler capacity](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/scheduler/metrics.go#L157-L200); [workload allocations](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/scheduler/metrics.go#L389-L455); [outcome counters](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/pkg/metrics/scheduler.go#L29-L55); [tenant runtime](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/vGPUmonitor/metrics.go#L92-L140)
 :::
 
 ---
 
 <!--
-The scheduler uses backend device metadata. Core semantics still require vendor review. Do not interpret every suffix _ratio as a normalized 0-1 value.
+- Be fair: DCGM is the best NVIDIA hardware sensor, and HAMi WebUI uses it
+- NVIDIA docs: no container attribution under device-plugin time-slicing
+- --kubernetes-virtual-gpus is opt-in; HAMi's <uuid>-<n> device IDs are untested with it
+- Claim missing context, not blindness to contention or waste
 -->
 
-## Scheduler observability is cross-vendor accounting
-
-- Device limits, allocated memory, allocated cores and sharing count.
-- Pod reservations and namespace quotas.
-- Leader state, cache synchronization and bounded failure reasons.
-- AMD compute-unit reservations receive percentage normalization.
-- These describe **placement and reservation**, not measured accelerator work.
-
-::: notes
-Source: [AMD normalization](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/scheduler/metrics.go#L64-L74); [allocation families](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/scheduler/metrics.go#L157-L200); [pod reservations](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/scheduler/metrics.go#L389-L455); [namespace quotas](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/scheduler/metrics.go#L347-L356); [leader and cache sync](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/scheduler/metrics.go#L510-L519); [outcome counters](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/pkg/metrics/scheduler.go#L29-L55)
-:::
-
----
-
-<!--
-Scheduler reservation labels are namespace,node,pod,device_uuid; runtime labels include namespace,pod,container,vdevice_index,device_uuid. A common recording-rule layer must reconcile these scopes. The scheduler iterates container/device allocations without container labels in the new family, so multi-container same-device emission/aggregation must be validated. Never perform an arbitrary direct division. Runtime memory_limit_bytes has the same labels as memory_used_bytes and supports a scoped NVIDIA memory-use/limit comparison, subject to scrape freshness and positive limits.
--->
-
-@layout image-right
-
-## Reservation and consumption answer different questions
+## What DCGM alone cannot answer
 
 ::: grid {cols=2}
-::: card {tag=cyan}
-### Reserved memory
-`hami_vgpu_memory_allocated_bytes`
-
-Scheduler reservation at Pod/device scope.
-:::
 ::: card {tag=green}
-### Consumed memory
-`hami_vgpu_memory_used_bytes`
-
-Runtime accounting at container/vdevice scope.
+### What it measures well
+Whole GPU or MIG instance: memory, utilization, power, thermals, XID errors and profiling counters.
+:::
+::: card {tag=yellow}
+### No per-tenant split
+DEV_ fields describe the whole GPU or MIG instance; co-tenants on one card share one number. Time-sharing attribution is opt-in.
+:::
+::: card {tag=cyan}
+### No budget or intent
+No per-container memory limit, reserved share, sharing count or quota. Utilization has no reservation to compare against.
+:::
+::: card {tag=red}
+### No decisions, one vendor
+Pending, no-fit and rolled-back Pods never reach a GPU. AMD, Ascend and Hygon need separate stacks.
 :::
 :::
-
-![Grafana: vGPU memory reserved (hami_vgpu_memory_allocated_bytes) stays at 5 GiB while used (hami_vgpu_memory_used_bytes) oscillates 0-4.49 GiB](assets/hami/grafana-reserved-vs-used-memory.png)
 
 ::: notes
-Source: [workload allocations](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/scheduler/metrics.go#L389-L455); [tenant runtime metrics](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/vGPUmonitor/metrics.go#L92-L140). Screenshot: Grafana on a real cluster.
+Source: [time-slicing limitation](https://docs.nvidia.com/datacenter/cloud-native/gpu-operator/latest/gpu-sharing.html#limitations); [dcgm-exporter flags](https://docs.nvidia.com/datacenter/dcgm/latest/reference/command-line-reference/dcgm-exporter.html); [container limit and use](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/vGPUmonitor/metrics.go#L92-L102); [reservation and sharing](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/scheduler/metrics.go#L171-L180); [outcomes](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/pkg/metrics/scheduler.go#L29-L55)
+:::
+
+---
+
+# How does HAMi help
+
+@subtitle One scheduling plane across heterogeneous accelerators
+
+---
+
+## What is HAMi
+
+@subtitle Before: one device, one task
+
+<!--
+GPUs are expensive and often underutilized. HAMi is a heterogeneous GPU sharing framework for Kubernetes. It slices GPUs and shares them across workloads, without rewriting your stack.
+-->
+
+![Before HAMi](assets/hami_intro/before-hami.png)
+
+---
+
+## What is HAMi
+@transition none
+
+@subtitle After: one device, many agents
+
+![After HAMi](assets/hami_intro/after-hami.png)
+
+
+---
+
+## HAMi Capabilities
+
+@subtitle Six things HAMi brings to GPU scheduling
+
+<!--
+Six capabilities. The key ones for this talk: hard isolation, advanced scheduling, and unified monitoring. Heterogeneous management is the differentiator, not just NVIDIA.
+-->
+
+::: grid {cols=2}
+::: card
+### {icon:layers cls=accent-primary} Heterogeneous Management
+
+Manage GPU, NPU, MLU, and other accelerators in one workflow.
+:::
+::: card
+### {icon:shield-check cls=accent-primary} Hard Isolation
+
+Slice memory and compute with hard isolation at runtime.
+:::
+::: card
+### {icon:git-branch cls=accent-contrast} Advanced Scheduling
+
+Binpack, spread, and topology-aware placement policies.
+:::
+::: card
+### {icon:box cls=accent-primary} Kubernetes Native
+
+Kubernetes-native APIs, DRA, and CDI support.
+:::
+::: card
+### {icon:gauge cls=accent-primary} Resource Isolation & QoS
+
+Memory and core quotas for fair, stable sharing.
+:::
+::: card
+### {icon:chart-bar cls=accent-contrast} Unified Monitoring
+
+Consistent metrics and visibility across vendors.
+:::
+:::
+
+---
+
+@layout two-col
+
+## How HAMi Works
+
+@subtitle From pod submission to isolated device
+
+<!--
+Five stages from pod submission to isolated GPU. The mutating webhook routes the pod, the scheduler picks a device, the HAMi core library enforces isolation in the container.
+-->
+
+- **Mutating webhook:** sees accelerator requests, routes pod to HAMi scheduler
+- **Scheduler:** selects device and node
+- **HAMi driver:** generates device config
+- **Container runtime:** reads config, injects HAMi-Core library
+- **HAMi core:** enforces isolation in-process
+
+@col
+
+```dot
+digraph G {
+  rankdir=TB
+  bgcolor=transparent
+  node [shape=box style="rounded,filled" fontname="Arial" fontsize=16 margin="0.25,0.18"]
+  edge [fontname="Arial" fontsize=12]
+
+  pod [label="Pod submitted" fillcolor="#F6ECD9" color="#F1C560" fontcolor="#3a2020"]
+  webhook [label="Mutating webhook" fillcolor="#fce8e8" color="#7A0504" fontcolor="#3a2020"]
+  sched [label="Scheduler" fillcolor="#fce8e8" color="#7A0504" fontcolor="#3a2020"]
+  device [label="HAMi driver" fillcolor="#fce8e8" color="#7A0504" fontcolor="#3a2020"]
+
+  runtime [label="Container runtime" fillcolor="#F6ECD9" color="#F1C560" fontcolor="#3a2020"]
+  core [label="HAMi core" fillcolor="#fce8e8" color="#7A0504" fontcolor="#3a2020"]
+  workload [label="Workload (isolated device)" fillcolor="#F6ECD9" color="#F1C560" fontcolor="#3a2020"]
+
+  { rank=same; pod; runtime }
+  { rank=same; webhook; core }
+  { rank=same; sched; workload }
+
+  pod -> webhook [label="set scheduler"]
+  webhook -> sched [label="select device"]
+  sched -> device [label="allocate device"]
+
+  device -> runtime [label="device config" constraint=false style=dashed exitX=1 exitY=0.5 entryX=0 entryY=0.5]
+
+  runtime -> core [label="inject library"]
+  core -> workload [label="sees isolated device"]
+}
+```
+
+---
+
+@layout two-col
+
+## The Magic: Runtime Hijacking
+
+@subtitle Your app does not change
+
+<!--
+HAMi ships a small library. The container runtime loads it before your app starts. On NVIDIA it intercepts CUDA calls and replies with your slice. Same pattern for other vendors: ACL calls on Ascend, CNRT on Cambricon. No code changes, no kernel modules, no driver changes. On closed NPU SDKs there is no hijack point: that is the enforcement gap.
+-->
+
+Your app calls CUDA. HAMi answers with a slice of the device.
+
+- Small library loaded before your app (`LD_PRELOAD`)
+- Intercepts CUDA calls, no app code changes
+- No kernel modules, no driver changes
+- Same pattern per vendor: ACL on Ascend, CNRT on Cambricon
+
+@col
+
+```dot
+digraph G {
+  rankdir=LR
+  bgcolor=transparent
+  node [shape=box style="rounded,filled" fontname="Arial" fontsize=16 margin="0.25,0.18"]
+  edge [fontname="Arial" fontsize=12]
+
+  app [label="Your app" fillcolor="#F6ECD9" color="#F1C560" fontcolor="#3a2020"]
+  lib [label="HAMi core\n(cuMemAlloc...)" fillcolor="#fce8e8" color="#7A0504" fontcolor="#3a2020"]
+  gpu [label="Device slice" fillcolor="#F6ECD9" color="#F1C560" fontcolor="#3a2020"]
+
+  app -> lib [label="CUDA calls"]
+  lib -> gpu [label="slice only"]
+}
+```
+---
+
+<!--
+- Runs on each GPU node next to HAMi's device plugin, serves :9394/metrics
+- Tenant memory = HAMi-core allocation accounting, not NVML process memory
+- If host-PID lookup fails, utilization reads 0 while the Pod is busy: zero is not idle
+- NVIDIA only; Ascend and Hygon collectors are in the appendix
+-->
+
+@layout two-col
+
+## How vGPUmonitor works on NVIDIA
+
+- **Device view** from NVML: memory, utilization, power, temperature, ECC.
+- **Tenant view** from HAMi-core's per-container cache: memory used vs limit, SM utilization.
+- Joins both to Pods through the Kubernetes API and serves `:9394/metrics`.
+- Tenant SM utilization is a share of the whole GPU, not of the reservation.
+
+@col
+
+```dot
+digraph G {
+  rankdir=TB
+  bgcolor=transparent
+  nodesep=0.25
+  ranksep=0.35
+  node [shape=box style="rounded,filled" fontname="Arial" fontsize=14 margin="0.16,0.10" color="#3939D8" fillcolor="#e3f0ff" fontcolor="#2a2a5a"]
+  edge [fontname="Arial" fontsize=11 color="#6a7a99" fontcolor="#2a2a5a"]
+
+  core [label="Pod: app + HAMi-core"]
+  nvml [label="NVML (driver)" fillcolor="#fff9e6" color="#f9a825"]
+  cache [label="usage.cache\nmemory, sm_util per process"]
+  api [label="Kubernetes API\n(Pod names)" fillcolor="#e8f5e9" color="#2e7d32"]
+  mon [label="vGPUmonitor :9394" fillcolor="#ffe8eb" color="#DB1E3D"]
+  dev [label="hami_host_gpu_*\ndevice" fillcolor="#fff9e6" color="#f9a825"]
+  ten [label="hami_vgpu_*, hami_container_*\ntenant" fillcolor="#e3f0ff"]
+
+  { rank=same; core; nvml }
+  nvml -> core [label="per-PID samples"]
+  core -> cache [label="writes"]
+  cache -> mon [label="mmap"]
+  nvml -> mon [label="device"]
+  api -> mon [label="identity"]
+  { rank=same; cache; api }
+  mon -> dev
+  mon -> ten
+}
+```
+
+::: notes
+Source: [metric families](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/vGPUmonitor/metrics.go#L53-L140); [cache discovery](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/pkg/monitor/nvidia/cudevshr.go#L137-L140); [HAMi-core NVML samples](https://github.com/Project-HAMi/HAMi-core/blob/ec5d85a3d709e5ed138a1668ebfefd366c05ca1e/src/multiprocess/multiprocess_utilization_watcher.c#L232-L262)
 :::
 
 ---
 
 <!--
-HAMi monitor is NVIDIA-specific; the existence of scheduler backends does not make this collector hardware-neutral. Shared-memory accounting and NVML process correlation need validation for the chosen sharing mode.
+- Most complete: device plus per-tenant memory and compute; Ascend has tenant memory only
+- Behaviour differs by sharing mode: validate HAMi-core sharing and MIG separately
+- A scheduler backend for a vendor does not imply a collector for it
 -->
 
-## NVIDIA has the clearest in-repository runtime path
+## NVIDIA has the fullest usage data
 
 ::: grid {cols=2}
 ::: card {tag=green}
@@ -258,10 +555,13 @@ Source: [runtime metric contract](https://github.com/Project-HAMi/HAMi/blob/3969
 ---
 
 <!--
-This replaces the unsupported universal-sensor claim. No per-vendor exporter is required for the scheduler allocation families themselves. Cross-vendor measured consumption still requires vendor-capable runtime collection; that collector can be integrated rather than a separately deployed exporter. Intel is not in the audited parity claims.
+- Scheduler reservation metrics work for every integrated vendor, no extra exporter
+- Per-tenant measured usage needs a vendor-specific collector
+- AMD gap and questions: research/cross-platform-observability/hami-team-amd-tenant-telemetry.md
+- Intel is not covered
 -->
 
-## A common view has explicit coverage
+## What HAMi covers for each vendor
 
 ::: grid {cols=2}
 ::: card {tag=green}
@@ -289,28 +589,66 @@ Source: [scheduler capacity](https://github.com/Project-HAMi/HAMi/blob/39699df26
 ---
 
 <!--
-The deck describes source contracts, not inferred Prometheus naming conventions. Validate representative real samples before writing recording rules.
+- Per GPU: hami_gpu_memory_limit_bytes, hami_gpu_memory_allocated_bytes, hami_gpu_core_allocated_ratio, hami_gpu_shared_count
+- Per Pod/namespace: hami_vgpu_memory_allocated_bytes, hami_resource_quota_used / _limit
+- Health: hami_scheduler_is_leader, hami_scheduler_cache_synced, hami_scheduler_allocation_failures_total (no_fit, lock, bind...)
+- Core _ratio here is 0-100, not 0-1
 -->
 
-## The same suffix can hide different units
+## What the HAMi scheduler reports
 
-- Runtime host GPU activity is described as **0-100**, despite `_ratio`.
-- Scheduler memory-allocation ratio is explicitly **0-1**.
-- Scheduler byte families convert internal **MiB to bytes**.
-- WebUI physical memory families use **MiB**, not bytes.
-- Normalize units at the boundary, before aggregation.
+- **Per GPU:** how much memory and compute HAMi can hand out, how much is already reserved, and how many containers share it.
+- **Per Pod and namespace:** what each Pod reserved on which GPU, and how much of each namespace's GPU quota is used.
+- **Scheduler health:** is this replica in charge, has it loaded cluster state, and why did placements fail (no GPU fits, lock, bind error)?
+- **AMD:** compute units are converted to a percentage, so they compare with other vendors.
+- These describe **placement and reservation**. Measured GPU work comes from runtime collectors (vGPUmonitor on NVIDIA); Prometheus keeps the history.
 
 ::: notes
-Source: [0-100 contract](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/vGPUmonitor/metrics.go#L63-L72); [MiB conversion](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/scheduler/metrics.go#L116-L120); [0-1 contract](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/scheduler/metrics.go#L191-L195); [WebUI MiB](https://github.com/Project-HAMi/HAMi-WebUI/blob/846c0e2d3360cc7240bb61968e4cc7e3cea53443/server/internal/exporter/metrics.go#L68-L91)
+Source: [AMD normalization](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/scheduler/metrics.go#L64-L74); [allocation families](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/scheduler/metrics.go#L157-L200); [pod reservations](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/scheduler/metrics.go#L389-L455); [namespace quotas](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/scheduler/metrics.go#L347-L356); [leader and cache sync](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/scheduler/metrics.go#L510-L519); [outcome counters](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/pkg/metrics/scheduler.go#L29-L55); [measured work](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/vGPUmonitor/metrics.go#L53-L140)
 :::
 
 ---
 
 <!--
-PORTABLE PATTERN, NOT A MEASURED RESULT. For the NVIDIA runtime families, max_over_time(hami_vgpu_memory_used_bytes[1h]) divided by hami_vgpu_memory_limit_bytes is an illustrative same-label use/limit ratio. The window is an example, not an operational recommendation. Validate scrape coverage, series uniqueness, Pod restarts and limits. Current limit differs from historical limits if reconfigured. Map workload reservations separately before saying allocation efficiency. Memory pressure needs consumption/limit, memory errors and/or allocator signals; reservations alone are not measured pressure.
+- Chart: Grafana on a real cluster, 5 GiB reserved vs 0-4.49 GiB used
+- Scheduler labels: namespace, node, pod, device_uuid; runtime adds container, vdevice_index
+- Join on namespace, pod, device_uuid after summing runtime series per Pod
+- Validate multi-container Pods on one GPU before trusting the join
 -->
 
-## Pattern 1: detect persistent overprovisioning
+## Reserved is not the same as used
+
+::: grid {cols=2}
+::: card {tag=cyan}
+### Reserved memory
+`hami_vgpu_memory_allocated_bytes`
+
+Scheduler reservation at Pod/device scope.
+:::
+::: card {tag=green}
+### Consumed memory
+`hami_vgpu_memory_used_bytes`
+
+Runtime accounting at container/vdevice scope.
+:::
+:::
+
+![Grafana: vGPU memory reserved (hami_vgpu_memory_allocated_bytes) stays at 5 GiB while used (hami_vgpu_memory_used_bytes) oscillates 0-4.49 GiB](assets/hami/grafana-reserved-vs-used-memory-plot.png)
+
+::: notes
+Source: [workload allocations](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/scheduler/metrics.go#L389-L455); [tenant runtime metrics](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/vGPUmonitor/metrics.go#L92-L140). Screenshot: Grafana on a real cluster.
+:::
+
+---
+
+<!--
+- A pattern, not a measured result
+- Example: max_over_time(hami_vgpu_memory_used_bytes[1h]) / hami_vgpu_memory_limit_bytes
+- Check scrape gaps, Pod restarts and limit changes before acting
+- Low compute alone does not mean memory can be reclaimed
+-->
+
+## Pattern 1: find unused reservations
 
 - Compare reserved memory with observed memory over a representative window.
 - Require fresh, supported runtime data and a positive limit.
@@ -325,10 +663,13 @@ Source: [tenant runtime metrics](https://github.com/Project-HAMi/HAMi/blob/39699
 ---
 
 <!--
-PORTABLE INVESTIGATION PATTERN, NOT A PROVEN CAUSAL DETECTOR. Start with hami_gpu_shared_count, workload/device allocation mapping, runtime memory/activity and application latency. Sharing count and scheduler annotations alone cannot prove contention. Ascend vNPU card-derived activity is insufficient for tenant compute attribution. MIG isolation boundaries change which resources can contend. DCGM and vendor tools can provide valuable workload and hardware data; do not claim this pattern is beyond them when enriched with Kubernetes state.
+- Investigation pattern, not proof of cause
+- Start from hami_gpu_shared_count to find co-located tenants
+- Ascend tenant utilization repeats card activity: can't attribute compute there
+- MIG slices don't contend for compute like soft-shared tenants do
 -->
 
-## Pattern 2: investigate noisy-neighbor candidates
+## Pattern 2: track down noisy neighbors
 
 - Identify co-located tenants and the physical or slice identity they share.
 - Correlate rising application latency with sibling activity and memory pressure.
@@ -343,12 +684,13 @@ Source: [scheduler capacity](https://github.com/Project-HAMi/HAMi/blob/39699df26
 ---
 
 <!--
-PORTABLE PATTERN, NOT AN AUTOMATED HAMi RIGHT-SIZER. GPU memory is not inferred from activity. Percentiles alone can miss startup peaks and short out-of-memory events. On shared GPUs, activity may be measured against full device capacity rather than the reserved fraction; normalize explicitly. Changes can affect contention or application throughput. No fabricated improvement percentages or production case study are supplied.
+- Screenshot: HAMi-WebUI 1.3.0, gpu-burn on a single A30 node
+- Size memory from peaks: averages miss startup and short OOM spikes
+- On shared GPUs activity is against the whole card; normalize to the reservation
+- No improvement numbers claimed; HAMi does not right-size automatically
 -->
 
-@layout image-right
-
-## Pattern 3: right-size with workload evidence
+## Pattern 3: right-size GPU requests
 
 - Measure startup peaks and steady-state demand across the workload lifecycle.
 - Segment by model, batch size, request load and sharing mode.
@@ -356,7 +698,7 @@ PORTABLE PATTERN, NOT AN AUTOMATED HAMi RIGHT-SIZER. GPU memory is not inferred 
 - Tune compute limits only after normalizing quota and activity semantics.
 - Canary the new request; compare latency, failures and placement outcomes.
 
-![HAMi WebUI workload detail: gpu-burn Pod at Compute Power Limit 1, GPU Compute Utilization oscillates 0-100% while Memory Utilization oscillates 0-90%](assets/hami/webui-workload-gpu-burn.png)
+![HAMi WebUI gpu-burn charts: allocated compute utilization and GPU memory utilization both cycle between 0 and about 100 and 90 percent](assets/hami/webui-workload-gpu-burn-charts.png)
 
 ::: notes
 Source: [tenant runtime metrics](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/vGPUmonitor/metrics.go#L92-L140); [scheduling outcome counters](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/pkg/metrics/scheduler.go#L29-L55). Screenshot: HAMi-WebUI 1.3.0 on a single-node A30 cluster.
@@ -365,10 +707,22 @@ Source: [tenant runtime metrics](https://github.com/Project-HAMi/HAMi/blob/39699
 ---
 
 <!--
-PROPOSED DASHBOARD DESIGN. Allocation packing describes reservation density. Workload efficiency requires consumption and useful application output. Show capability/freshness alongside numbers and avoid equating 100 percent activity with useful computation. Panels are not claimed as deployed or demonstrated.
+- From here on: advice that applies with or without HAMi
 -->
 
-## The operator view joins intent, activity and outcome
+# Advice for platform builders
+
+@subtitle Cross-vendor GPU observability, with or without HAMi
+
+---
+
+<!--
+- Proposed design, not a shipped dashboard
+- Packing (reserved/total) is not efficiency (useful work per reservation)
+- Show freshness next to every number; 100% busy is not useful work
+-->
+
+## What an operator dashboard needs
 
 ::: grid {cols=2}
 ::: card {tag=cyan}
@@ -392,10 +746,13 @@ Measured or derived? Supported on this vendor/mode? Current or stale?
 ---
 
 <!--
-REFERENCE ARCHITECTURE, NOT AN EXISTING HAMi OTLP INTEGRATION. OpenTelemetry Collector contrib has a Prometheus receiver; deployment/component versions, enrichment and target discovery must be validated. The proposed architecture preserves vendor/runtime sources and adds intent correlation. Existing metric units do not automatically conform to OTel semantic conventions. Do not claim one Prometheus receiver somehow removes hardware-specific sensors.
+- Reference architecture, not an existing HAMi OTLP integration
+- The Collector's Prometheus receiver can scrape HAMi today; units won't match OTel conventions
+- Admission/scheduler events are proposed; at admission a Pod may have no UID yet
+- Use workload/device identity as attributes, never PIDs or request IDs as metric labels
 -->
 
-## OpenTelemetry can carry the combined model
+## OpenTelemetry can carry all of it
 
 ::: grid {cols=2}
 ::: card {tag=cyan}
@@ -407,8 +764,8 @@ HAMi Prometheus allocation metrics plus compatible runtime metrics.
 A Prometheus receiver can scrape, enrich and export metrics through OTLP.
 :::
 ::: card {tag=yellow}
-### Additional instrumentation
-Proposed spans/events for admission, allocation and bind decisions.
+### Admission and scheduler events
+Proposed: request, policy decision and rejection; then reservation, no-fit and bind rollback.
 :::
 ::: card {tag=cyan}
 ### Common attributes
@@ -417,14 +774,19 @@ Workload identity, device/slice identity, scope, unit, source and freshness.
 :::
 
 ::: notes
-Source: [OpenTelemetry Collector](https://opentelemetry.io/docs/collector/); [Prometheus receiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/prometheusreceiver)
+Source: [OpenTelemetry Collector](https://opentelemetry.io/docs/collector/); [Prometheus receiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/prometheusreceiver); [scheduling outcome counters](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/pkg/metrics/scheduler.go#L29-L55)
 :::
 
 ---
 
 <!--
-PROPOSED INSTRUMENTATION. Do not invent current HAMi admission latency histograms, GPU execution spans or trace-context propagation. Existing bounded outcome counters do not carry per-Pod trace correlation. Pod UID can be available at later lifecycle stages; a CREATE admission request may precede stable Pod UID assignment. Use admission request identity initially and reconcile once the object exists. Cardinality/security budgets need explicit design. The scheduler does not intercept CUDA calls.
+- Proposed instrumentation: nothing like it exists in HAMi today
+- Outcome counters exist but carry no per-Pod trace correlation
+- CREATE admission may precede the Pod UID: use the request identity, reconcile later
+- The scheduler never sees CUDA calls
 -->
+
+@hidden
 
 ## Admission telemetry records intent, not GPU work
 
@@ -440,10 +802,14 @@ Source: [scheduling outcome counters](https://github.com/Project-HAMi/HAMi/blob/
 ---
 
 <!--
-PROPOSAL: this is a recommended normalization contract, not an implemented universal HAMi API. Preserve raw vendor metrics and document conversions.
+- A proposal, not an existing HAMi API
+- Keep raw vendor metrics and document every conversion
+- Today line: runtime _ratio is 0-100, scheduler memory ratio 0-1, scheduler bytes vs WebUI MiB
+- Check real samples before writing recording rules
+- Cost: legacy Device_memory_desc_of_container puts memory sizes in labels; hami_resource_quota_used puts the limit in a label
 -->
 
-## A cross-platform contract we should build
+## One metric contract for every vendor
 
 ::: grid {cols=2}
 ::: card {tag=cyan}
@@ -459,16 +825,26 @@ Reservation vs consumption; bytes vs MiB; ratio vs percent; physical vs slice vs
 Measured, derived, unsupported or stale. Export the collection timestamp and error state.
 :::
 ::: card {tag=red}
-### Bounded cost
-Avoid PID-level history by default. Control label churn and query fan-out.
+### Low cardinality
+Report per container, not per process. Keep changing values like PIDs, sizes and limits out of labels.
 :::
+:::
+
+**Today:** `_ratio` means 0-100 at runtime but 0-1 in the scheduler; scheduler memory is bytes, WebUI memory is MiB.
+
+::: notes
+Source: [0-100 contract](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/vGPUmonitor/metrics.go#L63-L72); [MiB conversion](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/scheduler/metrics.go#L116-L120); [0-1 contract](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/scheduler/metrics.go#L191-L195); [WebUI MiB](https://github.com/Project-HAMi/HAMi-WebUI/blob/846c0e2d3360cc7240bb61968e4cc7e3cea53443/server/internal/exporter/metrics.go#L68-L91)
 :::
 
 ---
 
 <!--
-PROPOSED TEST PLAN. No workload was deployed as part of this static inventory. Choose representative sharing modes and vendor-specific ground truth. Never present illustrative numbers as measurements.
+- Test plan for when GPUs are available; nothing was run
+- Use vendor ground truth for each sharing mode
+- Never show illustrative numbers as measurements
 -->
+
+@hidden
 
 ## Validation before a live cross-platform demo
 
@@ -481,10 +857,12 @@ PROPOSED TEST PLAN. No workload was deployed as part of this static inventory. C
 ---
 
 <!--
-The user goals emphasize transferable architecture over a product pitch. Current implementation and proposals stay distinct. No production results or universal hardware support are asserted. Vendor telemetry can already expose many relevant signals; the contribution is the scheduling-intent/runtime/application correlation and the explicit capability contract. Speaker Bio was empty in the supplied brief; existing speaker attribution is retained without inventing biography.
+- The model transfers to other schedulers; HAMi is one implementation
+- No production results or universal hardware support claimed
+- Ask: what would you need to correlate in your stack?
 -->
 
-## Take away a workload-centric observability model
+## Takeaway: start from the workload
 
 - Scheduling supplies ownership, intent and allocation decisions.
 - Runtime sensors supply consumption and device behavior.
@@ -494,16 +872,22 @@ The user goals emphasize transferable architecture over a product pitch. Current
 
 ---
 
-# Appendix: Source-backed platform inventory
+<!--
+- Backup slides for vendor-specific questions
+-->
 
-@subtitle Collector details, integration gaps and scrape contracts
+# Appendix: what each vendor provides
+
+@subtitle Exporters, gaps and setup, vendor by vendor
 
 ---
 
 <!--
-The Ascend plugin exposes /metrics only in HAMivNPUCore or ENPU modes. vNPUCore has tenant memory accounting, but its tenant utilization repeats physical AICore activity. Context/module/buffer values are zero placeholders. WebUI's task metric adapters explicitly return unsupported even though the plugin emits some task memory series. This is an integration gap, not absence of all Ascend observability.
+- Only with hamiVnpuCore or ENPU enabled; otherwise no /metrics at all
+- ENPU mode has collection-success gauges; core mode reports DCMI errors as 0
+- WebUI Ascend workload panels say unsupported although the plugin emits memory
 -->
-## Ascend: exporter support depends on mode
+## Ascend: metrics only in some modes
 
 - HAMivNPUCore and ENPU modes expose `:9395/metrics`.
 - Tenant memory comes from shared accounting or DCMI process attribution.
@@ -518,9 +902,12 @@ Source: [mode gate](https://github.com/Project-HAMi/ascend-device-plugin/blob/6f
 ---
 
 <!--
-The audited dcu-exporter emits vdcu_utilizationrate and vdcu_usedmemory_bytes with PodResources workload labels. WebUI's DCU workload queries instead expect vdcu_percent and vdcu_usage_memory_size with pod_uuid/container_name. These contracts do not match at the pinned versions. Physical telemetry queries align more closely. New HCU adapters are separate and their exporter is outside this organization inventory.
+- Exporter: vdcu_utilizationrate, vdcu_usedmemory_bytes with dcu_pod_* labels
+- WebUI asks for vdcu_percent, vdcu_usage_memory_size with pod_uuid, container_name: no data
+- Physical dcu_* queries do match
+- HCU uses a separate exporter outside Project-HAMi
 -->
-## Hygon: physical exporter, workload contract mismatch
+## Hygon: exporter and WebUI disagree
 
 - DCU exporter serves `/metrics` on default port **16080**.
 - Physical and virtual gauges poll DCGM every **10 seconds**.
@@ -535,10 +922,13 @@ Source: [exported virtual families](https://github.com/Project-HAMi/dcu-exporter
 ---
 
 <!--
-Negative findings are scoped to audited first-party code. They do not mean vendor monitoring software does not exist. See the vendor report for exact health paths and source evidence.
+- Means none in Project-HAMi's own code; vendor tools exist
+- AMD: exporter used only for health, and that check is off by default (-pulse=0)
+- AMD's HIP cache stays inside the container, so no node collector can read it
+- Biren: health check is a stub that always says healthy
 -->
 
-## AMD and Biren: scheduling does not prove metric parity
+## AMD and Biren: no per-Pod usage data
 
 ::: grid {cols=2}
 ::: card {tag=yellow}
@@ -558,10 +948,12 @@ Source: [AMD accounting](https://github.com/Project-HAMi/HAMi/blob/39699df26042b
 ---
 
 <!--
-Adapters exist, but the first-party Project-HAMi organization snapshot does not contain every vendor exporter. Cambricon and some other legacy task paths retain a card-utilization fallback, which must not be described as direct per-container measurement.
+- Their exporters live outside Project-HAMi
+- Tenant paths can substitute card utilization above 95%: not per-container measurement
+- MetaX reports memory in KB and power in mW; WebUI converts
 -->
 
-## Cambricon and MetaX use external metric contracts
+## Cambricon and MetaX: vendor exporters
 
 ::: grid {cols=2}
 ::: card {tag=cyan}
@@ -581,10 +973,12 @@ Source: [provider queries](https://github.com/Project-HAMi/HAMi-WebUI/blob/846c0
 ---
 
 <!--
-The documentation report lists documented vendors and the corresponding source paths. No universal exporter or per-tenant metric contract is inferred from a resource-name entry.
+- Iluvatar, Enflame, Kunlunxin, Mthreads, VastAI, AWS Neuron and others are scheduled by HAMi
+- A documented resource name does not mean an exporter or tenant metrics exist
+- Treat unverified as unknown, not as zero
 -->
 
-## Other scheduling backends remain evidence gaps
+## Other vendors: metrics not yet checked
 
 - HAMi documents more hardware than WebUI has telemetry adapters.
 - Iluvatar, Enflame, Kunlunxin, Mthreads and other backends need exporter-by-exporter review.
@@ -594,27 +988,33 @@ The documentation report lists documented vendors and the corresponding source p
 ---
 
 <!--
-NVIDIA and HCU task activity conversions explicitly exclude elastic borrowing; other vendor paths differ. Physical-card activity must not substitute for an individual tenant on a shared card.
+- WebUI measures nothing itself; it queries vendor exporters every 30 s
+- Converts bytes/KB to MiB, mW to W, and UUID/uuid/vdie_id/device_id to device_uuid
+- Unknown compute share today: some Ascend Pods
+- Card-utilization fallback for Cambricon, DCU and MetaX; none for NVIDIA and HCU
 -->
 
-## WebUI is a normalization layer with boundaries
+## WebUI: one format, not one meaning
 
 - Uses Kubernetes allocation state plus Prometheus vendor queries.
-- Re-exports common `hami_memory_*`, `hami_core_*` and container families.
-- Marks unknown core allocation instead of manufacturing capacity.
+- Translates each vendor's units and label names into one set of `hami_*` metrics, so one query works for every vendor.
+- If a Pod's compute share can't be determined (some Ascend Pods today), it reports "unknown" instead of guessing.
 - Exposes refresh health and last-success timestamp.
 - Common names do not guarantee common measurement semantics.
 
 ::: notes
-Source: [refresh health](https://github.com/Project-HAMi/HAMi-WebUI/blob/846c0e2d3360cc7240bb61968e4cc7e3cea53443/server/internal/exporter/metrics.go#L44-L49); [known/unknown and usage](https://github.com/Project-HAMi/HAMi-WebUI/blob/846c0e2d3360cc7240bb61968e4cc7e3cea53443/server/internal/exporter/metrics.go#L163-L180); [semantics](https://github.com/Project-HAMi/HAMi-WebUI/blob/846c0e2d3360cc7240bb61968e4cc7e3cea53443/server/internal/exporter/exporter.go#L744-L788)
+Source: [unit conversion](https://github.com/Project-HAMi/HAMi-WebUI/blob/846c0e2d3360cc7240bb61968e4cc7e3cea53443/server/internal/exporter/exporter.go#L655-L664); [refresh health](https://github.com/Project-HAMi/HAMi-WebUI/blob/846c0e2d3360cc7240bb61968e4cc7e3cea53443/server/internal/exporter/metrics.go#L44-L49); [known/unknown and usage](https://github.com/Project-HAMi/HAMi-WebUI/blob/846c0e2d3360cc7240bb61968e4cc7e3cea53443/server/internal/exporter/metrics.go#L163-L180); [semantics](https://github.com/Project-HAMi/HAMi-WebUI/blob/846c0e2d3360cc7240bb61968e4cc7e3cea53443/server/internal/exporter/exporter.go#L744-L788)
 :::
 
 ---
 
 <!--
-HAMi-DRA implements an optional allocation monitor on :8080/metrics. It watches ResourceSlices and ResourceClaims and reports consumed capacity, not actual hardware use. Its current core ratio families are normalized 0-1, unlike classic HAMi percentage-style core accounting. The NVIDIA kubelet DRA driver handles device health through logs/ResourceSlice changes; this is not a GPU Prometheus exporter.
+- Monitor on :8080/metrics, health on :8000; no ServiceMonitor in the chart
+- Reports ResourceClaim reservations, not hardware use
+- Core ratios are 0-1 here; classic HAMi uses 0-100
+- Legacy metric names are on by default here, unlike classic HAMi
 -->
-## DRA has a distinct allocation monitor
+## DRA has its own allocation metrics
 
 - HAMi-DRA serves allocation metrics at `:8080/metrics`.
 - Capacity comes from ResourceSlices; reservations from ResourceClaims.
@@ -629,10 +1029,12 @@ Source: [DRA descriptors](https://github.com/Project-HAMi/HAMi-DRA/blob/ab103e2f
 ---
 
 <!--
-These are checked-in template conditions, not a claim that Prometheus Operator is installed in any cluster. Confirm effective release values and ServiceMonitor selector matching.
+- These are chart template conditions; check what your release renders
+- ServiceMonitors need the Prometheus Operator CRD and prometheus.enabled=true
+- honorLabels keeps HAMi's namespace/pod labels from being overwritten
 -->
 
-## Scrape configuration is part of the contract
+## Make sure Prometheus scrapes HAMi
 
 - HAMi provides separate scheduler and runtime ServiceMonitors.
 - Chart rendering requires the ServiceMonitor CRD and `prometheus.enabled`.
@@ -647,10 +1049,12 @@ Source: [scheduler scrape](https://github.com/Project-HAMi/HAMi/blob/39699df2604
 ---
 
 <!--
-Review the documentation report for legacy dashboard references. A successful HTTP scrape does not prove the query expected by a panel returns data.
+- Legacy names such as vGPU_device_memory_usage_in_bytes only appear with --legacy-metrics
+- A scrape returning 200 does not mean a panel's query returns data
+- Test for missing series, not just successful queries
 -->
 
-## Version skew can silently break dashboards
+## Mismatched versions break dashboards
 
 - Current `hami_*` names coexist with opt-in legacy descriptors.
 - Names and labels changed together: `deviceuuid` versus `device_uuid`.
@@ -661,3 +1065,72 @@ Review the documentation report for legacy dashboard references. A successful HT
 ::: notes
 Source: [legacy runtime descriptors](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/vGPUmonitor/metrics.go#L142-L194); [current NVIDIA selector](https://github.com/Project-HAMi/HAMi-WebUI/blob/846c0e2d3360cc7240bb61968e4cc7e3cea53443/server/internal/exporter/exporter.go#L713-L715)
 :::
+
+---
+
+# Where we are today
+---
+
+@layout ecosystem
+## Community & Adopters
+
+@subtitle Devices, integrations, and who uses HAMi
+
+<!--
+5.2k stars, 325k pulls, 500+ contributors, 27 countries. 11 device types, 20+ adopters. This is the ecosystem slide: show the breadth. The QR code links to github.com/Project-HAMi/HAMi.
+-->
+
+#### Open Source, CNCF Backed, Production Ready
+::: grid {cols=5}
+::: card {metric}
+5.2k
+Github Stars
+:::
+::: card {metric}
+325k
+Docker Pulls
+:::
+::: card {metric}
+500+
+Contributors
+:::
+::: card {metric}
+27
+Contributor Countries
+:::
+::: card
+
+![Kubernetes](assets/ecosystem/integrations/kubernetes.png) ![Volcano](assets/ecosystem/integrations/volcano.png) ![Kueue](assets/ecosystem/integrations/kueue.png) ![Koordinator](assets/ecosystem/integrations/koordinator.png) ![KAI Scheduler](assets/ecosystem/integrations/kai-scheduler.png) ![cozystack](assets/ecosystem/integrations/cozystack.svg)
+:::
+:::
+
+#### Ecosystem & Device Support
+::: grid {cols=2}
+::: card
+![NVIDIA](assets/ecosystem/devices/nvidia.png) ![Ascend](assets/ecosystem/devices/ascend.png) ![Cambricon](assets/ecosystem/devices/cambricon.png) ![Hygon](assets/ecosystem/devices/hygon.png) ![Iluvatar](assets/ecosystem/devices/illuvitar.png)
+![Metax](assets/ecosystem/devices/metax.png) ![Moore Threads](assets/ecosystem/devices/moorethreads.png) ![Kunlunxin](assets/ecosystem/devices/kunlunxin.png) ![Enflame](assets/ecosystem/devices/enflame.png)
+![AWS](assets/ecosystem/devices/aws.png) ![VastStream](assets/ecosystem/devices/vaststream.png)
+:::
+:::
+
+#### Adopters
+::: grid {cols=2}
+::: card
+![4Paradigm](assets/ecosystem/adopters/4paradigm.png) ![Baidu](assets/ecosystem/adopters/baiduzhineng.png) ![Baike](assets/ecosystem/adopters/baike.png) ![China Merchants](assets/ecosystem/adopters/chinamerchants.png) ![China Mobile](assets/ecosystem/adopters/chinamobile.png)
+![China Unicom](assets/ecosystem/adopters/chinaunicom.png) ![DaoCloud](assets/ecosystem/adopters/daocloud.png) ![Dynamia](assets/ecosystem/adopters/dynamia.png) ![H3C](assets/ecosystem/adopters/h3c.png) ![Huawei](assets/ecosystem/adopters/huawei.png)
+![LinkedIn](assets/ecosystem/adopters/linkedin.png) ![MSXF](assets/ecosystem/adopters/msxf.png) ![NIO](assets/ecosystem/adopters/nio.png) ![PPIO](assets/ecosystem/adopters/ppio.png) ![Prep](assets/ecosystem/adopters/prep.png)
+![SAP](assets/ecosystem/adopters/sap.png) ![SF Technology](assets/ecosystem/adopters/sftechnology.png) ![Si-Tech](assets/ecosystem/adopters/si-tech.png) ![Snow](assets/ecosystem/adopters/snow.png) ![Viettel](assets/ecosystem/adopters/viettel.png)
+:::
+:::
+
+---
+
+@kicker Thank You
+# Questions? Try HAMi
+
+@subtitle github.com/Project-HAMi/HAMi
+
+**Got devices we do not support yet? We would love to play with them.**
+
+@speaker name="Reza Jelveh" role="Solution Architect, Dynamia AI  -  Makers of HAMi" github=github.com/fishman linkedin=linkedin.com/in/rezajelveh
+@speaker name="Thanh Loi Hoang" role="Research Engineer, CNLab.ai | LFX Mentee, HAMi" github=github.com/loiht2 linkedin=linkedin.com/in/loiht2

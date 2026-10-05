@@ -15,6 +15,7 @@ Audit date: 2026-09-30. All 23 public Project-HAMi organization repositories wer
 ## Detailed evidence
 
 - [Metric-level observer inventory](observers.md): per-component metric tables, labels, units, failure semantics.
+- [Question for the HAMi team: per-tenant usage on shared AMD GPUs](hami-team-amd-tenant-telemetry.md): why AMD has no vGPUmonitor equivalent, evidence and options.
 - [NVIDIA, scheduler, DRA, KAI, Volcano and mock audit](observability-nvidia-control.md)
 - [AMD, Ascend, Biren and Hygon audit](observability-vendors.md)
 - [Documentation, Grafana, WebUI, tutorials and workload audit](observability-docs-ui.md)
