@@ -679,7 +679,7 @@ Reservation vs consumption; bytes vs MiB; ratio vs percent; physical vs slice vs
 Measured, derived, unsupported or stale. Export the collection timestamp and error state.
 :::
 ::: card {tag=red}
-### Keep it cheap
+### Low cardinality
 Report per container, not per process. Keep changing values like PIDs, sizes and limits out of labels.
 :::
 :::
