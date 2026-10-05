@@ -896,11 +896,11 @@ Source: [0-100 contract](https://github.com/Project-HAMi/HAMi/blob/39699df26042b
 -->
 ## Ascend: metrics only in some modes
 
-- HAMivNPUCore and ENPU modes expose `:9395/metrics`.
-- Tenant memory comes from shared accounting or DCMI process attribution.
-- vNPU tenant utilization repeats **physical AICore activity**.
-- Context/module/buffer memory fields are zero placeholders.
-- WebUI physical NPU adapters exist; task adapters remain unsupported.
+- Metrics on `:9395/metrics` only in HAMivNPUCore or ENPU mode.
+- Per-Pod memory comes from HAMi's shared accounting or DCMI.
+- Per-Pod utilization in vNPU mode is the **whole card's** AICore number.
+- Context, module and buffer memory are always 0.
+- WebUI shows Ascend card metrics, but no per-Pod usage.
 
 ::: notes
 Source: [mode gate](https://github.com/Project-HAMi/ascend-device-plugin/blob/6f6ee0240641e9f03e6e46356910a1579b3cf276/cmd/main.go#L154-L165); [tenant semantics](https://github.com/Project-HAMi/ascend-device-plugin/blob/6f6ee0240641e9f03e6e46356910a1579b3cf276/internal/monitor/collector.go#L124-L167); [WebUI gap](https://github.com/Project-HAMi/HAMi-WebUI/blob/846c0e2d3360cc7240bb61968e4cc7e3cea53443/server/internal/exporter/exporter.go#L687-L709)
@@ -914,13 +914,13 @@ Source: [mode gate](https://github.com/Project-HAMi/ascend-device-plugin/blob/6f
 - Physical dcu_* queries do match
 - HCU uses a separate exporter outside Project-HAMi
 -->
-## Hygon: exporter and WebUI disagree
+## Hygon: WebUI queries the wrong metric names
 
-- DCU exporter serves `/metrics` on default port **16080**.
-- Physical and virtual gauges poll DCGM every **10 seconds**.
-- Exporter: `vdcu_utilizationrate`, `vdcu_usedmemory_bytes`.
-- WebUI expects `vdcu_percent`, `vdcu_usage_memory_size` and different labels.
-- Validate or bridge the workload contract before demoing WebUI trends.
+- DCU exporter serves `/metrics` on port **16080**, polling every **10 seconds**.
+- It exports `vdcu_utilizationrate` and `vdcu_usedmemory_bytes`.
+- WebUI asks for `vdcu_percent` and `vdcu_usage_memory_size`, with other labels.
+- So WebUI per-Pod DCU charts stay empty; card charts work.
+- Fix the names on one side before a demo.
 
 ::: notes
 Source: [exported virtual families](https://github.com/Project-HAMi/dcu-exporter/blob/30408d074cd420729f5698710d54fb30abefb0b1/main.go#L144-L177); [polling and endpoint](https://github.com/Project-HAMi/dcu-exporter/blob/30408d074cd420729f5698710d54fb30abefb0b1/main.go#L405-L471); [compute query](https://github.com/Project-HAMi/HAMi-WebUI/blob/846c0e2d3360cc7240bb61968e4cc7e3cea53443/server/internal/exporter/exporter.go#L696-L701); [memory query](https://github.com/Project-HAMi/HAMi-WebUI/blob/846c0e2d3360cc7240bb61968e4cc7e3cea53443/server/internal/exporter/exporter.go#L791-L811)
@@ -940,11 +940,11 @@ Source: [exported virtual families](https://github.com/Project-HAMi/dcu-exporter
 ::: grid {cols=2}
 ::: card {tag=yellow}
 ### AMD
-ROCm/AMD plugin health integration exists. Scheduler reservations are visible. No AMD-specific WebUI telemetry adapter in the reviewed switch.
+HAMi schedules AMD GPUs and reports reservations. The device plugin checks health. WebUI has no AMD queries.
 :::
 ::: card {tag=red}
 ### Biren
-Device registration, allocation and health logic need a separate exporter contract. No Biren WebUI telemetry branch in the reviewed switch.
+HAMi schedules Biren devices. The health check always says healthy. No exporter in Project-HAMi, and WebUI has no Biren queries.
 :::
 :::
 
@@ -965,11 +965,11 @@ Source: [AMD accounting](https://github.com/Project-HAMi/HAMi/blob/39699df26042b
 ::: grid {cols=2}
 ::: card {tag=cyan}
 ### Cambricon
-WebUI queries `mlu_*` series and joins container mapping on UUID. Workload attribution inherits exporter semantics.
+WebUI reads the vendor's `mlu_*` metrics and matches containers by UUID. Per-Pod numbers are only as good as that exporter.
 :::
 ::: card {tag=green}
 ### MetaX
-WebUI queries `mx_*` physical and workload series. GPU and sGPU paths have different identity labels and assumptions.
+WebUI reads `mx_*` card and Pod metrics. GPU and sGPU modes use different labels.
 :::
 :::
 
@@ -987,10 +987,10 @@ Source: [provider queries](https://github.com/Project-HAMi/HAMi-WebUI/blob/846c0
 
 ## Other vendors: metrics not yet checked
 
-- HAMi documents more hardware than WebUI has telemetry adapters.
-- Iluvatar, Enflame, Kunlunxin, Mthreads and other backends need exporter-by-exporter review.
-- Check physical health, runtime usage and workload attribution independently.
-- Label an unverified capability **unknown**, not zero or supported.
+- HAMi schedules more hardware than WebUI has queries for.
+- Iluvatar, Enflame, Kunlunxin, Mthreads and others: exporters not checked yet.
+- Check card health, usage and per-Pod numbers separately.
+- If you haven't checked it, call it **unknown**, not zero.
 
 ---
 
@@ -1001,13 +1001,13 @@ Source: [provider queries](https://github.com/Project-HAMi/HAMi-WebUI/blob/846c0
 - Card-utilization fallback for Cambricon, DCU and MetaX; none for NVIDIA and HCU
 -->
 
-## WebUI: one format, not one meaning
+## WebUI: same metric names, different measurements
 
-- Uses Kubernetes allocation state plus Prometheus vendor queries.
-- Translates each vendor's units and label names into one set of `hami_*` metrics, so one query works for every vendor.
-- If a Pod's compute share can't be determined (some Ascend Pods today), it reports "unknown" instead of guessing.
-- Exposes refresh health and last-success timestamp.
-- Common names do not guarantee common measurement semantics.
+- Reads Kubernetes allocations and each vendor's Prometheus metrics.
+- Renames and converts them into one set of `hami_*` metrics.
+- Reports "unknown" when it can't tell a Pod's compute share.
+- Shows when it last refreshed and whether that worked.
+- The same name can still mean different things per vendor.
 
 ::: notes
 Source: [unit conversion](https://github.com/Project-HAMi/HAMi-WebUI/blob/846c0e2d3360cc7240bb61968e4cc7e3cea53443/server/internal/exporter/exporter.go#L655-L664); [refresh health](https://github.com/Project-HAMi/HAMi-WebUI/blob/846c0e2d3360cc7240bb61968e4cc7e3cea53443/server/internal/exporter/metrics.go#L44-L49); [known/unknown and usage](https://github.com/Project-HAMi/HAMi-WebUI/blob/846c0e2d3360cc7240bb61968e4cc7e3cea53443/server/internal/exporter/metrics.go#L163-L180); [semantics](https://github.com/Project-HAMi/HAMi-WebUI/blob/846c0e2d3360cc7240bb61968e4cc7e3cea53443/server/internal/exporter/exporter.go#L744-L788)
@@ -1023,11 +1023,11 @@ Source: [unit conversion](https://github.com/Project-HAMi/HAMi-WebUI/blob/846c0e
 -->
 ## DRA has its own allocation metrics
 
-- HAMi-DRA serves allocation metrics at `:8080/metrics`.
-- Capacity comes from ResourceSlices; reservations from ResourceClaims.
-- Current families use `hami_dra_*` names and core ratios **0-1**.
-- Kubelet-driver health and Prepare/Unprepare are a separate surface.
-- Runtime device and tenant telemetry still require their own collectors.
+- HAMi-DRA serves metrics on `:8080/metrics`.
+- Capacity comes from ResourceSlices, reservations from ResourceClaims.
+- Metric names start with `hami_dra_`; core ratios are **0-1**.
+- Driver health is reported separately.
+- Actual GPU use still needs a runtime collector.
 
 ::: notes
 Source: [DRA descriptors](https://github.com/Project-HAMi/HAMi-DRA/blob/ab103e2f93d743e8140bf4431437dc86b7718a22/pkg/metrics/metrics.go#L21-L52); [normalization](https://github.com/Project-HAMi/HAMi-DRA/blob/ab103e2f93d743e8140bf4431437dc86b7718a22/pkg/metrics/collector.go#L27-L116); [endpoint setup](https://github.com/Project-HAMi/HAMi-DRA/blob/ab103e2f93d743e8140bf4431437dc86b7718a22/docs/MONITOR.md#L1-L67)
@@ -1043,11 +1043,11 @@ Source: [DRA descriptors](https://github.com/Project-HAMi/HAMi-DRA/blob/ab103e2f
 
 ## Make sure Prometheus scrapes HAMi
 
-- HAMi provides separate scheduler and runtime ServiceMonitors.
-- Chart rendering requires the ServiceMonitor CRD and `prometheus.enabled`.
-- Runtime monitor also requires the device plugin to be enabled.
-- Both templates set `honorLabels: true`.
-- Verify target selection, labels and actual series after installation.
+- HAMi ships two ServiceMonitors: scheduler and runtime.
+- Both need the ServiceMonitor CRD and `prometheus.enabled`.
+- The runtime one also needs the device plugin enabled.
+- Both set `honorLabels: true`.
+- After install, check that the series actually show up.
 
 ::: notes
 Source: [scheduler scrape](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/charts/hami/templates/scheduler/servicemonitor.yaml#L1-L23); [runtime scrape](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/charts/hami/templates/device-plugin/servicemonitor.yaml#L1-L23)
@@ -1063,11 +1063,11 @@ Source: [scheduler scrape](https://github.com/Project-HAMi/HAMi/blob/39699df2604
 
 ## Mismatched versions break dashboards
 
-- Current `hami_*` names coexist with opt-in legacy descriptors.
-- Names and labels changed together: `deviceuuid` versus `device_uuid`.
-- Some older guides expect legacy families; current Grafana JSON uses `hami_*`.
-- Pin exporter, scheduler, WebUI and dashboard versions together.
-- Test missing series as well as successful queries.
+- Old metric names only appear with a legacy flag.
+- Names and labels changed together: `deviceuuid` became `device_uuid`.
+- Older guides use the old names; current Grafana dashboards use `hami_*`.
+- Upgrade exporter, scheduler, WebUI and dashboards together.
+- Test for missing data, not just working queries.
 
 ::: notes
 Source: [legacy runtime descriptors](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/vGPUmonitor/metrics.go#L142-L194); [current NVIDIA selector](https://github.com/Project-HAMi/HAMi-WebUI/blob/846c0e2d3360cc7240bb61968e4cc7e3cea53443/server/internal/exporter/exporter.go#L713-L715)
