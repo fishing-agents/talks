@@ -1,6 +1,6 @@
 ---
 theme: kubecon_japan
-title: "One Agent, Every GPU: Vendor-Neutral Observability from the Kubernetes Scheduler"
+title: "Vendor-Neutral GPU Observability from the HAMi Scheduler"
 logo: assets/brand/hami-logo.png
 logo_dark: assets/brand/hami-logo.png
 watermark: assets/brand/kubecon_japan/cncf_logo.svg
@@ -39,11 +39,12 @@ Audience narrative supplied by Reza. Implementation audit spans all 23 public Pr
 @variant dark
 @kicker Kubernetes GPU observability
 
-# One Agent, Every GPU: Vendor-Neutral Observability from the Kubernetes Scheduler
+# Vendor-Neutral GPU Observability
 
-@subtitle One workload view across heterogeneous GPUs: connect scheduling intent, runtime usage and application outcomes
+@subtitle From the HAMi Scheduler
 
 @speaker name="Reza Jelveh" role="Solution Architect, Dynamia AI - Makers of HAMi" github=github.com/fishman linkedin=linkedin.com/in/rezajelveh
+@contributor name="Thanh Loi Hoang" role="LFX Mentorship, HAMi observability mentee" github=github.com/loiht2 linkedin=linkedin.com/in/loiht2
 
 ---
 
