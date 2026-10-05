@@ -27,7 +27,7 @@ style: |
 @subtitle From the Kubernetes Scheduler
 
 @speaker name="Reza Jelveh" role="Solution Architect, Dynamia AI - Makers of HAMi" github=github.com/fishman linkedin=linkedin.com/in/rezajelveh
-@speaker name="Thanh Loi Hoang" role="LFX Foundation Mentee" github=github.com/loiht2
+@speaker name="Thanh Loi Hoang" role="Research Engineer, CNLab.ai | LFX Mentee, HAMi" github=github.com/loiht2 linkedin=linkedin.com/in/loiht2
 
 ---
 
@@ -1133,4 +1133,4 @@ Contributor Countries
 **Got devices we do not support yet? We would love to play with them.**
 
 @speaker name="Reza Jelveh" role="Solution Architect, Dynamia AI  -  Makers of HAMi" github=github.com/fishman linkedin=linkedin.com/in/rezajelveh
-@speaker name="Thanh Loi Hoang" role="LFX Foundation Mentee" github=github.com/loiht2
+@speaker name="Thanh Loi Hoang" role="Research Engineer, CNLab.ai | LFX Mentee, HAMi" github=github.com/loiht2 linkedin=linkedin.com/in/loiht2
