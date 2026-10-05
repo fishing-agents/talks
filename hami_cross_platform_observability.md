@@ -211,6 +211,119 @@ Source: [NVML utilization definition](https://docs.nvidia.com/deploy/nvml-api/st
 
 ---
 
+<!--
+- Every utilization number needs a scope, a sampling window and a denominator
+- Never add up activity percentages from different scopes
+- Never compare whole-card activity with one tenant's reservation
+-->
+
+## Same GPU, three different scopes
+
+::: grid {cols=3}
+::: card {tag=cyan}
+### CUDA context
+Memory and execution live in driver/runtime contexts. A Pod-to-device mapping does not reveal every operation.
+:::
+::: card {tag=yellow}
+### MIG instance
+Use instance/profile identity and partition capacity. Whole-card utilization can hide an idle or saturated slice.
+:::
+::: card {tag=green}
+### Soft-shared vGPU
+Limits and accounting depend on the runtime interposition and sharing mode.
+:::
+:::
+
+::: card {tag=red}
+### Comparison rule
+Compare matching physical, partition or tenant scopes with documented units.
+:::
+
+::: notes
+Source: [CUDA runtime/context interaction](https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__DRIVER.html); [MIG guide](https://docs.nvidia.com/datacenter/tesla/mig-user-guide/introduction.html); [MIG and accounting identities](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/vGPUmonitor/metrics.go#L118-L138)
+:::
+
+---
+
+<!--
+- Operators and neoclouds ask about admission and usage first; device health comes later
+- Admission has no GPU usage yet: requests, decisions, rejections
+- On shared GPUs only per-tenant accounting answers usage; device metrics can't split it
+- HAMi only sees Pods it schedules, not arbitrary device-plugin Pods
+-->
+
+## The common view operators need
+
+**GPU layer**
+
+::: grid {cols=3}
+::: card {tag=cyan}
+### Admission
+Who requested what, what was reserved, and what was rejected or failed to fit?
+:::
+::: card {tag=green}
+### Usage
+How much of its reservation does each tenant use on a shared device?
+:::
+::: card {tag=yellow}
+### Device
+Memory, compute, power, temperature and errors: the hardware view.
+:::
+:::
+
+**Application layer**
+
+::: card {tag=red}
+### Associate, don't re-measure
+Latency, throughput, queue depth and errors, joined to the GPU layer through workload identity.
+:::
+
+::: notes
+Source: [scheduler capacity](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/scheduler/metrics.go#L157-L200); [workload allocations](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/scheduler/metrics.go#L389-L455); [outcome counters](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/pkg/metrics/scheduler.go#L29-L55); [tenant runtime](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/vGPUmonitor/metrics.go#L92-L140)
+:::
+
+---
+
+<!--
+- Be fair: DCGM is the best NVIDIA hardware sensor, and HAMi WebUI uses it
+- NVIDIA docs: no container attribution under device-plugin time-slicing
+- --kubernetes-virtual-gpus is opt-in; HAMi's <uuid>-<n> device IDs are untested with it
+- Claim missing context, not blindness to contention or waste
+-->
+
+## What DCGM alone cannot answer
+
+::: grid {cols=2}
+::: card {tag=green}
+### What it measures well
+Whole GPU or MIG instance: memory, utilization, power, thermals, XID errors and profiling counters.
+:::
+::: card {tag=yellow}
+### No per-tenant split
+DEV_ fields describe the whole GPU or MIG instance; co-tenants on one card share one number. Time-sharing attribution is opt-in.
+:::
+::: card {tag=cyan}
+### No budget or intent
+No per-container memory limit, reserved share, sharing count or quota. Utilization has no reservation to compare against.
+:::
+::: card {tag=red}
+### No decisions, one vendor
+Pending, no-fit and rolled-back Pods never reach a GPU. AMD, Ascend and Hygon need separate stacks.
+:::
+:::
+
+::: notes
+Source: [time-slicing limitation](https://docs.nvidia.com/datacenter/cloud-native/gpu-operator/latest/gpu-sharing.html#limitations); [dcgm-exporter flags](https://docs.nvidia.com/datacenter/dcgm/latest/reference/command-line-reference/dcgm-exporter.html); [container limit and use](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/vGPUmonitor/metrics.go#L92-L102); [reservation and sharing](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/scheduler/metrics.go#L171-L180); [outcomes](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/pkg/metrics/scheduler.go#L29-L55)
+:::
+
+---
+
+# How does HAMi help
+
+@subtitle One scheduling plane across heterogeneous accelerators
+
+---
+
 ## What is HAMi
 
 @subtitle Before: one device, one task
@@ -273,12 +386,6 @@ Memory and core quotas for fair, stable sharing.
 Consistent metrics and visibility across vendors.
 :::
 :::
-
----
-
-# How does HAMi help
-
-@subtitle One scheduling plane across heterogeneous accelerators
 
 ---
 
@@ -418,113 +525,6 @@ digraph G {
 
 ::: notes
 Source: [metric families](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/vGPUmonitor/metrics.go#L53-L140); [cache discovery](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/pkg/monitor/nvidia/cudevshr.go#L137-L140); [HAMi-core NVML samples](https://github.com/Project-HAMi/HAMi-core/blob/ec5d85a3d709e5ed138a1668ebfefd366c05ca1e/src/multiprocess/multiprocess_utilization_watcher.c#L232-L262)
-:::
-
----
-
-<!--
-- Every utilization number needs a scope, a sampling window and a denominator
-- Never add up activity percentages from different scopes
-- Never compare whole-card activity with one tenant's reservation
--->
-
-## Same GPU, three different scopes
-
-::: grid {cols=3}
-::: card {tag=cyan}
-### CUDA context
-Memory and execution live in driver/runtime contexts. A Pod-to-device mapping does not reveal every operation.
-:::
-::: card {tag=yellow}
-### MIG instance
-Use instance/profile identity and partition capacity. Whole-card utilization can hide an idle or saturated slice.
-:::
-::: card {tag=green}
-### Soft-shared vGPU
-Limits and accounting depend on the runtime interposition and sharing mode.
-:::
-:::
-
-::: card {tag=red}
-### Comparison rule
-Compare matching physical, partition or tenant scopes with documented units.
-:::
-
-::: notes
-Source: [CUDA runtime/context interaction](https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__DRIVER.html); [MIG guide](https://docs.nvidia.com/datacenter/tesla/mig-user-guide/introduction.html); [MIG and accounting identities](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/vGPUmonitor/metrics.go#L118-L138)
-:::
-
----
-
-<!--
-- Operators and neoclouds ask about admission and usage first; device health comes later
-- Admission has no GPU usage yet: requests, decisions, rejections
-- On shared GPUs only per-tenant accounting answers usage; device metrics can't split it
-- HAMi only sees Pods it schedules, not arbitrary device-plugin Pods
--->
-
-## The common view operators need
-
-**GPU layer**
-
-::: grid {cols=3}
-::: card {tag=cyan}
-### Admission
-Who requested what, what was reserved, and what was rejected or failed to fit?
-:::
-::: card {tag=green}
-### Usage
-How much of its reservation does each tenant use on a shared device?
-:::
-::: card {tag=yellow}
-### Device
-Memory, compute, power, temperature and errors: the hardware view.
-:::
-:::
-
-**Application layer**
-
-::: card {tag=red}
-### Associate, don't re-measure
-Latency, throughput, queue depth and errors, joined to the GPU layer through workload identity.
-:::
-
-::: notes
-Source: [scheduler capacity](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/scheduler/metrics.go#L157-L200); [workload allocations](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/scheduler/metrics.go#L389-L455); [outcome counters](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/pkg/metrics/scheduler.go#L29-L55); [tenant runtime](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/vGPUmonitor/metrics.go#L92-L140)
-:::
-
----
-
-<!--
-- Be fair: DCGM is the best NVIDIA hardware sensor, and HAMi WebUI uses it
-- NVIDIA docs: no container attribution under device-plugin time-slicing
-- --kubernetes-virtual-gpus is opt-in; HAMi's <uuid>-<n> device IDs are untested with it
-- Claim missing context, not blindness to contention or waste
--->
-
-## What DCGM alone cannot answer
-
-::: grid {cols=2}
-::: card {tag=green}
-### What it measures well
-Whole GPU or MIG instance: memory, utilization, power, thermals, XID errors and profiling counters.
-:::
-::: card {tag=yellow}
-### No per-tenant split
-DEV_ fields describe the whole GPU or MIG instance; co-tenants on one card share one number. Time-sharing attribution is opt-in.
-:::
-::: card {tag=cyan}
-### No budget or intent
-No per-container memory limit, reserved share, sharing count or quota. Utilization has no reservation to compare against.
-:::
-::: card {tag=red}
-### No decisions, one vendor
-Pending, no-fit and rolled-back Pods never reach a GPU. AMD, Ascend and Hygon need separate stacks.
-:::
-:::
-
-::: notes
-Source: [time-slicing limitation](https://docs.nvidia.com/datacenter/cloud-native/gpu-operator/latest/gpu-sharing.html#limitations); [dcgm-exporter flags](https://docs.nvidia.com/datacenter/dcgm/latest/reference/command-line-reference/dcgm-exporter.html); [container limit and use](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/vGPUmonitor/metrics.go#L92-L102); [reservation and sharing](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/scheduler/metrics.go#L171-L180); [outcomes](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/pkg/metrics/scheduler.go#L29-L55)
 :::
 
 ---
