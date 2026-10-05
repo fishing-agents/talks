@@ -29,7 +29,7 @@ size: 16:9
 
 ---
 
-# Part 1: The Problem
+# The Problem
 
 @subtitle What we're actually looking at
 
@@ -274,7 +274,7 @@ Consistent metrics and visibility across vendors.
 
 ---
 
-# Part 2: How does HAMi help
+# How does HAMi help
 
 @subtitle One scheduling plane across heterogeneous accelerators
 
@@ -1064,6 +1064,9 @@ Source: [scheduler scrape](https://github.com/Project-HAMi/HAMi/blob/39699df2604
 Source: [legacy runtime descriptors](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/vGPUmonitor/metrics.go#L142-L194); [current NVIDIA selector](https://github.com/Project-HAMi/HAMi-WebUI/blob/846c0e2d3360cc7240bb61968e4cc7e3cea53443/server/internal/exporter/exporter.go#L713-L715)
 :::
 
+---
+
+# Where we are today
 ---
 
 @layout ecosystem
