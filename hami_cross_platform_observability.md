@@ -655,11 +655,11 @@ Source: [workload allocations](https://github.com/Project-HAMi/HAMi/blob/39699df
 
 ## Pattern 1: find unused reservations
 
-- Compare reserved memory with observed memory over a representative window.
+- Compare reserved memory with used memory over time.
 - Skip stale data and missing limits.
-- Separate idle periods, model loading and steady-state demand.
-- Rank sustained headroom alongside pending or rejected workloads.
-- Treat low compute activity as a separate signal, not proof of reclaimable memory.
+- Look at steady use, not idle time or model loading.
+- Fix the biggest gaps first, especially when other Pods are waiting.
+- Low GPU activity does not mean the memory is unused.
 
 ::: notes
 Source: [tenant runtime metrics](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/vGPUmonitor/metrics.go#L92-L140); [workload allocations](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/scheduler/metrics.go#L389-L455)
@@ -676,11 +676,11 @@ Source: [tenant runtime metrics](https://github.com/Project-HAMi/HAMi/blob/39699
 
 ## Pattern 2: track down noisy neighbors
 
-- Identify co-located tenants and the physical or slice identity they share.
-- Correlate rising application latency with sibling activity and memory pressure.
-- Check CPU, network, queueing and thermal throttling as alternatives.
-- Repeat with controlled sibling load or isolated placement.
-- Card-wide activity cannot identify which tenant caused contention.
+- Find which Pods share the same GPU.
+- When latency rises, check what the neighbors were doing.
+- Rule out CPU, network, queues and overheating first.
+- Confirm by moving the Pod or loading the neighbor on purpose.
+- Whole-card numbers cannot tell you who caused it.
 
 ::: notes
 Source: [scheduler capacity](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/scheduler/metrics.go#L157-L200); [tenant runtime metrics](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/vGPUmonitor/metrics.go#L92-L140)
@@ -697,11 +697,11 @@ Source: [scheduler capacity](https://github.com/Project-HAMi/HAMi/blob/39699df26
 
 ## Pattern 3: right-size GPU requests
 
-- Measure startup peaks and steady-state demand across the workload lifecycle.
-- Segment by model, batch size, request load and sharing mode.
-- Choose memory headroom from peaks and failure risk.
-- Tune compute limits only after normalizing quota and activity semantics.
-- Canary the new request; compare latency, failures and placement outcomes.
+- Measure peak memory at startup and under normal load.
+- Compare by model, batch size and traffic.
+- Set memory from the peak, plus some headroom.
+- Shared GPUs report activity for the whole card: convert to the Pod's share.
+- Try the new size on a few Pods first; watch latency and errors.
 
 ![HAMi WebUI gpu-burn charts: allocated compute utilization and GPU memory utilization both cycle between 0 and about 100 and 90 percent](assets/hami/webui-workload-gpu-burn-charts.png)
 
