@@ -20,6 +20,7 @@ style: |
 - Scope: GPUs HAMi schedules, not every device-plugin Pod
 -->
 @variant dark
+@side-image assets/brand/ossummit_europe/qr.png
 @kicker Kubernetes GPU observability
 
 # Vendor-Neutral GPU Observability
@@ -27,6 +28,7 @@ style: |
 @subtitle From the HAMi scheduler
 
 @speaker name="Reza Jelveh" role="Solution Architect, Dynamia AI - Makers of HAMi" github=github.com/fishman linkedin=linkedin.com/in/rezajelveh
+@contributor name="Thanh Loi Hoang" role="LFX Mentorship, HAMi observability mentee" github=github.com/loiht2 linkedin=linkedin.com/in/loiht2
 
 ---
 
@@ -1131,6 +1133,7 @@ Contributor Countries
 ---
 
 @kicker Thank You
+@side-image assets/brand/ossummit_europe/qr.png
 # Questions? Try HAMi
 
 @subtitle github.com/Project-HAMi/HAMi
@@ -1138,4 +1141,4 @@ Contributor Countries
 **Got devices we do not support yet? We would love to play with them.**
 
 @speaker name="Reza Jelveh" role="Solution Architect, Dynamia AI  -  Makers of HAMi" github=github.com/fishman linkedin=linkedin.com/in/rezajelveh
-@speaker name="Thanh Loi Hoang" role="Research Engineer, CNLab.ai | LFX Mentee, HAMi" github=github.com/loiht2 linkedin=linkedin.com/in/loiht2
+@contributor name="Thanh Loi Hoang" role="LFX Mentorship, HAMi observability mentee" github=github.com/loiht2 linkedin=linkedin.com/in/loiht2
