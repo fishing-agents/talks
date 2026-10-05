@@ -594,15 +594,16 @@ Source: [scheduler capacity](https://github.com/Project-HAMi/HAMi/blob/39699df26
 - Per Pod/namespace: hami_vgpu_memory_allocated_bytes, hami_resource_quota_used / _limit
 - Health: hami_scheduler_is_leader, hami_scheduler_cache_synced, hami_scheduler_allocation_failures_total (no_fit, lock, bind...)
 - Core _ratio here is 0-100, not 0-1
+- AMD compute units are converted to a percentage
 -->
 
 ## What the HAMi scheduler reports
 
-- **Per GPU:** how much memory and compute HAMi can hand out, how much is already reserved, and how many containers share it.
-- **Per Pod and namespace:** what each Pod reserved on which GPU, and how much of each namespace's GPU quota is used.
-- **Scheduler health:** is this replica in charge, has it loaded cluster state, and why did placements fail (no GPU fits, lock, bind error)?
-- **AMD:** compute units are converted to a percentage, so they compare with other vendors.
-- These describe **placement and reservation**. Measured GPU work comes from runtime collectors (vGPUmonitor on NVIDIA); Prometheus keeps the history.
+- **Per GPU:** capacity, reserved, sharing containers.
+- **Per Pod:** what it reserved, on which GPU.
+- **Per namespace:** GPU quota used.
+- **Scheduler:** leader, cache ready, failed placements.
+- Reservations only: actual use comes from vGPUmonitor.
 
 ::: notes
 Source: [AMD normalization](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/scheduler/metrics.go#L64-L74); [allocation families](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/scheduler/metrics.go#L157-L200); [pod reservations](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/scheduler/metrics.go#L389-L455); [namespace quotas](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/scheduler/metrics.go#L347-L356); [leader and cache sync](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/scheduler/metrics.go#L510-L519); [outcome counters](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/pkg/metrics/scheduler.go#L29-L55); [measured work](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/vGPUmonitor/metrics.go#L53-L140)
