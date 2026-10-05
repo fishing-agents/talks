@@ -1,7 +1,7 @@
 ---
 theme: kubecon_japan
 seaborn_theme: kubecon_japan
-title: "One Agent, Every GPU: Vendor-Neutral Observability from the Kubernetes Scheduler"
+title: "Vendor-Neutral Observability from the Kubernetes Scheduler"
 logo: assets/brand/hami-logo.png
 logo_dark: assets/brand/hami-logo.png
 watermark: assets/brand/kubecon_japan/cncf_logo.svg
@@ -47,6 +47,7 @@ style: |
 @subtitle Vendor-Neutral Observability from the Kubernetes Scheduler
 
 @speaker name="Reza Jelveh" role="Solution Architect, Dynamia AI - Makers of HAMi" github=github.com/fishman linkedin=linkedin.com/in/rezajelveh
+@speaker name="Thanh Loi Hoang" role="LFX Foundation Mentee" github=github.com/loiht2
 
 ---
 
@@ -919,3 +920,69 @@ Source: [scheduler scrape](https://github.com/Project-HAMi/HAMi/blob/39699df2604
 ::: notes
 Source: [legacy runtime descriptors](https://github.com/Project-HAMi/HAMi/blob/39699df26042b3e5062a76e00b3e4f74b72ad503/cmd/vGPUmonitor/metrics.go#L142-L194); [current NVIDIA selector](https://github.com/Project-HAMi/HAMi-WebUI/blob/846c0e2d3360cc7240bb61968e4cc7e3cea53443/server/internal/exporter/exporter.go#L713-L715)
 :::
+
+---
+
+@layout ecosystem
+## Community & Adopters
+
+@subtitle Devices, integrations, and who uses HAMi
+
+<!--
+5.2k stars, 325k pulls, 500+ contributors, 27 countries. 11 device types, 20+ adopters. This is the ecosystem slide: show the breadth. The QR code links to github.com/Project-HAMi/HAMi.
+-->
+
+#### Open Source, CNCF Backed, Production Ready
+::: grid {cols=5}
+::: card {metric}
+5.2k
+Github Stars
+:::
+::: card {metric}
+325k
+Docker Pulls
+:::
+::: card {metric}
+500+
+Contributors
+:::
+::: card {metric}
+27
+Contributor Countries
+:::
+::: card
+
+![Kubernetes](assets/ecosystem/integrations/kubernetes.png) ![Volcano](assets/ecosystem/integrations/volcano.png) ![Kueue](assets/ecosystem/integrations/kueue.png) ![Koordinator](assets/ecosystem/integrations/koordinator.png) ![KAI Scheduler](assets/ecosystem/integrations/kai-scheduler.png) ![cozystack](assets/ecosystem/integrations/cozystack.svg)
+:::
+:::
+
+#### Ecosystem & Device Support
+::: grid {cols=2}
+::: card
+![NVIDIA](assets/ecosystem/devices/nvidia.png) ![Ascend](assets/ecosystem/devices/ascend.png) ![Cambricon](assets/ecosystem/devices/cambricon.png) ![Hygon](assets/ecosystem/devices/hygon.png) ![Iluvatar](assets/ecosystem/devices/illuvitar.png)
+![Metax](assets/ecosystem/devices/metax.png) ![Moore Threads](assets/ecosystem/devices/moorethreads.png) ![Kunlunxin](assets/ecosystem/devices/kunlunxin.png) ![Enflame](assets/ecosystem/devices/enflame.png)
+![AWS](assets/ecosystem/devices/aws.png) ![VastStream](assets/ecosystem/devices/vaststream.png)
+:::
+:::
+
+#### Adopters
+::: grid {cols=2}
+::: card
+![4Paradigm](assets/ecosystem/adopters/4paradigm.png) ![Baidu](assets/ecosystem/adopters/baiduzhineng.png) ![Baike](assets/ecosystem/adopters/baike.png) ![China Merchants](assets/ecosystem/adopters/chinamerchants.png) ![China Mobile](assets/ecosystem/adopters/chinamobile.png)
+![China Unicom](assets/ecosystem/adopters/chinaunicom.png) ![DaoCloud](assets/ecosystem/adopters/daocloud.png) ![Dynamia](assets/ecosystem/adopters/dynamia.png) ![H3C](assets/ecosystem/adopters/h3c.png) ![Huawei](assets/ecosystem/adopters/huawei.png)
+![LinkedIn](assets/ecosystem/adopters/linkedin.png) ![MSXF](assets/ecosystem/adopters/msxf.png) ![NIO](assets/ecosystem/adopters/nio.png) ![PPIO](assets/ecosystem/adopters/ppio.png) ![Prep](assets/ecosystem/adopters/prep.png)
+![SAP](assets/ecosystem/adopters/sap.png) ![SF Technology](assets/ecosystem/adopters/sftechnology.png) ![Si-Tech](assets/ecosystem/adopters/si-tech.png) ![Snow](assets/ecosystem/adopters/snow.png) ![Viettel](assets/ecosystem/adopters/viettel.png)
+:::
+:::
+
+---
+
+@kicker Thank You
+# Questions? Try HAMi
+
+@subtitle github.com/Project-HAMi/HAMi
+
+**Got devices we do not support yet? We would love to play with them.**
+
+@speaker name="Reza Jelveh" role="Solution Architect, Dynamia AI  -  Makers of HAMi" github=github.com/fishman linkedin=linkedin.com/in/rezajelveh
+@speaker name="Thanh Loi Hoang" role="LFX Foundation Mentee" github=github.com/loiht2
