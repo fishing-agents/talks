@@ -196,24 +196,23 @@ digraph G {
 - Start from an empty grant: nothing is visible until you name it.
 - Never load data the tool does not need; then it cannot leak.
 - A misspelled grant stops the server instead of silently widening it.
-- Fetch secrets per request; never store them in the config.
 
 ---
 
 <!--
-notmutt integrates an MCP server (go-mcp) with a defensive posture: tools whitelisted via [mcp] allow (unknown names are startup errors), plugin VMs with no os/io/debug (no filesystem), staged destructive commands (stage, then APPLY; the buffer is the undo). Sandbox is part of the design, not an agent guardrail the LLM can ignore.
+- notmutt is my mail client; its MCP server is built this way
+- The grant sits in config, destructive actions wait for a human
+- Nice when you wrote the server; most MCP servers you run, you did not
 -->
 
 @layout image-right
 
-## Integrated MCP: Boundaries in the Client
+## One MCP Server Built This Way
 
-@subtitle Whitelist tools, no file writes, staged destruction
+@subtitle notmutt, a terminal mail client
 
-- **Whitelist tools:** `[mcp] allow` names each tool; unknown names are startup errors
-- **No filesystem writes:** plugin VMs have no os/io/debug libraries
-- **Staged destructive commands:** stage, then APPLY. The buffer is the undo
-- **Sandbox in the design,** not an agent guardrail
+- Nothing is visible until the config grants it.
+- The agent can stage changes; only I apply them.
 
 ![notmutt](assets/notmutt.png)
 
@@ -240,9 +239,9 @@ Another user, a read-only mount, or a separate container. Never a file the agent
 An agent that can read the maildir does not need the MCP server.
 :::
 ::: card {tag=cyan}
-### {icon:key-round cls=accent-primary} Secrets on demand
+### {icon:key-round cls=accent-primary} Keys stay outside
 
-Fetched per request by a command, held for one call, never logged.
+A host-side proxy swaps a placeholder for the real token. The agent never holds the key.
 :::
 ::: card {tag=green}
 ### {icon:boxes cls=accent-primary} Separate identities
@@ -268,6 +267,67 @@ Model, tool server and destructive tools each run with their own account and per
 - Run destructive tools in a VM or a separate account, with a backup first.
 - Keep writes reversible: stage, review, apply, and keep the undo.
 - Cap how much one call may touch: a hundred messages, not the mailbox.
+
+---
+
+<!--
+- Surveyed in github.com/fishman/awesome-agent-sandbox
+- Same ideas keep showing up, independent of the isolation level
+- yolobox says it plainly in its README: protects against accidents, not container escapes
+- drydock: only a git diff leaves the VM; nothing reaches origin without approval
+-->
+
+## Agent Sandboxes Already Do This
+
+@subtitle Three isolation levels, the same rules
+
+::: grid {cols=3}
+::: card {tag=green}
+### {icon:cpu cls=accent-primary} Process
+
+Landlock, seccomp, bubblewrap. Starts instantly. `srt` (Claude Code's sandbox), nono, ai-jail.
+:::
+::: card {tag=yellow}
+### {icon:box cls=accent-contrast} Container
+
+Rootless Podman, dropped capabilities, egress proxy. yolobox protects against accidents, not container-escape exploits.
+:::
+::: card {tag=cyan}
+### {icon:server cls=accent-primary} MicroVM
+
+Firecracker, libkrun. Boots in under a second. smolvm, microsandbox, matchlock.
+:::
+:::
+
+- Keys stay on the host; a proxy injects them per request.
+- Egress is denied by default, with an allowlist.
+- Only a diff leaves the sandbox (drydock).
+
+::: notes
+Source: [awesome-agent-sandbox](https://github.com/fishman/awesome-agent-sandbox)
+:::
+
+---
+
+<!--
+- agent-sandbox (SIG Apps) v1.0 is what OpenShell, OpenHands and OpenSandbox build on; it orchestrates, the RuntimeClass isolates
+- OpenShell on k8s needs a CNI that enforces egress NetworkPolicy; without one, sandboxes bypass the supervisor
+- Kelos runs coding agents with --dangerously-skip-permissions in plain pods: isolation is whatever the cluster gives it
+-->
+
+## Agent Sandboxes on Kubernetes
+
+@subtitle Three layers, each one can be missing
+
+- **Runtime isolation:** gVisor or Kata, picked by RuntimeClass.
+- **Orchestration:** `kubernetes-sigs/agent-sandbox` (v1.0): Sandbox, SandboxTemplate, warm pools.
+- **Policy:** OpenShell, agentgateway: egress rules, tool authorization, credential placeholders.
+- OpenShell without a CNI that enforces egress NetworkPolicy: sandboxes bypass the proxy.
+- Kelos runs agents with `--dangerously-skip-permissions` in plain pods.
+
+::: notes
+Source: [agent-sandbox](https://github.com/kubernetes-sigs/agent-sandbox); [OpenShell](https://github.com/NVIDIA/OpenShell); [Kelos](https://github.com/kelos-dev/kelos); research notes in awesome-agent-sandbox (2026-10-06)
+:::
 
 ---
 
