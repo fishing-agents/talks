@@ -143,7 +143,7 @@ OpenClaw deleted the Meta AI alignment director's entire mailbox: https://www.bu
 
 # Part 2: The Boundary Lives on the Other Side
 
-@subtitle notmutt's MCP server as the example
+@subtitle Deny by default, then defend around the tool
 
 ---
 
@@ -160,70 +160,43 @@ OpenClaw deleted the Meta AI alignment director's entire mailbox: https://www.bu
 ```dot
 digraph G {
   rankdir=LR
-  size="11,3"
+  size="10,4.2!"
   bgcolor=transparent
-  nodesep=0.35
-  ranksep=0.5
-  node [shape=box style="rounded,filled" fontname="Arial" fontsize=18 margin="0.18,0.12" color="#0DA89D" fillcolor="#e6f6f4" fontcolor="#003841"]
-  edge [fontname="Arial" fontsize=14 color="#4f6f73" fontcolor="#003841"]
+  nodesep=0.5
+  ranksep=0.7
+  node [shape=box style="rounded,filled" fontname="Arial" fontsize=16 margin="0.2,0.12" color="#0DA89D" fillcolor="#e6f6f4" fontcolor="#003841"]
+  edge [fontname="Arial" fontsize=13 color="#4f6f73" fontcolor="#003841"]
 
-  model [label="Agent\n(reasoning)"]
-  server [label="Tool server\n(checks the grant)" color="#003841" fillcolor="#dbe7e9"]
-  grant [label="Grant config\n(out of agent's reach)" shape=note color="#E05845" fillcolor="#fdecea"]
-  stage [label="Staged change"]
-  human [label="Human\nAPPLY" color="#E05845" fillcolor="#fdecea"]
+  model [label="Agent"]
+  server [label="Tool server\nchecks the grant" color="#003841" fillcolor="#dbe7e9"]
+  grant [label="Grant\n(read-only)" shape=note color="#E05845" fillcolor="#fdecea"]
+  human [label="Human\napplies" color="#E05845" fillcolor="#fdecea"]
   state [label="Mail, files,\nservices"]
 
-  model -> server [label="tool call"]
-  grant -> server [style=dashed label="read-only"]
-  server -> model [label="only granted data" style=dashed]
-  server -> stage [label="destructive"]
-  stage -> human -> state
-  server -> state [label="safe reads"]
+  model -> server [label="asks"]
+  grant -> server
+  server -> state [label="reads"]
+  server -> human [label="staged writes"]
+  human -> state
+  {rank=same; model; grant}
 }
 ```
 
 ---
 
 <!--
-notmutt is an experimental mail client with an integrated MCP server. What the server may see is decided at config time, not at query time. Out-of-scope message ids are refused before any file is opened. The deleted folder is denied in code: no config can grant it.
+- Same ideas in any tool server: notmutt is just where I tried them
+- Data the tool never loads cannot leak; a typo in the grant fails loudly instead of widening it
 -->
 
-## notmutt: Deny by Default
+## Deny by Default
 
-@subtitle What the MCP server may see is a config-time decision
+@subtitle The tool serves nothing until you grant it
 
-- An empty `[mcp]` section serves nothing.
-- Accounts are granted by naming them; everything else is invisible.
-- Capabilities are opt-in per account: attachments, bodies, tagging, archive.
-- Out-of-scope messages are refused before any file is opened.
-- The deleted folder is denied in code: no config can grant it.
-
-::: notes
-Source: github.com/fishman/notmutt, docs/man/notmutt.1.md (MCP)
-:::
-
----
-
-<!--
-- Structural, not observational: do not filter what leaves, never load it
-- A plugin with network access only ever sees metadata; mail bodies are never in its VM
-- Network rules are one method plus one path, checked before dialing and on every redirect
-- Unknown tool names are startup errors: a typo cannot silently widen the grant
--->
-
-## A Tool Cannot Leak What It Never Receives
-
-@subtitle What notmutt never loads into a plugin
-
-- Network-enabled plugins only see metadata; mail bodies never enter their VM.
-- Network rules are one method plus one path, checked again on every redirect.
-- Unknown tool names in the allow list stop the server from starting.
-- API keys are fetched per request and cleared after; never stored in config.
-
-::: notes
-Source: github.com/fishman/notmutt, docs/design-decisions.md (records 25, 26, 28)
-:::
+- Start from an empty grant: nothing is visible until you name it.
+- Never load data the tool does not need; then it cannot leak.
+- A misspelled grant stops the server instead of silently widening it.
+- Fetch secrets per request; never store them in the config.
 
 ---
 
@@ -277,6 +250,24 @@ Fetched per request by a command, held for one call, never logged.
 Model, tool server and destructive tools each run with their own account and permissions.
 :::
 :::
+
+---
+
+<!--
+- notmutt is the nice case: the server itself enforces the grant
+- In practice you run MCP servers you did not write, and yours has bugs too
+- So treat the server like the agent: assume it can do something destructive
+-->
+
+## Assume the MCP Server Breaks Too
+
+@subtitle Defensive design around the tool
+
+- The server is code: bugs, a bad update, or a tool you did not write.
+- Give it the narrowest credentials; read-only where reads are enough.
+- Run destructive tools in a VM or a separate account, with a backup first.
+- Keep writes reversible: stage, review, apply, and keep the undo.
+- Cap how much one call may touch: a hundred messages, not the mailbox.
 
 ---
 
