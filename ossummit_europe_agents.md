@@ -98,7 +98,7 @@ Nothing works when the connection drops or is cut on purpose.
 ---
 
 <!--
-OpenClaw deleted the Meta AI alignment director's entire mailbox: https://www.businessinsider.com/meta-ai-alignment-director-openclaw-email-deletion-2026-2. An MCP plugin hands an LLM full mail operations with no declared capabilities, so you hand-roll the harness: staging, sandboxing, review. The plugin itself has no boundary.
+OpenClaw started bulk-deleting the inbox of Meta's AI alignment director after context compaction dropped her "confirm before acting" instruction; she had to run to her Mac mini to stop it: https://www.businessinsider.com/meta-ai-alignment-director-openclaw-email-deletion-2026-2. A mail tool that exposes delete, with no declared capabilities, leaves you to hand-roll the harness: staging, sandboxing, review. The tool itself has no boundary.
 -->
 
 ## MCP Plugins: Do Not Trust the Tool
@@ -109,8 +109,8 @@ OpenClaw deleted the Meta AI alignment director's entire mailbox: https://www.bu
 ::: card {tag=red}
 ### {icon:trash-2 cls=accent-secondary} Unknown destructive power
 
-- OpenClaw wiped the Meta AI director's whole mailbox
-- Your MCP tool can do the same: you do not know
+- OpenClaw started deleting a Meta AI director's inbox, ignoring her confirm-first rule
+- Your MCP tool may expose the same delete: you do not know
 :::
 ::: card {tag=yellow}
 ### {icon:shield-alert cls=accent-contrast} You build the harness
@@ -274,7 +274,8 @@ Model, tool server and destructive tools each run with their own account and per
 - Surveyed in github.com/fishman/awesome-agent-sandbox
 - Same ideas keep showing up, independent of the isolation level
 - yolobox says it plainly in its README: protects against accidents, not container escapes
-- drydock: only a git diff leaves the VM; nothing reaches origin without approval
+- drydock: only a git diff leaves the VM; nothing reaches origin until you approve it (unless you turn on --auto-approve)
+- Defaults differ: yolobox, microsandbox and matchlock let traffic out unless told otherwise; check before trusting
 -->
 
 ## Agent Sandboxes Already Do This
@@ -290,29 +291,29 @@ Landlock, seccomp, bubblewrap. Starts instantly. `srt` (Claude Code's sandbox), 
 ::: card {tag=yellow}
 ### {icon:box cls=accent-contrast} Container
 
-Rootless Podman, dropped capabilities, egress proxy. yolobox protects against accidents, not container-escape exploits.
+Docker or rootless Podman; dropped capabilities and egress proxy are opt-in. yolobox: protection from accidents, not container escapes.
 :::
 ::: card {tag=cyan}
 ### {icon:server cls=accent-primary} MicroVM
 
-Firecracker, libkrun. Boots in under a second. smolvm, microsandbox, matchlock.
+Firecracker or libkrun. Vendors claim sub-second boot. smolvm, microsandbox, matchlock.
 :::
 :::
 
-- Keys stay on the host; a proxy injects them per request.
-- Egress is denied by default, with an allowlist.
-- Only a diff leaves the sandbox (drydock).
+- Keys stay on the host; a proxy injects them per request (matchlock, nono, drydock).
+- The stricter tools deny egress by default, with an allowlist (srt, smolvm, drydock).
+- Only a diff leaves the sandbox, after you approve it (drydock).
 
 ::: notes
-Source: [awesome-agent-sandbox](https://github.com/fishman/awesome-agent-sandbox)
+Source: [awesome-agent-sandbox](https://github.com/fishman/awesome-agent-sandbox); [srt](https://github.com/anthropics/sandbox-runtime/tree/v0.0.78); [yolobox](https://github.com/finbarr/yolobox); [matchlock](https://github.com/jingkaihe/matchlock); [drydock](https://github.com/sricola/drydock)
 :::
 
 ---
 
 <!--
-- agent-sandbox (SIG Apps) v1.0 is what OpenShell, OpenHands and OpenSandbox build on; it orchestrates, the RuntimeClass isolates
-- OpenShell on k8s needs a CNI that enforces egress NetworkPolicy; without one, sandboxes bypass the supervisor
-- Kelos runs coding agents with --dangerously-skip-permissions in plain pods: isolation is whatever the cluster gives it
+- agent-sandbox (SIG Apps) v1.0 is what OpenShell builds on for Kubernetes; OpenSandbox can use it as an optional provider; it orchestrates, the RuntimeClass isolates
+- OpenShell on k8s needs a CNI that enforces NetworkPolicy (ingress and egress); without one, sandboxes bypass the supervisor
+- Kelos's Claude Code image runs with --dangerously-skip-permissions in ordinary pods: isolation is whatever the cluster gives it
 -->
 
 ## Agent Sandboxes on Kubernetes
@@ -320,13 +321,13 @@ Source: [awesome-agent-sandbox](https://github.com/fishman/awesome-agent-sandbox
 @subtitle Three layers, each one can be missing
 
 - **Runtime isolation:** gVisor or Kata, picked by RuntimeClass.
-- **Orchestration:** `kubernetes-sigs/agent-sandbox` (v1.0): Sandbox, SandboxTemplate, warm pools.
-- **Policy:** OpenShell, agentgateway: egress rules, tool authorization, credential placeholders.
-- OpenShell without a CNI that enforces egress NetworkPolicy: sandboxes bypass the proxy.
-- Kelos runs agents with `--dangerously-skip-permissions` in plain pods.
+- **Orchestration:** `kubernetes-sigs/agent-sandbox` v1.0: Sandbox, SandboxTemplate, SandboxWarmPool.
+- **Policy:** OpenShell (default-deny egress, credentials injected at the proxy), agentgateway (tool authorization).
+- OpenShell needs a CNI that enforces NetworkPolicy; without one, sandboxes bypass the supervisor.
+- Kelos runs Claude Code with `--dangerously-skip-permissions` in ordinary pods.
 
 ::: notes
-Source: [agent-sandbox](https://github.com/kubernetes-sigs/agent-sandbox); [OpenShell](https://github.com/NVIDIA/OpenShell); [Kelos](https://github.com/kelos-dev/kelos); research notes in awesome-agent-sandbox (2026-10-06)
+Source: [agent-sandbox v1.0.0](https://github.com/kubernetes-sigs/agent-sandbox/tree/v1.0.0); [OpenShell on Kubernetes](https://docs.nvidia.com/openshell/latest/kubernetes/setup); [agentgateway](https://github.com/agentgateway/agentgateway); [Kelos entrypoint](https://github.com/kelos-dev/kelos/blob/main/claude-code/kelos_entrypoint.sh)
 :::
 
 ---
@@ -349,12 +350,12 @@ Hermes and OpenClaw can reason and use tools. Running them at the edge is hard: 
 ::: card {tag=red}
 ### {icon:memory-stick cls=accent-secondary} Limited memory
 
-A Jetson-class device has 8-64 GB of unified memory, shared with the OS. One agent stack can eat it all.
+A Jetson has 4-128 GB of unified memory, shared with the OS. One agent stack can eat it all.
 :::
 ::: card {tag=yellow}
 ### {icon:zap cls=accent-contrast} Tight power budgets
 
-No 300 W data-center GPU at the edge. You get 5-40 W, often battery or solar.
+No 300 W data-center GPU at the edge. Jetson Orin runs at 7-60 W, often on battery or solar.
 :::
 ::: card {tag=cyan}
 ### {icon:user-x cls=accent-primary} Unattended
@@ -428,12 +429,12 @@ resources:
 
 # Part 4: Local and Offline
 
-@subtitle Run it on your hardware, then cut the network
+@subtitle Run it on hardware you own
 
 ---
 
 <!--
-The path is short. Pick a device: Jetson-class for CUDA compatibility (the HAMi slicing path exists for CUDA). Slice it: memory in MiB, compute in percent, hard limits per agent. Schedule agents: binpack to pack them tight, spread for SLOs. Everything runs on k3s or k0s. Olares is the turnkey path: an open-source, k3s-based personal cloud OS that ships this stack pre-installed, with MCP and GPU scheduling built in.
+The path is short. Pick a device: Jetson-class for CUDA compatibility (the HAMi slicing path exists for CUDA). Slice it: memory in MiB, compute in percent, hard limits per agent. Schedule agents: binpack to pack them tight, spread for SLOs. Everything runs on k3s or k0s. Olares is the turnkey path: an open-source (AGPL-3.0) personal cloud OS on K3s that ships its own HAMi fork for GPU time-slicing and memory-slicing; MCP comes per app from its market.
 -->
 
 ## Keep Sensitive Context Local
@@ -459,26 +460,8 @@ Binpack many agents onto one device; spread when latency matters.
 :::
 
 - Prompts, documents and mail never leave the device.
-- **Olares** ([github.com/beclab/olares](https://github.com/beclab/olares)): k3s-based personal cloud OS with HAMi and MCP built in.
+- **Olares** ([github.com/beclab/olares](https://github.com/beclab/olares)): open-source personal cloud OS on K3s, ships a HAMi fork for GPU slicing.
 - Or run on k3s or k0s directly: Kubernetes APIs without an ops team.
-
----
-
-<!--
-- Deny all egress (NetworkPolicy or firewall) and run the real workflow
-- Refused calls are good news: they show the boundary held
-- Per-agent GPU numbers come from HAMi's runtime monitor on CUDA devices (NVIDIA, Jetson); NPUs differ
--->
-
-## Evaluate With the Network Cut
-
-@subtitle Block egress and run the real workflow
-
-- Block all outbound traffic on purpose, then run the real workflow.
-- Does it finish, or fail safely without half-applied changes?
-- Check what was refused: tool calls, hosts, out-of-scope data.
-- Check each agent's GPU memory against its slice (CUDA devices via HAMi).
-- A missing metric is missing, not zero.
 
 ---
 
@@ -492,7 +475,6 @@ Binpack many agents onto one device; spread when latency matters.
 - Separate reasoning from action: the model proposes, the tool server decides.
 - Grant nothing by default; keep the grant out of the agent's reach.
 - Give each agent its own compute slice, on hardware you own.
-- Test offline on purpose.
 
 ---
 
