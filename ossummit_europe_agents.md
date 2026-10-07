@@ -537,7 +537,7 @@ A Jetson has 4-128 GB of unified memory, shared with the OS. One agent stack can
 ::: card {tag=yellow}
 ### {icon:zap cls=accent-contrast} Tight power budgets
 
-No 300 W data-center GPU at the edge. Jetson Orin runs at 7-60 W, often on battery or solar.
+No 1200 W data-center GPU at the edge; at most a 600 W card. Often a Jetson Orin at 7-60 W, on battery or solar.
 :::
 ::: card {tag=cyan}
 ### {icon:user-x cls=accent-primary} Unattended
