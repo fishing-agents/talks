@@ -20,7 +20,7 @@ size: 16:9
 
 # Designing Permissioned AI Agents That Can Run Offline
 
-@subtitle Layer the limits where the agent cannot reach them
+@subtitle Layer the limits; keep the decisive ones out of the agent's reach
 
 @speaker name="Reza Jelveh" role="Solution Architect, Dynamia AI - Makers of HAMi" github=github.com/fishman linkedin=linkedin.com/in/rezajelveh
 
@@ -141,6 +141,42 @@ OpenClaw started bulk-deleting the inbox of Meta's AI alignment director after c
 - Build harnesses around agents, but assume they will break.
 - Tools that enforce limits help, but you cannot count on every tool doing it.
 - So layer it: in the agent, in the tool where you can, and **around the tool** always.
+
+---
+
+<!--
+- Say this out loud: every later slide is a mitigation against this adversary
+- The agent is not malicious by design; prompt injection, a bad tool result or a context-compaction slip is enough
+- Second adversary: the model server itself. vLLM has had remote-code-execution bugs; a crafted request can turn it into attacker code on the GPU
+- Out of scope is a decision, not a claim that those threats do not exist
+-->
+
+## Threat Model
+
+@subtitle Who we defend against, and what we protect
+
+::: grid {cols=3}
+::: card {tag=red}
+### {icon:skull cls=accent-secondary} Adversary
+
+- The agent: prompt-injected, runs any code inside its sandbox
+- A model server taken over through its API
+:::
+::: card {tag=cyan}
+### {icon:lock cls=accent-primary} Assets
+
+- Workspace, secrets and the grant
+- Model weights, other tenants' prompts and KV cache
+- The node and the cluster
+:::
+::: card {tag=yellow}
+### {icon:circle-slash cls=accent-contrast} Out of scope
+
+- A malicious cluster admin
+- Hardware and firmware attacks
+- Poisoned model weights
+:::
+:::
 
 ---
 
@@ -530,6 +566,29 @@ resources:
 :::
 
 @tiny Footnote: destructive tools are safer in a VM, since escaping a container is easier. GPU slicing for VMs is harder: passthrough, vendor vGPU or MIG.
+
+---
+
+<!--
+- HAMi slicing is enforced in user space and the GPU is time-shared: it protects availability between cooperating workloads, not confidentiality, and one GPU fault hits every tenant
+- MIG partitions compute, cache and memory in hardware, but shared PCIe, power and thermal still leave timing channels; data-center cards only
+- Side channels need attacker code on the GPU, so the first rule is that agent code never gets a GPU
+- Prompts reach model servers as text through the gateway, not as CUDA code; the residual risk is a compromised model server, hence the gateway and same-classification co-location
+- HAMi is where this policy is enforced: placement (UUID, type, spread), MIG profiles, quotas; vGPUmonitor shows who shared which GPU, but cannot stop a channel
+-->
+
+## Share a GPU Only Within One Trust Domain
+
+@subtitle Slicing protects availability, not secrets
+
+| Workload | GPU | With HAMi |
+|---|---|---|
+| Agent sandboxes | None | No device at all |
+| Your model servers, same data class | Shared slices | `gpumem`, `gpucores`, binpack |
+| Different tenants or data classes | MIG or a whole GPU | `vgpu-mode: mig`, `use-gpuuuid`, spread |
+| Strictest | Separate nodes | Separate node pools |
+
+@tiny Even MIG leaves side channels. vGPUmonitor shows who shared which GPU, as evidence, not prevention.
 
 ---
 
