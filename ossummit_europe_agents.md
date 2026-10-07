@@ -28,13 +28,13 @@ size: 16:9
 
 # Part 1: The Boundary Problem
 
-@subtitle Agents now read files and call tools
+@subtitle Agents read files and call tools
 
 ---
 
 <!--
 - Chat was harmless: the human copied the answer
-- Now the agent holds the keys: files, tools, state, other services
+- The agent holds the keys: files, tools, state, other services
 -->
 
 ## Agents Left the Chat Window
