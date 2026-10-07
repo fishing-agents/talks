@@ -20,7 +20,7 @@ size: 16:9
 
 # Designing Permissioned AI Agents That Can Run Offline
 
-@subtitle Enforce limits in the tool, not in the agent
+@subtitle Enforce limits in the tool, not just in the agent
 
 @speaker name="Reza Jelveh" role="Solution Architect, Dynamia AI - Makers of HAMi" github=github.com/fishman linkedin=linkedin.com/in/rezajelveh
 
@@ -137,7 +137,7 @@ OpenClaw started bulk-deleting the inbox of Meta's AI alignment director after c
 - Every tool is risky by default, including the ones you wrote.
 - An agent that can open its config file will find a way to rewrite its own limits.
 - Build harnesses around agents, but assume they will break.
-- So enforce the boundary **from the other side**: in the tool, not in the agent.
+- So enforce the boundary **from the other side** too: in the tool, not just in the agent.
 
 ---
 
@@ -441,6 +441,7 @@ Inference routes only, a token per sandbox, token budgets, mTLS to vLLM. Admin e
 
 <!--
 Hermes and OpenClaw can reason and use tools. Running them at the edge is hard: not because of the models, but because of the compute underneath. Limited memory, tight power budgets, unattended operation, no elastic scaling. To run agents at the edge, fix the compute layer first.
+Small models make this more feasible every month, especially for tool calls: most agent invocations are narrow, repetitive "pick a tool, fill the arguments" steps, not open conversation. NVIDIA's position paper argues small language models are sufficient and cheaper for many agentic invocations, with a larger model only where general reasoning is needed: https://arxiv.org/abs/2506.02153. Google's FunctionGemma is a 270M Gemma 3 fine-tuned for function calling, runs on a Jetson Nano or a phone, and went from 58% to 85% on their Mobile Actions eval after fine-tuning: https://blog.google/innovation-and-ai/technology/developers-tools/functiongemma/. Pattern: a small local model routes and calls tools; a bigger local model handles the hard cases. Smaller models also mean more agents per GPU slice.
 -->
 
 ## Edge Agents, Starved Compute
@@ -495,6 +496,7 @@ GPUs are expensive and often underutilized. HAMi is a heterogeneous GPU sharing 
 
 <!--
 Without isolation, one workload can grab all memory and OOM-kill the other tasks on the same device. HAMi enforces memory when it hijacks the runtime calls: every task sees only its own slice. Footnote: the limit is enforced inside the container, so it stops accidents and greedy agents, not a determined attacker. Destructive tools belong in a VM; GPU slicing for VMs is harder (passthrough, vendor vGPU or MIG), so keep the GPU on the model side.
+Side channels: HAMi cannot intercept them, even MIG leaves timing channels, but vGPUmonitor can give us evidence. It records who shares which GPU (device_uuid on every container series, hami_mig_device_info for MIG slices), per-container memory and SM use (hami_vgpu_memory_used_bytes, hami_container_device_utilization_ratio, hami_container_last_kernel_elapsed_seconds) and device-wide signals that contention shows up in (hami_host_gpu_utilization_ratio, hami_host_gpu_memory_controller_utilization_ratio, power, temperature). That allows co-tenancy audit and anomaly hints, for example memory-controller pressure that does not match any tenant's own SM use, or a tenant that runs kernels while its requests are idle. Limits: scrape-interval sampling is far too coarse to see a covert channel itself; it is detection and forensics, not prevention.
 -->
 
 ## Least Privilege for the GPU
@@ -567,7 +569,7 @@ Binpack many agents onto one device; spread when latency matters.
 ---
 
 <!--
-- The boundary is enforced by the tool, the config and the scheduler, never by the agent's good behavior
+- The boundary is enforced by the tool, the config and the scheduler, not just by the agent's good behavior
 -->
 
 ## Takeaways
