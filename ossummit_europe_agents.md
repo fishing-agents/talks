@@ -150,7 +150,9 @@ OpenClaw started bulk-deleting the inbox of Meta's AI alignment director after c
 - They are all part of the threat, but we do not need a separate defense for each: whatever the cause, the result is the same rogue agent, and the same boundaries contain it
 - Second adversary: the model server itself. vLLM has had remote-code-execution bugs; a crafted request can turn it into attacker code on the GPU
 - Out of scope is a decision, not a claim that those threats do not exist
-- Name the actual threat before picking controls. If the agent's code ran on the inference GPU, you would need a Kata VM, and then GPU passthrough and GPU segmentation for VMs: hard problems. But the threat is code execution by the agent, and that code never needs a GPU. Keep agent code on CPU nodes and the whole GPU-in-a-VM problem disappears
+- Name the actual threat before picking controls. If the agent's code ran on the inference GPU, you would need a Kata VM, and then GPU passthrough and GPU segmentation for VMs: costly and constrained (one whole GPU per VM, no live migration, minutes to boot, a privileged launcher; see gpucellpool and KubeSwift). But the threat is code execution by the agent, and that code never needs a GPU. Keep agent code on CPU nodes and the whole GPU-in-a-VM problem disappears
+- So what if the weights are poisoned: the model itself cannot execute tools. A poisoned model only makes bad proposals; the harness and tool server still decide, inside the same boundaries
+- OpenShell passes GPUs into sandboxes (CDI, device plugin, VFIO for microVMs): a different threat model, where the agent's own tools run CUDA. Ours does not, so we skip that cost
 -->
 
 ## Threat Model
@@ -184,6 +186,36 @@ OpenClaw started bulk-deleting the inbox of Meta's AI alignment director after c
 
 ---
 
+<!--
+- When people talk about agent sandboxes, it is everything or nothing: either a bare container, or Kata for everything
+- Responsibility decides the boundary. Ask what each component does, and what it can do when it goes rogue
+- The model only produces text: a poisoned or injected model makes bad proposals, it does not execute anything. It needs a gateway, not a VM
+- The supervisor or harness decides and holds the keys: it must stay trusted and out of the agent's reach. OpenShell: "The supervisor is trusted and makes the decisions. The sandbox shares the boundary with the untrusted agent, so it never makes policy decisions."
+- The tool sandbox runs agent code: that is where the strong boundary goes. Per command (Sandlock: Landlock, seccomp, about 5 ms) or a VM when the threat is the kernel
+- agent-sandbox: "Isolation depth is a deployment choice." OpenShell: "The runtime's job is to build the boundary and prove it's in place. It never decides whether a request is allowed."
+- gpucellpool says even a VM around a GPU is "layered isolation, not tenant isolation"
+- Sandlock talk by Cong Wang, Wednesday 17:25, Panorama Hall: "You do not need a hypervisor to stop rm -rf ~. You need a policy."
+-->
+
+## Isolation Is Not All or Nothing
+
+@subtitle Responsibility decides the boundary, not Kata everywhere
+
+| Component | Its job | If it goes rogue | Boundary |
+|---|---|---|---|
+| Model | Proposes text | Bad proposals, nothing runs | Gateway; no tools, no egress |
+| Harness, supervisor | Decides, holds keys | Must stay trusted | Out of the agent's reach |
+| Tool sandbox | Runs agent code | Anything inside the box | Per-command policy, or a VM |
+| Tool server | Talks to mail, APIs | Its own credential scope | Narrow keys, own identity |
+
+@tiny "Isolation draws the boundary. Policy decides what happens inside it." Cong Wang, Sandlock, OSS Europe 2026
+
+::: notes
+Source: [agent-sandbox](https://github.com/kubernetes-sigs/agent-sandbox/blob/42679cc/site/content/docs/_index.md); [OpenShell architecture](https://github.com/NVIDIA/openshell/blob/8aa5846d7/docs/about/architecture.mdx); [Sandlock](https://github.com/multikernel/sandlock); [gpucellpool](https://github.com/kubeswift-io/gpucellpool/blob/6b3f011/README.md)
+:::
+
+---
+
 # Part 2: Layers the Agent Cannot Reach
 
 @subtitle Deny by default, then defend around the tool
@@ -192,6 +224,8 @@ OpenClaw started bulk-deleting the inbox of Meta's AI alignment director after c
 
 <!--
 - The model only proposes; the tool server decides
+- So a poisoned or injected model cannot act on its own: it can only propose
+- Sandlock's Execute-Only Agents pattern goes further: the planner has network but no data, the executor has data but no network, so no stage holds both secrets and a way out
 - The tool server holds the grant; the agent cannot see or edit it
 - Destructive changes wait for a human
 -->
@@ -328,6 +362,7 @@ Model, tool server and destructive tools each run with their own account and per
 - yolobox says it plainly in its README: protects against accidents, not container escapes
 - drydock: only a git diff leaves the VM; nothing reaches origin until you approve it (unless you turn on --auto-approve)
 - Defaults differ: yolobox, microsandbox and matchlock let traffic out unless told otherwise; check before trusting
+- Sandlock (Cong Wang, OSS Europe 2026): Landlock, seccomp-bpf and seccomp user notification, rootless, about 5 ms per command, so confinement can wrap every command. One sandbox per session means the union of all permissions; pytest, pip install and the LLM call each need different ones
 -->
 
 ## Agent Sandboxes Already Do This
@@ -338,7 +373,7 @@ Model, tool server and destructive tools each run with their own account and per
 ::: card {tag=green}
 ### {icon:cpu cls=accent-primary} Process
 
-Landlock, seccomp, bubblewrap. Starts instantly. `srt` (Claude Code's sandbox), nono, ai-jail.
+Landlock, seccomp, bubblewrap. Starts in milliseconds, cheap enough per command. Sandlock, `srt` (Claude Code's sandbox), nono, ai-jail.
 :::
 ::: card {tag=yellow}
 ### {icon:box cls=accent-contrast} Container
@@ -363,8 +398,9 @@ Source: [awesome-agent-sandbox](https://github.com/fishman/awesome-agent-sandbox
 ---
 
 <!--
-- agent-sandbox (SIG Apps) v1.0 is what OpenShell builds on for Kubernetes; OpenSandbox can use it as an optional provider; it orchestrates, the RuntimeClass isolates
-- OpenShell on k8s needs a CNI that enforces NetworkPolicy (ingress and egress); without one, sandboxes bypass the supervisor
+- agent-sandbox (SIG Apps) v1.0.x (v1.0.5 now) is what OpenShell builds on for Kubernetes; OpenSandbox can use it as an optional provider; it orchestrates, the RuntimeClass isolates
+- Its managed NetworkPolicy blocks private ranges and cloud metadata but allows the whole public internet; its router is allow-all by default, and TokenReview only authenticates
+- OpenShell on k8s needs a CNI that enforces NetworkPolicy (ingress and egress); without one, sandboxes bypass the supervisor. agent-sandbox's own example says it bluntly: "On a cluster whose CNI ignores NetworkPolicy this file is decoration"
 - Kelos's Claude Code image runs with --dangerously-skip-permissions in ordinary pods: isolation is whatever the cluster gives it
 -->
 
@@ -373,13 +409,13 @@ Source: [awesome-agent-sandbox](https://github.com/fishman/awesome-agent-sandbox
 @subtitle Three layers, each one can be missing
 
 - **Runtime isolation:** gVisor or Kata, picked by RuntimeClass.
-- **Orchestration:** `kubernetes-sigs/agent-sandbox` v1.0: Sandbox, SandboxTemplate, SandboxWarmPool.
+- **Orchestration:** `kubernetes-sigs/agent-sandbox` v1.0.x: Sandbox, SandboxTemplate, SandboxWarmPool. Default egress: public internet.
 - **Policy:** OpenShell (default-deny egress, credentials injected at the proxy), agentgateway (tool authorization).
-- OpenShell needs a CNI that enforces NetworkPolicy; without one, sandboxes bypass the supervisor.
+- A NetworkPolicy on a CNI that ignores it is decoration.
 - Kelos runs Claude Code with `--dangerously-skip-permissions` in ordinary pods.
 
 ::: notes
-Source: [agent-sandbox v1.0.0](https://github.com/kubernetes-sigs/agent-sandbox/tree/v1.0.0); [OpenShell on Kubernetes](https://docs.nvidia.com/openshell/latest/kubernetes/setup); [agentgateway](https://github.com/agentgateway/agentgateway); [Kelos entrypoint](https://github.com/kelos-dev/kelos/blob/main/claude-code/kelos_entrypoint.sh)
+Source: [agent-sandbox threat model](https://github.com/kubernetes-sigs/agent-sandbox/blob/42679cc/docs/security/threat_model.md); [OpenShell runtimes](https://github.com/NVIDIA/openshell/blob/8aa5846d7/docs/how-it-works/sandboxes/runtimes.mdx); [agentgateway](https://github.com/agentgateway/agentgateway); [Kelos entrypoint](https://github.com/kelos-dev/kelos/blob/main/claude-code/kelos_entrypoint.sh)
 :::
 
 ---
@@ -387,7 +423,7 @@ Source: [agent-sandbox v1.0.0](https://github.com/kubernetes-sigs/agent-sandbox/
 <!--
 - The model needs text, not your filesystem: the harness reads a file through a tool and sends the contents as a prompt
 - So the code lives only in the sandbox; inference runs on GPU nodes with no volumes and no egress
-- Keep the GPU out of the sandbox: GPU passthrough into Kata is hard and widens the attack surface
+- Keep the GPU out of the sandbox: GPU passthrough into a VM works (gpucellpool, KubeSwift) but costs a whole GPU per VM, no live migration and a privileged launcher, and widens the host surface with /dev/vfio
 - Stricter variant: harness in its own pod, sandbox only executes commands through an exec API
 - Caveat: code sent as context is in the prompt; if that is confidential, run inference on hardware you own
 -->
@@ -442,6 +478,7 @@ ax.text(6.0, 0.4, "blocked", ha="center", fontsize=13, color=coral)
 - In-cluster NetworkPolicy is enforced by the kernel of the node the pod runs on: a sandbox that roots its node can turn it off
 - So the boundary that protects model serving must live outside the cluster: separate subnets or VLANs per node pool, cloud or hardware firewall
 - Gateway: Envoy, agentgateway or LiteLLM in front of vLLM. vLLM's own --api-key is weak and vLLM has had remote-code-execution CVEs, so it should only ever see the gateway
+- OpenShell hides the key but removed its inference router in 0.1.0: "Provider attachment does not select or rewrite a model." Hiding the key and limiting what the key can do are two jobs; the gateway does the second
 - Side doors: service account token, cloud metadata (169.254.169.254), kubelet 10250, NodePorts, vLLM multi-node ports (ZMQ, NCCL, Ray), open DNS
 -->
 
@@ -569,7 +606,7 @@ resources:
 :::
 :::
 
-@tiny Footnote: destructive tools are safer in a VM, since escaping a container is easier. GPU slicing for VMs is harder: passthrough, vendor vGPU or MIG.
+@tiny Footnote: destructive tools are safer in a VM, since escaping a container is easier. GPUs in VMs are possible (whole GPU per VM, HAMi inside), but costly.
 
 ---
 
@@ -579,6 +616,7 @@ resources:
 - Side channels need attacker code on the GPU, so the first rule is that agent code never gets a GPU
 - Prompts reach model servers as text through the gateway, not as CUDA code; the residual risk is a compromised model server, hence the gateway and same-classification co-location
 - HAMi is where this policy is enforced: placement (UUID, type, spread), MIG profiles, quotas; vGPUmonitor shows who shared which GPU, but cannot stop a channel
+- gpucellpool composes KubeSwift and HAMi: one whole GPU passed into a VM with VFIO, HAMi slices it inside. "A HAMi fraction is never handed to VFIO: the two layers nest, they do not translate." Its own wording: layered isolation between groups that trust the same operators, not tenant isolation. Alpha, one GPU per cell, about 5 minutes to boot a cell
 -->
 
 ## Share a GPU Only Within One Trust Domain
@@ -590,6 +628,7 @@ resources:
 | Agent sandboxes | None | No device at all |
 | Your model servers, same data class | Shared slices | `gpumem`, `gpucores`, binpack |
 | Different tenants or data classes | MIG or a whole GPU | `vgpu-mode: mig`, `use-gpuuuid`, spread |
+| Groups that trust one operator | A GPU passed into a VM | HAMi inside the VM (gpucellpool) |
 | Strictest | Separate nodes | Separate node pools |
 
 @tiny Even MIG leaves side channels. vGPUmonitor shows who shared which GPU, as evidence, not prevention.
@@ -641,6 +680,7 @@ Binpack many agents onto one device; spread when latency matters.
 ## Takeaways
 
 - Assume every tool is hostile; layer limits in the agent, the tool and around both.
+- Let responsibility decide each boundary: not everything needs a VM.
 - Separate reasoning from action: the model proposes, the tool server decides.
 - Grant nothing by default; keep the grant out of the agent's reach.
 - Keep inference and tools on separate nodes; the sandbox reaches only the model gateway.
