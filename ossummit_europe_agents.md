@@ -149,6 +149,7 @@ OpenClaw started bulk-deleting the inbox of Meta's AI alignment director after c
 - The agent is not malicious by design; prompt injection, a bad tool result or a context-compaction slip is enough
 - Second adversary: the model server itself. vLLM has had remote-code-execution bugs; a crafted request can turn it into attacker code on the GPU
 - Out of scope is a decision, not a claim that those threats do not exist
+- Name the actual threat before picking controls. If the agent's code ran on the inference GPU, you would need a Kata VM, and then GPU passthrough and GPU segmentation for VMs: hard problems. But the threat is code execution by the agent, and that code never needs a GPU. Keep agent code on CPU nodes and the whole GPU-in-a-VM problem disappears
 -->
 
 ## Threat Model
@@ -177,6 +178,8 @@ OpenClaw started bulk-deleting the inbox of Meta's AI alignment director after c
 - Poisoned model weights
 :::
 :::
+
+@tiny The threat model also tells you what to skip: agent code never needs the GPU, so no GPU passthrough into VMs.
 
 ---
 
