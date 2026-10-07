@@ -20,7 +20,7 @@ size: 16:9
 
 # Designing Permissioned AI Agents That Can Run Offline
 
-@subtitle Enforce limits in the tool, not just in the agent
+@subtitle Layer the limits where the agent cannot reach them
 
 @speaker name="Reza Jelveh" role="Solution Architect, Dynamia AI - Makers of HAMi" github=github.com/fishman linkedin=linkedin.com/in/rezajelveh
 
@@ -128,6 +128,8 @@ OpenClaw started bulk-deleting the inbox of Meta's AI alignment director after c
 - The core assumption of this talk
 - An agent with write access to its own config will eventually widen its own grant
 - Harnesses are useful: just do not bet on them
+- Tool-side enforcement is the tool maker's job; you will never get it from every tool, so it is no guarantee either
+- Hence layers: the harness, the tool where you control it, and always the sandbox, credentials and network around it
 -->
 
 ## Assume Every Tool Is Hostile
@@ -137,11 +139,12 @@ OpenClaw started bulk-deleting the inbox of Meta's AI alignment director after c
 - Every tool is risky by default, including the ones you wrote.
 - An agent that can open its config file will find a way to rewrite its own limits.
 - Build harnesses around agents, but assume they will break.
-- So enforce the boundary **from the other side** too: in the tool, not just in the agent.
+- Tools that enforce limits help, but you cannot count on every tool doing it.
+- So layer it: in the agent, in the tool where you can, and **around the tool** always.
 
 ---
 
-# Part 2: The Boundary Lives on the Other Side
+# Part 2: Layers the Agent Cannot Reach
 
 @subtitle Deny by default, then defend around the tool
 
@@ -574,7 +577,7 @@ Binpack many agents onto one device; spread when latency matters.
 
 ## Takeaways
 
-- Assume every tool is hostile; enforce limits on the other side.
+- Assume every tool is hostile; layer limits in the agent, the tool and around both.
 - Separate reasoning from action: the model proposes, the tool server decides.
 - Grant nothing by default; keep the grant out of the agent's reach.
 - Keep inference and tools on separate nodes; the sandbox reaches only the model gateway.
