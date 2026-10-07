@@ -150,7 +150,7 @@ OpenClaw started bulk-deleting the inbox of Meta's AI alignment director after c
 - They are all part of the threat, but we do not need a separate defense for each: whatever the cause, the result is the same rogue agent, and the same boundaries contain it
 - Second adversary: the model server itself. vLLM has had remote-code-execution bugs; a crafted request can turn it into attacker code on the GPU
 - Out of scope is a decision, not a claim that those threats do not exist
-- Name the actual threat before picking controls. If the agent's code ran on the inference GPU, you would need a Kata VM, and then GPU passthrough and GPU segmentation for VMs: costly and constrained (one whole GPU per VM, no live migration, minutes to boot, a privileged launcher; see gpucellpool and KubeSwift). But the threat is code execution by the agent, and that code never needs a GPU. Keep agent code on CPU nodes and the whole GPU-in-a-VM problem disappears
+- Name the actual threat before picking controls. If the agent's code ran on the inference GPU, you would need a Kata VM, and then GPU passthrough and GPU segmentation for VMs: costly and constrained (one whole GPU per VM, no live migration, minutes to boot, a privileged launcher, per the gpucellpool and KubeSwift docs; we have not evaluated them ourselves). But the threat is code execution by the agent, and that code never needs a GPU. Keep agent code on CPU nodes and the whole GPU-in-a-VM problem disappears
 - So what if the weights are poisoned: the model itself cannot execute tools. A poisoned model only makes bad proposals; the harness and tool server still decide, inside the same boundaries
 - OpenShell passes GPUs into sandboxes (CDI, device plugin, VFIO for microVMs): a different threat model, where the agent's own tools run CUDA. Ours does not, so we skip that cost
 -->
@@ -182,7 +182,7 @@ OpenClaw started bulk-deleting the inbox of Meta's AI alignment director after c
 :::
 :::
 
-@tiny The threat model also tells you what to skip: agent code never needs the GPU, so no GPU passthrough into VMs.
+@tiny The threat model also tells you what to skip: agent code never needs the GPU, so agent sandboxes need no GPU passthrough.
 
 ---
 
@@ -193,7 +193,7 @@ OpenClaw started bulk-deleting the inbox of Meta's AI alignment director after c
 - The supervisor or harness decides and holds the keys: it must stay trusted and out of the agent's reach. OpenShell: "The supervisor is trusted and makes the decisions. The sandbox shares the boundary with the untrusted agent, so it never makes policy decisions."
 - The tool sandbox runs agent code: that is where the strong boundary goes. Per command (Sandlock: Landlock, seccomp, about 5 ms) or a VM when the threat is the kernel
 - agent-sandbox: "Isolation depth is a deployment choice." OpenShell: "The runtime's job is to build the boundary and prove it's in place. It never decides whether a request is allowed."
-- gpucellpool says even a VM around a GPU is "layered isolation, not tenant isolation"
+- gpucellpool (interesting, not evaluated by us) says in its own docs that even a VM around a GPU is "layered isolation, not tenant isolation"
 - Sandlock talk by Cong Wang, Wednesday 17:25, Panorama Hall: "You do not need a hypervisor to stop rm -rf ~. You need a policy."
 -->
 
@@ -211,7 +211,7 @@ OpenClaw started bulk-deleting the inbox of Meta's AI alignment director after c
 @tiny "Isolation draws the boundary. Policy decides what happens inside it." Cong Wang, Sandlock, OSS Europe 2026
 
 ::: notes
-Source: [agent-sandbox](https://github.com/kubernetes-sigs/agent-sandbox/blob/42679cc/site/content/docs/_index.md); [OpenShell architecture](https://github.com/NVIDIA/openshell/blob/8aa5846d7/docs/about/architecture.mdx); [Sandlock](https://github.com/multikernel/sandlock); [gpucellpool](https://github.com/kubeswift-io/gpucellpool/blob/6b3f011/README.md)
+Source: [agent-sandbox](https://github.com/kubernetes-sigs/agent-sandbox/blob/42679cc/site/content/docs/_index.md); [OpenShell architecture](https://github.com/NVIDIA/openshell/blob/8aa5846d7/docs/about/architecture.mdx); [Sandlock](https://github.com/multikernel/sandlock)
 :::
 
 ---
@@ -423,7 +423,7 @@ Source: [agent-sandbox threat model](https://github.com/kubernetes-sigs/agent-sa
 <!--
 - The model needs text, not your filesystem: the harness reads a file through a tool and sends the contents as a prompt
 - So the code lives only in the sandbox; inference runs on GPU nodes with no volumes and no egress
-- Keep the GPU out of the sandbox: GPU passthrough into a VM works (gpucellpool, KubeSwift) but costs a whole GPU per VM, no live migration and a privileged launcher, and widens the host surface with /dev/vfio
+- Keep the GPU out of the sandbox: GPU passthrough into a VM exists (gpucellpool, KubeSwift; not evaluated by us) but costs a whole GPU per VM, no live migration and a privileged launcher, and widens the host surface with /dev/vfio
 - Stricter variant: harness in its own pod, sandbox only executes commands through an exec API
 - Caveat: code sent as context is in the prompt; if that is confidential, run inference on hardware you own
 -->
@@ -606,7 +606,7 @@ resources:
 :::
 :::
 
-@tiny Footnote: destructive tools are safer in a VM, since escaping a container is easier. GPUs in VMs are possible (whole GPU per VM, HAMi inside), but costly.
+@tiny Footnote: destructive tools are safer in a VM, since escaping a container is easier. GPUs in VMs are possible but costly; agent sandboxes do not need them.
 
 ---
 
@@ -616,7 +616,7 @@ resources:
 - Side channels need attacker code on the GPU, so the first rule is that agent code never gets a GPU
 - Prompts reach model servers as text through the gateway, not as CUDA code; the residual risk is a compromised model server, hence the gateway and same-classification co-location
 - HAMi is where this policy is enforced: placement (UUID, type, spread), MIG profiles, quotas; vGPUmonitor shows who shared which GPU, but cannot stop a channel
-- gpucellpool composes KubeSwift and HAMi: one whole GPU passed into a VM with VFIO, HAMi slices it inside. "A HAMi fraction is never handed to VFIO: the two layers nest, they do not translate." Its own wording: layered isolation between groups that trust the same operators, not tenant isolation. Alpha, one GPU per cell, about 5 minutes to boot a cell
+- Worth a look, not something we have run or evaluated: gpucellpool composes KubeSwift and HAMi: one whole GPU passed into a VM with VFIO, HAMi slices it inside. "A HAMi fraction is never handed to VFIO: the two layers nest, they do not translate." Its own wording: layered isolation between groups that trust the same operators, not tenant isolation. Alpha, one GPU per cell, about 5 minutes to boot a cell
 -->
 
 ## Share a GPU Only Within One Trust Domain
@@ -628,7 +628,6 @@ resources:
 | Agent sandboxes | None | No device at all |
 | Your model servers, same data class | Shared slices | `gpumem`, `gpucores`, binpack |
 | Different tenants or data classes | MIG or a whole GPU | `vgpu-mode: mig`, `use-gpuuuid`, spread |
-| Groups that trust one operator | A GPU passed into a VM | HAMi inside the VM (gpucellpool) |
 | Strictest | Separate nodes | Separate node pools |
 
 @tiny Even MIG leaves side channels. vGPUmonitor shows who shared which GPU, as evidence, not prevention.
