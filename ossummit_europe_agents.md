@@ -157,29 +157,38 @@ OpenClaw started bulk-deleting the inbox of Meta's AI alignment director after c
 
 @subtitle The model proposes, the tool server decides
 
-```dot
-digraph G {
-  rankdir=LR
-  size="10,4.2!"
-  bgcolor=transparent
-  nodesep=0.5
-  ranksep=0.7
-  node [shape=box style="rounded,filled" fontname="Arial" fontsize=16 margin="0.2,0.12" color="#0DA89D" fillcolor="#e6f6f4" fontcolor="#003841"]
-  edge [fontname="Arial" fontsize=13 color="#4f6f73" fontcolor="#003841"]
+```seaborn
+import matplotlib.pyplot as plt
+from matplotlib.patches import FancyBboxPatch
+coral, green, teal, _, navy = sns.color_palette()[:5]
+dim = plt.rcParams["xtick.color"]
+fig, ax = plt.gcf(), plt.gca()
+fig.set_size_inches(11, 4.2)
+fig.patch.set_alpha(0)
+ax.set_xlim(0, 11); ax.set_ylim(0, 4.2); ax.axis("off")
 
-  model [label="Agent"]
-  server [label="Tool server\nchecks the grant" color="#003841" fillcolor="#dbe7e9"]
-  grant [label="Grant\n(read-only)" shape=note color="#E05845" fillcolor="#fdecea"]
-  human [label="Human\napplies" color="#E05845" fillcolor="#fdecea"]
-  state [label="Mail, files,\nservices"]
+def box(x, y, w, h, text, c=green, fill=0.12, ls="-"):
+    ax.add_patch(FancyBboxPatch((x, y), w, h, boxstyle="round,pad=0,rounding_size=0.15",
+                                ec=c, fc=(*c[:3], fill), lw=2, ls=ls))
+    ax.text(x + w / 2, y + h / 2, text, ha="center", va="center", fontsize=15)
 
-  model -> server [label="asks"]
-  grant -> server
-  server -> state [label="reads"]
-  server -> human [label="staged writes"]
-  human -> state
-  {rank=same; model; grant}
-}
+def arrow(a, b, label="", c=dim, ls="-", dx=0, dy=0.18):
+    ax.annotate("", b, a, arrowprops=dict(arrowstyle="-|>", color=c, lw=2, ls=ls,
+                                          mutation_scale=20, shrinkA=0, shrinkB=0))
+    if label:
+        ax.text((a[0] + b[0]) / 2 + dx, (a[1] + b[1]) / 2 + dy, label,
+                ha="center", va="bottom", fontsize=13, color=c)
+
+box(0.2, 2.5, 2.0, 1.0, "Agent")
+box(0.2, 0.5, 2.0, 1.1, "Grant\n(read-only)", c=coral)
+box(3.9, 1.5, 2.6, 1.2, "Tool server\nchecks the grant", c=navy, fill=0.08)
+box(8.4, 2.7, 2.4, 1.1, "Mail, files,\nservices")
+box(8.4, 0.3, 2.4, 1.1, "Human\napplies", c=coral)
+arrow((2.2, 3.0), (3.9, 2.4), "asks", dy=0.12)
+arrow((2.2, 1.05), (3.9, 1.8))
+arrow((6.5, 2.4), (8.4, 3.2), "reads", dx=-0.1, dy=0.12)
+arrow((6.5, 1.8), (8.4, 0.9), "staged writes", dx=0.2, dy=0.15)
+arrow((9.6, 1.4), (9.6, 2.7))
 ```
 
 ---
@@ -332,6 +341,98 @@ Source: [agent-sandbox v1.0.0](https://github.com/kubernetes-sigs/agent-sandbox/
 
 ---
 
+<!--
+- The model needs text, not your filesystem: the harness reads a file through a tool and sends the contents as a prompt
+- So the code lives only in the sandbox; inference runs on GPU nodes with no volumes and no egress
+- Keep the GPU out of the sandbox: GPU passthrough into Kata is hard and widens the attack surface
+- Stricter variant: harness in its own pod, sandbox only executes commands through an exec API
+- Caveat: code sent as context is in the prompt; if that is confidential, run inference on hardware you own
+-->
+
+## Keep Inference Away From the Code
+
+@subtitle The model needs text, not your filesystem
+
+```seaborn
+import matplotlib.pyplot as plt
+from matplotlib.patches import FancyBboxPatch
+coral, green, teal, _, navy = sns.color_palette()[:5]
+dim = plt.rcParams["xtick.color"]
+fig, ax = plt.gcf(), plt.gca()
+fig.set_size_inches(12, 4.2)
+fig.patch.set_alpha(0)
+ax.set_xlim(0, 12); ax.set_ylim(0, 4.2); ax.axis("off")
+
+def box(x, y, w, h, text, c=green, fill=0.12, ls="-"):
+    ax.add_patch(FancyBboxPatch((x, y), w, h, boxstyle="round,pad=0,rounding_size=0.15",
+                                ec=c, fc=(*c[:3], fill), lw=2, ls=ls))
+    ax.text(x + w / 2, y + h / 2, text, ha="center", va="center", fontsize=15)
+
+def arrow(a, b, label="", c=dim, ls="-", dx=0, dy=0.18):
+    ax.annotate("", b, a, arrowprops=dict(arrowstyle="-|>", color=c, lw=2, ls=ls,
+                                          mutation_scale=20, shrinkA=0, shrinkB=0))
+    if label:
+        ax.text((a[0] + b[0]) / 2 + dx, (a[1] + b[1]) / 2 + dy, label,
+                ha="center", va="bottom", fontsize=13, color=c)
+
+def pool(x, w, label):
+    ax.add_patch(FancyBboxPatch((x, 0.2), w, 3.8, boxstyle="round,pad=0,rounding_size=0.2",
+                                ec=dim, fc="none", lw=1.2, ls="--"))
+    ax.text(x + w / 2, 3.75, label, ha="center", va="top", fontsize=12, color=dim)
+
+pool(0.1, 3.0, "CPU pool, Kata VMs")
+pool(4.5, 3.0, "Gateway pool")
+pool(8.9, 3.0, "GPU pool")
+box(0.3, 1.5, 2.6, 1.3, "Agent sandbox\nharness, tools,\n/workspace")
+box(4.7, 1.5, 2.6, 1.3, "Model gateway\nroutes, tokens,\nbudgets", c=navy, fill=0.08)
+box(9.1, 1.5, 2.6, 1.3, "vLLM\nno volumes,\nno egress")
+arrow((2.9, 2.15), (4.7, 2.15), "HTTPS +\ntoken", dy=0.08)
+arrow((7.3, 2.15), (9.1, 2.15), "mTLS", dy=0.08)
+ax.annotate("", (10.4, 1.5), (1.6, 1.5), arrowprops=dict(arrowstyle="-|>", color=coral, lw=2,
+            ls="--", mutation_scale=20, connectionstyle="arc3,rad=0.35"))
+ax.text(6.0, 0.4, "blocked", ha="center", fontsize=13, color=coral)
+```
+
+---
+
+<!--
+- In-cluster NetworkPolicy is enforced by the kernel of the node the pod runs on: a sandbox that roots its node can turn it off
+- So the boundary that protects model serving must live outside the cluster: separate subnets or VLANs per node pool, cloud or hardware firewall
+- Gateway: Envoy, agentgateway or LiteLLM in front of vLLM. vLLM's own --api-key is weak and vLLM has had remote-code-execution CVEs, so it should only ever see the gateway
+- Side doors: service account token, cloud metadata (169.254.169.254), kubelet 10250, NodePorts, vLLM multi-node ports (ZMQ, NCCL, Ray), open DNS
+-->
+
+## Segment the Model Network
+
+@subtitle The sandbox reaches the gateway, and nothing else
+
+::: grid {cols=2}
+::: card {tag=red}
+### {icon:network cls=accent-secondary} Subnets and a firewall
+
+One subnet per node pool. The firewall sits outside the cluster, so it holds even if a sandbox owns its node.
+:::
+::: card {tag=yellow}
+### {icon:box cls=accent-contrast} A VM per sandbox
+
+Kata on separate nodes. A container escape does not land on a node that can reach the GPUs.
+:::
+::: card {tag=cyan}
+### {icon:shield cls=accent-primary} Default-deny NetworkPolicy
+
+Sandboxes may only call the gateway; vLLM only accepts the gateway. Needs a CNI that enforces it.
+:::
+::: card {tag=green}
+### {icon:filter cls=accent-primary} Model gateway
+
+Inference routes only, a token per sandbox, token budgets, mTLS to vLLM. Admin endpoints stay unreachable.
+:::
+:::
+
+@tiny Close the side doors too: no service account token, no cloud metadata endpoint, no kubelet, no vLLM multi-node ports.
+
+---
+
 # Part 3: Least Privilege for Compute
 
 @subtitle One device, several agents
@@ -474,6 +575,7 @@ Binpack many agents onto one device; spread when latency matters.
 - Assume every tool is hostile; enforce limits on the other side.
 - Separate reasoning from action: the model proposes, the tool server decides.
 - Grant nothing by default; keep the grant out of the agent's reach.
+- Keep inference and tools on separate nodes; the sandbox reaches only the model gateway.
 - Give each agent its own compute slice, on hardware you own.
 
 ---
