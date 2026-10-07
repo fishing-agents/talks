@@ -146,7 +146,8 @@ OpenClaw started bulk-deleting the inbox of Meta's AI alignment director after c
 
 <!--
 - Say this out loud: every later slide is a mitigation against this adversary
-- The agent is not malicious by design; prompt injection, a bad tool result or a context-compaction slip is enough
+- The agent is not malicious by design: it goes rogue because it acts on a wrong assumption. Prompt injection, a bad tool result or a context-compaction slip are just ways to get there
+- Poisoned model weights are not a separate problem: a poisoned model is one more way the agent goes rogue, and the same boundaries contain it
 - Second adversary: the model server itself. vLLM has had remote-code-execution bugs; a crafted request can turn it into attacker code on the GPU
 - Out of scope is a decision, not a claim that those threats do not exist
 - Name the actual threat before picking controls. If the agent's code ran on the inference GPU, you would need a Kata VM, and then GPU passthrough and GPU segmentation for VMs: hard problems. But the threat is code execution by the agent, and that code never needs a GPU. Keep agent code on CPU nodes and the whole GPU-in-a-VM problem disappears
@@ -160,7 +161,7 @@ OpenClaw started bulk-deleting the inbox of Meta's AI alignment director after c
 ::: card {tag=red}
 ### {icon:skull cls=accent-secondary} Adversary
 
-- The agent: prompt-injected, runs any code inside its sandbox
+- The agent running rogue: it acts on a wrong assumption and runs any code inside its sandbox
 - A model server taken over through its API
 :::
 ::: card {tag=cyan}
@@ -175,7 +176,6 @@ OpenClaw started bulk-deleting the inbox of Meta's AI alignment director after c
 
 - A malicious cluster admin
 - Hardware and firmware attacks
-- Poisoned model weights
 :::
 :::
 
