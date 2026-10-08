@@ -504,7 +504,7 @@ Kata on separate nodes. A container escape does not land on a node that can reac
 Sandboxes may only call the gateway; vLLM only accepts the gateway. Needs a CNI that enforces it.
 :::
 ::: card {tag=green}
-### {icon:filter cls=accent-primary} Model gateway
+### {icon:funnel cls=accent-primary} Model gateway
 
 Inference routes only, a token per sandbox, token budgets, mTLS to vLLM. Admin endpoints stay unreachable.
 :::
