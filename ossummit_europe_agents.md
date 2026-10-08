@@ -689,6 +689,49 @@ resources:
 
 ---
 
+## HAMi Capabilities
+
+@subtitle Six things HAMi brings to GPU scheduling
+
+<!--
+Six capabilities. The key ones for this talk: hard isolation, advanced scheduling, and unified monitoring. Heterogeneous management is the differentiator, not just NVIDIA.
+-->
+
+::: grid {cols=2}
+::: card
+### {icon:layers cls=accent-primary} Heterogeneous Management
+
+Manage GPU, NPU, MLU, and other accelerators in one workflow.
+:::
+::: card
+### {icon:shield-check cls=accent-primary} Hard Isolation
+
+Slice memory and compute with hard isolation at runtime.
+:::
+::: card
+### {icon:git-branch cls=accent-contrast} Advanced Scheduling
+
+Binpack, spread, and topology-aware placement policies.
+:::
+::: card
+### {icon:box cls=accent-primary} Kubernetes Native
+
+Kubernetes-native APIs, DRA, and CDI support.
+:::
+::: card
+### {icon:gauge cls=accent-primary} Resource Isolation & QoS
+
+Memory and core quotas for fair, stable sharing.
+:::
+::: card
+### {icon:chart-bar cls=accent-contrast} Unified Monitoring
+
+Consistent metrics and visibility across vendors.
+:::
+:::
+
+---
+
 # Part 4: Local and Offline
 
 @subtitle Run it on hardware you own
