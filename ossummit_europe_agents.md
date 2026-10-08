@@ -67,17 +67,20 @@ One agent drives several services, each with its own credentials.
 
 <!--
 - Cloud design: model, data and keys all meet at a third party
+- Local is not safe by default: a local agent still uploads confidential files, pastes secrets into a web search or a third-party API, because it decides it needs them for the task
 - Broad API keys: one token, every operation
 - Offline is not an edge case: planes, factories, privacy rules
 -->
 
-## Where Cloud-Hosted Agents Break
+## Where Agents Break
+
+@subtitle Cloud-hosted or local
 
 ::: grid {cols=2}
 ::: card {tag=red}
-### {icon:cloud-upload cls=accent-secondary} Private data leaves the device
+### {icon:cloud-upload cls=accent-secondary} Confidential data leaves
 
-Every prompt carries context to someone else's server.
+Cloud: every prompt carries context to someone else's server. Local: the agent sends files out because it thinks it needs them.
 :::
 ::: card {tag=yellow}
 ### {icon:key cls=accent-contrast} Broad API keys
@@ -642,7 +645,7 @@ resources:
 ---
 
 <!--
-The path is short. Pick a device: Jetson-class for CUDA compatibility (the HAMi slicing path exists for CUDA). Slice it: memory in MiB, compute in percent, hard limits per agent. Schedule agents: binpack to pack them tight, spread for SLOs. Everything runs on k3s or k0s. Olares is the turnkey path: an open-source (AGPL-3.0) personal cloud OS on K3s that ships its own HAMi fork for GPU time-slicing and memory-slicing; MCP comes per app from its market.
+The path is short. Pick a device: Jetson-class for CUDA compatibility (the HAMi slicing path exists for CUDA). Slice it: memory in MiB, compute in percent, hard limits per agent. Schedule agents: binpack to pack them tight, spread for SLOs. Everything runs on k3s or k0s. Olares is the turnkey path: an open-source (AGPL-3.0) personal cloud OS on K3s that ships its own HAMi fork for GPU time-slicing and memory-slicing; MCP comes per app from its market. For bigger deployments, a fleet of your own servers rather than one box, look at Metal3: bare-metal provisioning for Kubernetes through Cluster API.
 -->
 
 ## Keep Sensitive Context Local
@@ -670,6 +673,7 @@ Binpack many agents onto one device; spread when latency matters.
 - Prompts, documents and mail never leave the device.
 - **Olares** ([github.com/beclab/olares](https://github.com/beclab/olares)): open-source personal cloud OS on K3s, ships a HAMi fork for GPU slicing.
 - Or run on k3s or k0s directly: Kubernetes APIs without an ops team.
+- Bigger, a fleet of your own servers: look at Metal3 ([metal3.io](https://metal3.io)), bare-metal provisioning through Cluster API.
 
 ---
 
