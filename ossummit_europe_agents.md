@@ -21,7 +21,7 @@ size: 16:9
 
 # Designing Permissioned AI Agents That Can Run Offline
 
-@subtitle Layer the limits; keep the decisive ones out of the agent's reach
+@subtitle Limits the agent can't turn off
 
 @speaker name="Reza Jelveh" role="Solution Architect, Dynamia AI - Makers of HAMi" github=github.com/fishman linkedin=linkedin.com/in/rezajelveh
 
@@ -124,7 +124,7 @@ OpenClaw started bulk-deleting the inbox of Meta's AI alignment director after c
 :::
 :::
 
-**You can audit a plugin, but a defensive security posture is better.**
+**You can audit a plugin. It's safer to assume it will misbehave.**
 
 ---
 
@@ -205,7 +205,7 @@ OpenClaw started bulk-deleting the inbox of Meta's AI alignment director after c
 
 ## Isolation Is Not All or Nothing
 
-@subtitle Responsibility decides the boundary, not Kata everywhere
+@subtitle Each component gets the boundary its job needs
 
 | Component | Its job | If it goes rogue | Boundary |
 |---|---|---|---|
@@ -216,7 +216,7 @@ OpenClaw started bulk-deleting the inbox of Meta's AI alignment director after c
 
 @tiny "Isolation draws the boundary. Policy decides what happens inside it." Cong Wang, Sandlock, OSS Europe 2026
 
-@tiny Guard everything and people route around you: shadow IT has no boundary at all.
+@tiny Lock everything down and people switch to tools you don't control.
 
 ::: notes
 Source: [agent-sandbox](https://github.com/kubernetes-sigs/agent-sandbox/blob/42679cc/site/content/docs/_index.md); [OpenShell architecture](https://github.com/NVIDIA/openshell/blob/8aa5846d7/docs/about/architecture.mdx); [Sandlock](https://github.com/multikernel/sandlock)
@@ -360,7 +360,7 @@ Model, tool server and destructive tools each run with their own account and per
 - Give it the narrowest credentials; read-only where reads are enough.
 - Run destructive tools in a VM or a separate account, with a backup first.
 - Keep writes reversible: stage, review, apply, and keep the undo.
-- Cap how much one call may touch: a hundred messages, not the mailbox.
+- Cap how much one call may touch, e.g. 100 messages.
 
 ---
 
@@ -414,7 +414,7 @@ Source: [awesome-agent-sandbox](https://github.com/fishman/awesome-agent-sandbox
 
 ## gVisor in One Picture
 
-@subtitle A kernel in between, not a VM
+@subtitle A small kernel between the container and the host
 
 ```seaborn
 import matplotlib.pyplot as plt
@@ -485,7 +485,7 @@ Source: [agent-sandbox threat model](https://github.com/kubernetes-sigs/agent-sa
 
 ## Keep Inference Away From the Code
 
-@subtitle The model needs text, not your filesystem
+@subtitle The model only sees text
 
 ```seaborn
 import matplotlib.pyplot as plt
@@ -554,7 +554,7 @@ One subnet per node pool. The firewall sits outside the cluster, so it holds eve
 Kata on separate nodes. A container escape does not land on a node that can reach the GPUs.
 :::
 ::: card {tag=cyan}
-### {icon:shield cls=accent-primary} Cilium on top, not instead
+### {icon:shield cls=accent-primary} Cilium inside the cluster
 
 Default-deny: sandboxes may only call the gateway; vLLM only accepts the gateway. Complements the physical split.
 :::
@@ -677,7 +677,7 @@ resources:
 
 ## Share a GPU Only Within One Trust Domain
 
-@subtitle Slicing protects availability, not secrets
+@subtitle Slicing keeps agents from starving each other
 
 | Workload | GPU | With HAMi |
 |---|---|---|
@@ -686,7 +686,7 @@ resources:
 | Different tenants or data classes | MIG or a whole GPU | `vgpu-mode: mig`, `use-gpuuuid`, spread |
 | Strictest | Separate nodes | Separate node pools |
 
-@tiny Even MIG leaves side channels. vGPUmonitor shows who shared which GPU, as evidence, not prevention.
+@tiny Even MIG leaves side channels. vGPUmonitor shows who shared which GPU, which helps after the fact. It cannot stop a side channel.
 
 ---
 
@@ -702,32 +702,32 @@ Six capabilities. The key ones for this talk: hard isolation, advanced schedulin
 ::: card
 ### {icon:layers cls=accent-primary} Heterogeneous Management
 
-Manage GPU, NPU, MLU, and other accelerators in one workflow.
+GPUs, NPUs and other accelerators from several vendors, one API.
 :::
 ::: card
 ### {icon:shield-check cls=accent-primary} Hard Isolation
 
-Slice memory and compute with hard isolation at runtime.
+Memory and compute limits per container, enforced while it runs.
 :::
 ::: card
 ### {icon:git-branch cls=accent-contrast} Advanced Scheduling
 
-Binpack, spread, and topology-aware placement policies.
+Binpack, spread and topology-aware placement.
 :::
 ::: card
 ### {icon:box cls=accent-primary} Kubernetes Native
 
-Kubernetes-native APIs, DRA, and CDI support.
+Plain Kubernetes resources, DRA and CDI.
 :::
 ::: card
 ### {icon:gauge cls=accent-primary} Resource Isolation & QoS
 
-Memory and core quotas for fair, stable sharing.
+Memory and core quotas per namespace.
 :::
 ::: card
 ### {icon:chart-bar cls=accent-contrast} Unified Monitoring
 
-Consistent metrics and visibility across vendors.
+The same metrics for every vendor.
 :::
 :::
 
@@ -778,12 +778,13 @@ Binpack many agents onto one device; spread when latency matters.
 
 ## Takeaways
 
-- Assume every tool is hostile; layer limits in the agent, the tool and around both.
-- Let responsibility decide each boundary: not everything needs a VM.
-- Separate reasoning from action: the model proposes, the tool server decides.
-- Grant nothing by default; keep the grant out of the agent's reach.
-- Keep inference and tools on separate nodes; the sandbox reaches only the model gateway.
-- Give each agent its own compute slice, on hardware you own.
+- Treat every tool as hostile, including your own.
+- Put limits in the agent, in the tool, and around the tool.
+- Match the boundary to the job: a VM for agent code when the threat is the kernel, policy elsewhere.
+- The model proposes. The tool server decides.
+- Start with an empty grant, and keep the grant where the agent can't change it.
+- Run agent code and inference on separate nodes.
+- Give each agent's model its own GPU slice; the agent's code gets none.
 
 ---
 
