@@ -154,6 +154,7 @@ OpenClaw started bulk-deleting the inbox of Meta's AI alignment director after c
 - They are all part of the threat, but we do not need a separate defense for each: whatever the cause, the result is the same rogue agent, and the same boundaries contain it
 - Second adversary: the model server itself. vLLM has had remote-code-execution bugs; a crafted request can turn it into attacker code on the GPU
 - Out of scope is a decision, not a claim that those threats do not exist
+- Ignore the threat model and you guard against everything: so much friction that employees route around you with shadow IT, a personal chatbot or an unsanctioned agent with the same confidential data and no boundary at all
 - Name the actual threat before picking controls. If the agent's code ran on the inference GPU, you would need a Kata VM, and then GPU passthrough and GPU segmentation for VMs: costly and constrained (one whole GPU per VM, no live migration, minutes to boot, a privileged launcher, per the gpucellpool and KubeSwift docs; we have not evaluated them ourselves). But the threat is code execution by the agent, and that code never needs a GPU. Keep agent code on CPU nodes and the whole GPU-in-a-VM problem disappears
 - So what if the weights are poisoned: the model itself cannot execute tools. A poisoned model only makes bad proposals; the harness and tool server still decide, inside the same boundaries
 - OpenShell passes GPUs into sandboxes (CDI, device plugin, VFIO for microVMs): a different threat model, where the agent's own tools run CUDA. Ours does not, so we skip that cost
@@ -193,6 +194,7 @@ OpenClaw started bulk-deleting the inbox of Meta's AI alignment director after c
 <!--
 - When people talk about agent sandboxes, it is everything or nothing: either a bare container, or Kata for everything
 - Responsibility decides the boundary. Ask what each component does, and what it can do when it goes rogue
+- Lock everything down and people stop using the sanctioned agent: shadow IT moves the data somewhere you cannot see. Put the strong boundary where the threat is, keep the rest usable
 - The model only produces text: a poisoned or injected model makes bad proposals, it does not execute anything. It needs a gateway, not a VM
 - The supervisor or harness decides and holds the keys: it must stay trusted and out of the agent's reach. OpenShell: "The supervisor is trusted and makes the decisions. The sandbox shares the boundary with the untrusted agent, so it never makes policy decisions."
 - The tool sandbox runs agent code: that is where the strong boundary goes. Per command (Sandlock: Landlock, seccomp, about 5 ms) or a VM when the threat is the kernel
@@ -213,6 +215,8 @@ OpenClaw started bulk-deleting the inbox of Meta's AI alignment director after c
 | Tool server | Talks to mail, APIs | Its own credential scope | Narrow keys, own identity |
 
 @tiny "Isolation draws the boundary. Policy decides what happens inside it." Cong Wang, Sandlock, OSS Europe 2026
+
+@tiny Guard everything and people route around you: shadow IT has no boundary at all.
 
 ::: notes
 Source: [agent-sandbox](https://github.com/kubernetes-sigs/agent-sandbox/blob/42679cc/site/content/docs/_index.md); [OpenShell architecture](https://github.com/NVIDIA/openshell/blob/8aa5846d7/docs/about/architecture.mdx); [Sandlock](https://github.com/multikernel/sandlock)
