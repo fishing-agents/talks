@@ -406,6 +406,53 @@ Source: [awesome-agent-sandbox](https://github.com/fishman/awesome-agent-sandbox
 ---
 
 <!--
+- Quick explainer, most people have not met gVisor: a container normally talks straight to the host's Linux kernel, so one kernel bug is an escape
+- gVisor puts a small kernel of its own, written in Go and running as an ordinary process, between the container and the host. The agent's code talks to that kernel instead; only a short, filtered list of calls ever reaches the real one
+- Somewhere between a container and a VM: no hardware virtualization needed, starts like a container, costs some speed on syscall-heavy work
+- It protects the host kernel. It does not stop the agent misusing what it may do: that is still policy
+-->
+
+## gVisor in One Picture
+
+@subtitle A kernel in between, not a VM
+
+```seaborn
+import matplotlib.pyplot as plt
+
+coral, green, teal, _, navy = sns.color_palette()[:5]
+dim = plt.rcParams["xtick.color"]
+fig, ax = plt.gcf(), plt.gca()
+fig.set_size_inches(12, 4.6)
+fig.patch.set_alpha(0)
+ax.set_xlim(0, 12); ax.set_ylim(0, 4.6); ax.axis("off")
+
+def node(x, y, text, c):
+    return ax.text(x, y, text, ha="center", va="center", fontsize=15,
+                   bbox=dict(boxstyle="round,pad=0.55", ec=c, fc=(*c[:3], 0.12), lw=2))
+
+def arrow(a, b, label, c=dim, ls="-"):
+    ax.annotate("", xy=(0.5, 1), xycoords=b, xytext=(0.5, 0), textcoords=a,
+                arrowprops=dict(arrowstyle="-|>", color=c, lw=2, ls=ls, mutation_scale=20, shrinkA=4, shrinkB=4))
+    ax.annotate(label, xy=(0.5, 0), xycoords=a, xytext=(12, -32), textcoords="offset points", fontsize=12.5, color=c)
+
+ax.text(3, 4.4, "Container (runc)", ha="center", fontsize=14, color=dim)
+ax.text(9, 4.4, "gVisor (runsc)", ha="center", fontsize=14, color=dim)
+
+app1 = node(3, 3.6, "Agent code", green)
+host1 = node(3, 0.5, "Host Linux kernel", coral)
+arrow(app1, host1, "every system call", coral)
+ax.text(2.6, 2.05, "one kernel bug\n= escape", ha="right", va="center", fontsize=12.5, color=coral)
+
+app2 = node(9, 3.6, "Agent code", green)
+sentry = node(9, 2.05, "gVisor's own kernel\n(user space, Go)", navy)
+host2 = node(9, 0.5, "Host Linux kernel", teal)
+arrow(app2, sentry, "every system call")
+arrow(sentry, host2, "a short, filtered list")
+```
+
+---
+
+<!--
 - agent-sandbox (SIG Apps) v1.0.x (v1.0.5 now) is what OpenShell builds on for Kubernetes; OpenSandbox can use it as an optional provider; it orchestrates, the RuntimeClass isolates
 - Its managed NetworkPolicy blocks private ranges and cloud metadata but allows the whole public internet; its router is allow-all by default, and TokenReview only authenticates
 - OpenShell on k8s needs a CNI that enforces NetworkPolicy (ingress and egress); without one, sandboxes bypass the supervisor. agent-sandbox's own example says it bluntly: "On a cluster whose CNI ignores NetworkPolicy this file is decoration"
