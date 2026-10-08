@@ -481,6 +481,58 @@ Source: [agent-sandbox threat model](https://github.com/kubernetes-sigs/agent-sa
 ---
 
 <!--
+- The agent's environment holds a placeholder, never the real key: "The agent process inside the sandbox never sees real credential values."
+- All traffic leaves through the supervisor's proxy; the outer fence (network namespace, or NetworkPolicy on Kubernetes) blocks every other way out
+- The proxy checks host, port, method, path and the calling program (pinned by hash), then swaps the placeholder for the real key, only for an endpoint the provider allows
+- The placeholder sent anywhere else is refused (credential_endpoint_mismatch), and it is worthless anyway
+- What it does not do: limit what the key can do on an allowed endpoint (budgets, model choice). OpenShell removed its model router in 0.1.0; that is the model gateway's job
+-->
+
+## How OpenShell Keeps the Key Out
+
+@subtitle The agent holds a placeholder; the real key is added outside the sandbox
+
+```seaborn
+import matplotlib.pyplot as plt
+
+coral, green, teal, _, navy = sns.color_palette()[:5]
+dim = plt.rcParams["xtick.color"]
+fig, ax = plt.gcf(), plt.gca()
+fig.set_size_inches(12, 4.8)
+fig.patch.set_alpha(0)
+ax.set_xlim(0, 12); ax.set_ylim(0, 4.8); ax.axis("off")
+
+def node(x, y, text, c):
+    return ax.text(x, y, text, ha="center", va="center", fontsize=14,
+                   bbox=dict(boxstyle="round,pad=0.55", ec=c, fc=(*c[:3], 0.12), lw=2))
+
+def arrow(a, at, b, bt, c=dim, ls="-"):
+    ax.annotate("", xy=bt, xycoords=b, xytext=at, textcoords=a,
+                arrowprops=dict(arrowstyle="-|>", color=c, lw=2, ls=ls, mutation_scale=20, shrinkA=4, shrinkB=4))
+
+agent = node(1.5, 2.0, "Agent (sandbox)\nkey = placeholder", green)
+proxy = node(6.2, 2.0, "Supervisor proxy\nchecks host, path, program\nswaps in the real key", navy)
+keys = node(6.2, 4.2, "Gateway: policy and real keys", navy)
+api = node(10.4, 3.0, "api.openai.com\n(allowed)", teal)
+evil = node(10.4, 1.0, "anywhere else", coral)
+
+arrow(agent, (1, 0.5), proxy, (0, 0.5))
+ax.text(3.35, 2.2, "placeholder", ha="center", va="bottom", fontsize=12, color=dim)
+arrow(keys, (0.5, 0), proxy, (0.5, 1))
+arrow(proxy, (1, 0.65), api, (0, 0.5), teal)
+ax.text(8.3, 3.0, "real key", ha="center", fontsize=12, color=teal)
+arrow(proxy, (1, 0.35), evil, (0, 0.5), coral, "--")
+ax.text(8.3, 1.05, "refused", ha="center", fontsize=12, color=coral)
+ax.text(1.5, 1.2, "no other way out", ha="center", fontsize=12, color=dim)
+```
+
+::: notes
+Source: [OpenShell providers](https://github.com/NVIDIA/openshell/blob/8aa5846d7/docs/how-it-works/providers/overview.mdx); [OpenShell architecture](https://github.com/NVIDIA/openshell/blob/8aa5846d7/docs/about/architecture.mdx)
+:::
+
+---
+
+<!--
 - The model needs text, not your filesystem: the harness reads a file through a tool and sends the contents as a prompt
 - So the code lives only in the sandbox; inference runs on GPU nodes with no volumes and no egress
 - Keep the GPU out of the sandbox: GPU passthrough into a VM exists (gpucellpool, KubeSwift; not evaluated by us) but costs a whole GPU per VM, no live migration and a privileged launcher, and widens the host surface with /dev/vfio
