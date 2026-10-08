@@ -16,6 +16,7 @@ size: 16:9
 - Running examples: notmutt (MCP server, deny by default) and HAMi (GPU slices per agent)
 -->
 @variant dark
+@side-image assets/brand/ossummit_europe/qr-code-ossummit.png
 @kicker Open Source Summit Europe 2026 - Open AI & Data
 
 # Designing Permissioned AI Agents That Can Run Offline
@@ -742,7 +743,7 @@ Contributor Countries
 ---
 
 @kicker Thank You
-@side-image assets/qr-notmutt.png
+@side-image assets/brand/ossummit_europe/qr-code-ossummit.png
 # Questions?
 
 @subtitle github.com/Project-HAMi/HAMi - github.com/fishman/notmutt

@@ -3,7 +3,7 @@ name = "talks-slide-decks"
 version = "0.1.0"
 description = "Talk slide decks built with slidr"
 requires-python = ">=3.11"
-dependencies = ["slidr[plot] @ file:///${PROJECT_ROOT}/slidr", "seaborn>=0.13.2", "pillow>=12.3.0", "pytest>=9.1.1"]
+dependencies = ["slidr[plot] @ file:///${PROJECT_ROOT}/slidr", "seaborn>=0.13.2", "pillow>=12.3.0", "pytest>=9.1.1", "segno>=1.6.6"]
 
 [tool.pdm]
 # Build slides: pdm run slidr <deck>.md
