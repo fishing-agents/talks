@@ -156,7 +156,7 @@ OpenClaw started bulk-deleting the inbox of Meta's AI alignment director after c
 - Out of scope is a decision, not a claim that those threats do not exist
 - Ignore the threat model and you guard against everything: so much friction that employees route around you with shadow IT, a personal chatbot or an unsanctioned agent with the same confidential data and no boundary at all
 - Name the actual threat before picking controls. If the agent's code ran on the inference GPU, you would need a Kata VM, and then GPU passthrough and GPU segmentation for VMs: costly and constrained (one whole GPU per VM, no live migration, minutes to boot, a privileged launcher, per the gpucellpool and KubeSwift docs; we have not evaluated them ourselves). But the threat is code execution by the agent, and that code never needs a GPU. Keep agent code on CPU nodes and the whole GPU-in-a-VM problem disappears
-- So what if the weights are poisoned: the model itself cannot execute tools. A poisoned model only makes bad proposals; the harness and tool server still decide, inside the same boundaries
+- So what if the weights are poisoned: the model itself cannot execute tools. A poisoned model only makes bad requests; the harness and tool server still check every one, inside the same boundaries
 - OpenShell passes GPUs into sandboxes (CDI, device plugin, VFIO for microVMs): a different threat model, where the agent's own tools run CUDA. Ours does not, so we skip that cost
 -->
 
@@ -195,8 +195,8 @@ OpenClaw started bulk-deleting the inbox of Meta's AI alignment director after c
 - When people talk about agent sandboxes, it is everything or nothing: either a bare container, or Kata for everything
 - Responsibility decides the boundary. Ask what each component does, and what it can do when it goes rogue
 - Lock everything down and people stop using the sanctioned agent: shadow IT moves the data somewhere you cannot see. Put the strong boundary where the threat is, keep the rest usable
-- The model only produces text: a poisoned or injected model makes bad proposals, it does not execute anything. It needs a gateway, not a VM
-- The supervisor or harness decides and holds the keys: it must stay trusted and out of the agent's reach. OpenShell: "The supervisor is trusted and makes the decisions. The sandbox shares the boundary with the untrusted agent, so it never makes policy decisions."
+- The model only produces text: a poisoned or injected model makes bad requests, it does not execute anything. It needs a gateway, not a VM
+- The supervisor or harness checks every request and holds the keys: it must stay trusted and out of the agent's reach. OpenShell: "The supervisor is trusted and makes the decisions. The sandbox shares the boundary with the untrusted agent, so it never makes policy decisions."
 - The tool sandbox runs agent code: that is where the strong boundary goes. Per command (Sandlock: Landlock, seccomp, about 5 ms) or a VM when the threat is the kernel
 - agent-sandbox: "Isolation depth is a deployment choice." OpenShell: "The runtime's job is to build the boundary and prove it's in place. It never decides whether a request is allowed."
 - gpucellpool (interesting, not evaluated by us) says in its own docs that even a VM around a GPU is "layered isolation, not tenant isolation"
@@ -209,8 +209,8 @@ OpenClaw started bulk-deleting the inbox of Meta's AI alignment director after c
 
 | Component | Its job | If it goes rogue | Boundary |
 |---|---|---|---|
-| Model | Proposes text | Bad proposals, nothing runs | Gateway; no tools, no egress |
-| Harness, supervisor | Decides, holds keys | Must stay trusted | Out of the agent's reach |
+| Model | Writes text, asks for tool calls | Bad requests; it cannot run anything | Gateway; no tools, no egress |
+| Harness, supervisor | Checks requests, holds keys | Must stay trusted | Out of the agent's reach |
 | Tool sandbox | Runs agent code | Anything inside the box | Per-command policy, or a VM |
 | Tool server | Talks to mail, APIs | Its own credential scope | Narrow keys, own identity |
 
@@ -231,8 +231,8 @@ Source: [agent-sandbox](https://github.com/kubernetes-sigs/agent-sandbox/blob/42
 ---
 
 <!--
-- The model only proposes; the tool server decides
-- So a poisoned or injected model cannot act on its own: it can only propose
+- The model only asks for actions; the tool server checks them against the grant and carries them out
+- So a poisoned or injected model cannot act on its own: it can only ask
 - Sandlock's Execute-Only Agents pattern goes further: the planner has network but no data, the executor has data but no network, so no stage holds both secrets and a way out
 - The tool server holds the grant; the agent cannot see or edit it
 - Destructive changes wait for a human
@@ -240,7 +240,7 @@ Source: [agent-sandbox](https://github.com/kubernetes-sigs/agent-sandbox/blob/42
 
 ## Separate Reasoning From Action
 
-@subtitle The model proposes, the tool server decides
+@subtitle The model only asks; the tool server checks the grant and does the work
 
 ```seaborn
 import matplotlib.pyplot as plt
@@ -457,6 +457,11 @@ arrow(sentry, host2, "a short, filtered list")
 - Its managed NetworkPolicy blocks private ranges and cloud metadata but allows the whole public internet; its router is allow-all by default, and TokenReview only authenticates
 - OpenShell on k8s needs a CNI that enforces NetworkPolicy (ingress and egress); without one, sandboxes bypass the supervisor. agent-sandbox's own example says it bluntly: "On a cluster whose CNI ignores NetworkPolicy this file is decoration"
 - Kelos's Claude Code image runs with --dangerously-skip-permissions in ordinary pods: isolation is whatever the cluster gives it
+- agent-sandbox's resources, if asked: a Sandbox is one long-lived pod with a stable identity and optional storage; a SandboxTemplate is the admin's recipe (pod spec, runtime class, generated NetworkPolicy); a SandboxWarmPool keeps sandboxes from a template started and waiting; a SandboxClaim asks for one per agent run and takes it from the warm pool when it can
+- The template is where isolation is decided, so the agent never picks its own cage; enforce it with templates or an admission policy
+- Its default NetworkPolicy blocks private ranges and cloud metadata but allows the whole public internet: tighten it in the template for deny-by-default egress
+- A claim that injects env vars or its own volumes skips the warm pool and cold-starts (env injection is disallowed by default), which is why its credential example hands each run a short-lived token through a gateway instead of a secret in the pod
+- Project numbers: about 300 claims per second in bursts, 90% within 200 ms
 -->
 
 ## Agent Sandboxes on Kubernetes
@@ -464,7 +469,7 @@ arrow(sentry, host2, "a short, filtered list")
 @subtitle Three layers, each one can be missing
 
 - **Runtime isolation:** gVisor or Kata, picked by RuntimeClass.
-- **Orchestration:** `kubernetes-sigs/agent-sandbox` v1.0.x: Sandbox, SandboxTemplate, SandboxWarmPool. Default egress: public internet.
+- **Orchestration:** agent-sandbox v1.0.x. The admin's SandboxTemplate sets the runtime and network policy; each agent run claims a sandbox, from a warm pool if one is ready.
 - **Policy:** OpenShell (default-deny egress, credentials injected at the proxy), agentgateway (tool authorization).
 - A NetworkPolicy on a CNI that ignores it is decoration.
 - Kelos runs Claude Code with `--dangerously-skip-permissions` in ordinary pods.
@@ -781,7 +786,7 @@ Binpack many agents onto one device; spread when latency matters.
 - Treat every tool as hostile, including your own.
 - Put limits in the agent, in the tool, and around the tool.
 - Match the boundary to the job: a VM for agent code when the threat is the kernel, policy elsewhere.
-- The model proposes. The tool server decides.
+- The model can only ask for an action; the tool server checks the grant and carries it out.
 - Start with an empty grant, and keep the grant where the agent can't change it.
 - Run agent code and inference on separate nodes.
 - Give each agent's model its own GPU slice; the agent's code gets none.
