@@ -532,6 +532,7 @@ ax.text(6.0, 0.4, "blocked", ha="center", fontsize=13, color=coral)
 <!--
 - In-cluster NetworkPolicy is enforced by the kernel of the node the pod runs on: a sandbox that roots its node can turn it off
 - So the boundary that protects model serving must live outside the cluster: separate subnets or VLANs per node pool, cloud or hardware firewall
+- Everyone talks about Cilium for network policy, and it is good: identity-aware, down to HTTP paths. But it is complementary to good old physical partitioning, not a replacement. Cilium decides inside the cluster; the separate network still holds when a node is lost
 - Gateway: Envoy, agentgateway or LiteLLM in front of vLLM. vLLM's own --api-key is weak and vLLM has had remote-code-execution CVEs, so it should only ever see the gateway
 - OpenShell hides the key but removed its inference router in 0.1.0: "Provider attachment does not select or rewrite a model." Hiding the key and limiting what the key can do are two jobs; the gateway does the second
 - Side doors: service account token, cloud metadata (169.254.169.254), kubelet 10250, NodePorts, vLLM multi-node ports (ZMQ, NCCL, Ray), open DNS
@@ -553,9 +554,9 @@ One subnet per node pool. The firewall sits outside the cluster, so it holds eve
 Kata on separate nodes. A container escape does not land on a node that can reach the GPUs.
 :::
 ::: card {tag=cyan}
-### {icon:shield cls=accent-primary} Default-deny NetworkPolicy
+### {icon:shield cls=accent-primary} Cilium on top, not instead
 
-Sandboxes may only call the gateway; vLLM only accepts the gateway. Needs a CNI that enforces it.
+Default-deny: sandboxes may only call the gateway; vLLM only accepts the gateway. Complements the physical split.
 :::
 ::: card {tag=green}
 ### {icon:funnel cls=accent-primary} Model gateway
