@@ -72,47 +72,168 @@ Needs Docker, kind, kubectl, helm, jq. No GPU.
 
 ---
 
-# Why GPUs need virtualization
+# Why HAMi
 
 ---
 
-## The GPU challenge
+## The Problem
 
-::: grid {cols=2}
-::: card {tag=red}
-### Supply side
-- Many vendors: NVIDIA, AMD, Huawei Ascend, Cambricon, Hygon and more
-- Each has its own device plugin, metrics and tools
-- Hard to manage as one pool
-:::
-::: card {tag=yellow}
-### Demand side
-- GPUs are scarce and expensive
-- Inference workloads are small and bursty
-- Whole-card allocation leaves memory idle
-:::
-:::
+@subtitle One GPU per task is the default
 
----
+Kubernetes allocates GPUs atomically: one whole device, one task.
 
-## Kubernetes counts GPUs as whole units
+- A 1 GB task blocks an 80 GB device
+- Most GPUs sit idle most of the time
+- DRA (Dynamic Resource Allocation) is stable, but still work in progress
+- No advanced scheduling yet: no binpack, no spread, no topology
 
-- `nvidia.com/gpu: 1` means one full card, even for a 2 GB model.
-- The device plugin API advertises a count. It has no notion of memory or compute share.
-- Time-slicing shares a card but sets no memory limit per Pod.
-- MIG gives hard partitions, on some cards only, with fixed profiles.
+![Device Plugin vs DRA](assets/hami/device-plugin-vs-dra.png)
 
 ---
 
 ## What is HAMi
 
-Heterogeneous AI Computing Virtualization Middleware
+@subtitle Before: one GPU, one task
 
-- Ask for a slice: `nvidia.com/gpumem` (MB) and `nvidia.com/gpucores` (%) next to `nvidia.com/gpu`
-- Schedule by slice: a scheduler extender places Pods by free memory and cores per card
-- Enforce in the container: HAMi-core limits memory and compute, no code changes
-- Many vendors under one model: NVIDIA, Ascend, Cambricon, Hygon, Iluvatar, MetaX, AMD and more
-- CNCF Incubating project, Apache 2.0
+<!--
+GPUs are expensive and often underutilized. HAMi is a heterogeneous GPU sharing framework for Kubernetes. It slices GPUs and shares them across workloads, without rewriting your stack.
+-->
+
+![Before HAMi](assets/hami_intro/before-hami.png)
+
+---
+
+## What is HAMi
+@transition none
+
+@subtitle After: one GPU, many tasks
+
+![After HAMi](assets/hami_intro/after-hami.png)
+
+---
+
+@layout compare
+
+## The GPU Challenge
+
+@subtitle What breaks, what HAMi needs to solve
+
+::: card {tag=compare}
+### Problem
+
+- GPUs are scarce, allocated whole
+- Vendors locked in, supply tight
+- Utilization stuck at 10%
+- No central observability
+- Fragmented inference workloads
+:::
+
+::: arrow
+
+{icon:arrow-right cls=accent-primary size=48}
+:::
+
+::: card {tag=compare}
+### Requirements
+
+- Hardware agnostic: one API, any accelerator
+- Fractional GPU: fine-grained slices, multiple tasks per device
+- Advanced scheduling: binpack, spread, topology-aware
+- Unified observability across vendors
+:::
+
+<!--
+Heterogeneous GPU sharing means you can run NVIDIA A100s, H100s, Ascend or other devices on the same cluster without manual partitioning. HAMi handles the scheduling logic. The real work is memory isolation.
+-->
+
+::: notes{ tag="green" }
+Unified observability, 50% GPU utilization, 10x workloads running, 10x GPU availability. AMD MI355X: 80% of B200 perf at ~1/3 the cost. Not everyone needs Vera Rubin.
+:::
+
+
+---
+
+---
+
+## HAMi Capabilities
+
+@subtitle Six things HAMi brings to GPU scheduling
+
+<!--
+Six capabilities. The key ones for this talk: hard isolation, advanced scheduling, and unified monitoring. Heterogeneous management is the differentiator, not just NVIDIA.
+-->
+
+::: grid {cols=2}
+::: card
+### {icon:layers cls=accent-primary} Heterogeneous Management
+
+Manage GPU, NPU, MLU, and other accelerators in one workflow.
+:::
+::: card
+### {icon:shield-check cls=accent-primary} Hard Isolation
+
+Slice memory and compute with hard isolation at runtime.
+:::
+::: card
+### {icon:git-branch cls=accent-contrast} Advanced Scheduling
+
+Binpack, spread, and topology-aware placement policies.
+:::
+::: card
+### {icon:box cls=accent-primary} Kubernetes Native
+
+Kubernetes-native APIs, DRA, and CDI support.
+:::
+::: card
+### {icon:gauge cls=accent-primary} Resource Isolation & QoS
+
+Memory and core quotas for fair, stable sharing.
+:::
+::: card
+### {icon:chart-bar cls=accent-contrast} Unified Monitoring
+
+Consistent metrics and visibility across vendors.
+:::
+:::
+
+---
+
+@layout two-col
+
+## GPU Sharing
+
+@subtitle Dynamic fine-grained device slicing
+
+<!--
+Same YAML across vendors. Ascend example on the right. Memory is hard limit, cores are best-effort. This is what users actually write.
+-->
+
+- **NVIDIA, Ascend, Cambricon, Hygon, Iluvatar** supported
+- **Fine-grained:** as small as 1MB device memory, 1% computing cores
+- **Transparent to tasks:** no code changes required
+- **Hard resource isolation** inside containers
+- One API across vendors: same YAML, any accelerator
+
+@col
+
+```yaml
+# Ascend 910C: 8GB + 20% compute
+resources:
+  limits:
+    huawei.com/Ascend910C: "1"
+    huawei.com/Ascend910C-core: "20"
+    huawei.com/Ascend910C-memory: "8192"
+```
+
+```yaml
+# NVIDIA: 3GB on any GPU
+resources:
+  limits:
+    nvidia.com/gpu: 1
+    nvidia.com/gpumem: 3000
+```
+
+---
 
 ---
 
@@ -132,7 +253,7 @@ Code: `cmd/scheduler`, `cmd/device-plugin`, `cmd/vGPUmonitor`, `pkg/device/<vend
 
 The device plugin reads the GPUs (NVML) and writes them to the node:
 
-```json
+```text
 hami.io/node-nvidia-register: [
  {"id":"GPU-mock-0","index":0,"count":10,"devmem":40960,
   "devcore":100,"type":"NVIDIA-A100-SXM4-40GB","health":true}, ...]
@@ -283,25 +404,25 @@ metadata:
 ::: grid {cols=2}
 ::: card {tag=cyan}
 ### Scheduler :9395, allocation
-- `hami_gpu_memory_allocated_bytes`
-- `hami_gpu_core_allocated_ratio`
-- `hami_node_gpu_memory_allocated_ratio`
-- `hami_gpu_shared_count`
-- `hami_vgpu_memory_allocated_bytes`
-- `hami_resource_quota_used`
+- `gpu_memory_allocated_bytes`
+- `gpu_core_allocated_ratio`
+- `node_gpu_memory_allocated_ratio`
+- `gpu_shared_count`
+- `vgpu_memory_allocated_bytes`
+- `resource_quota_used`
 :::
 ::: card {tag=green}
 ### vGPUmonitor :9394, usage
-- `hami_vgpu_memory_used_bytes`
-- `hami_vgpu_memory_limit_bytes`
-- `hami_container_device_utilization_ratio`
-- `hami_host_gpu_utilization_ratio`
-- `hami_host_gpu_memory_used_bytes`
-- `hami_container_last_kernel_elapsed_seconds`
+- `vgpu_memory_used_bytes`
+- `vgpu_memory_limit_bytes`
+- `container_device_utilization_ratio`
+- `host_gpu_utilization_ratio`
+- `host_gpu_memory_used_bytes`
+- `container_last_kernel_elapsed_seconds`
 :::
 :::
 
-Same labels: `node`, `device_uuid`, `namespace`, `pod`. Join them in PromQL.
+All names start with `hami_`. Same labels: `node`, `device_uuid`, `namespace`, `pod`. Join them in PromQL.
 
 ---
 
@@ -459,26 +580,94 @@ Look for `good first issue`. Open a draft PR before you leave.
 
 ---
 
-## Applicable scenarios
+## Where HAMi Is Today
 
+@subtitle Production metrics from CNCF case studies
+
+::: grid {cols=4}
+::: card {metric}
+0
+Driver, kernel, code changes needed
+SF Technology
+:::
+::: card {metric}
+1-2 GB
+Memory per small-model inference service
+KE Holdings
+:::
+::: card {metric}
+4x
+GPU utilization: 5-10% to 30-50%
+NIO
+:::
+::: card {metric}
+90%
+GPU infra managed by HAMi on RTX 4070/4090
+Prep Edu
+:::
+:::
+
+@row
+
+::: notes{ tag="green" }
+China Merchants Bank - SNOW Corp. - NIO - KE Holdings - DaoCloud - SF Technology - Prep Education - [cncf.io/case-studies](https://www.cncf.io/case-studies/)
+:::
+
+---
+
+@layout ecosystem
+## Community & Adopters
+
+@subtitle Devices, integrations, and who uses HAMi
+
+<!--
+5.2k stars, 325k pulls, 500+ contributors, 27 countries. 11 device types, 20+ adopters. This is the ecosystem slide: show the breadth. The QR code links to github.com/Project-HAMi/HAMi.
+-->
+
+#### Open Source, CNCF Backed, Production Ready
+::: grid {cols=5}
+::: card {metric}
+5.2k
+Github Stars
+:::
+::: card {metric}
+325k
+Docker Pulls
+:::
+::: card {metric}
+500+
+Contributors
+:::
+::: card {metric}
+27
+Contributor Countries
+:::
+::: card
+
+![Kubernetes](assets/ecosystem/integrations/kubernetes.png) ![Volcano](assets/ecosystem/integrations/volcano.png) ![Kueue](assets/ecosystem/integrations/kueue.png) ![Koordinator](assets/ecosystem/integrations/koordinator.png) ![KAI Scheduler](assets/ecosystem/integrations/kai-scheduler.png) ![cozystack](assets/ecosystem/integrations/cozystack.svg)
+:::
+:::
+
+#### Ecosystem & Device Support
 ::: grid {cols=2}
-::: card {tag=green}
-### Online inference
-Many low-traffic services share one card.
-:::
-::: card {tag=cyan}
-### A/B testing
-Original and candidate model on one GPU.
-:::
-::: card {tag=yellow}
-### Mixed train and infer
-Inference first, training fills the gaps.
-:::
-::: card {tag=red}
-### Small model pipelines
-Embedding, reranker and generator share cards.
+::: card
+![NVIDIA](assets/ecosystem/devices/nvidia.png) ![Ascend](assets/ecosystem/devices/ascend.png) ![Cambricon](assets/ecosystem/devices/cambricon.png) ![Hygon](assets/ecosystem/devices/hygon.png) ![Iluvatar](assets/ecosystem/devices/illuvitar.png)
+![Metax](assets/ecosystem/devices/metax.png) ![Moore Threads](assets/ecosystem/devices/moorethreads.png) ![Kunlunxin](assets/ecosystem/devices/kunlunxin.png) ![Enflame](assets/ecosystem/devices/enflame.png)
+![AWS](assets/ecosystem/devices/aws.png) ![VastStream](assets/ecosystem/devices/vaststream.png)
 :::
 :::
+
+#### Adopters
+::: grid {cols=2}
+::: card
+![4Paradigm](assets/ecosystem/adopters/4paradigm.png) ![Baidu](assets/ecosystem/adopters/baiduzhineng.png) ![Baike](assets/ecosystem/adopters/baike.png) ![China Merchants](assets/ecosystem/adopters/chinamerchants.png) ![China Mobile](assets/ecosystem/adopters/chinamobile.png)
+![China Unicom](assets/ecosystem/adopters/chinaunicom.png) ![DaoCloud](assets/ecosystem/adopters/daocloud.png) ![Dynamia](assets/ecosystem/adopters/dynamia.png) ![H3C](assets/ecosystem/adopters/h3c.png) ![Huawei](assets/ecosystem/adopters/huawei.png)
+![LinkedIn](assets/ecosystem/adopters/linkedin.png) ![MSXF](assets/ecosystem/adopters/msxf.png) ![NIO](assets/ecosystem/adopters/nio.png) ![PPIO](assets/ecosystem/adopters/ppio.png) ![Prep](assets/ecosystem/adopters/prep.png)
+![SAP](assets/ecosystem/adopters/sap.png) ![SF Technology](assets/ecosystem/adopters/sftechnology.png) ![Si-Tech](assets/ecosystem/adopters/si-tech.png) ![Snow](assets/ecosystem/adopters/snow.png) ![Viettel](assets/ecosystem/adopters/viettel.png)
+:::
+:::
+
+---
 
 ---
 
