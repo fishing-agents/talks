@@ -580,6 +580,128 @@ Look for `good first issue`. Open a draft PR before you leave.
 
 ---
 
+# Bring your own scheduler
+
+@subtitle HAMi with Volcano and KAI Scheduler
+
+<!--
+Reference section, not a hands-on lab: both paths need a real NVIDIA GPU. Sources: project-hami.io tutorials Lab 8 (Volcano vGPU, verified 2026-06-08) and Lab 12 (KAI Scheduler on GKE), plus docs/userguide/kai-scheduler.
+-->
+
+---
+
+## Three ways to use HAMi
+
+::: grid {cols=3}
+::: card {tag=cyan}
+### Standard HAMi
+HAMi scheduler extender + HAMi device plugin.
+`nvidia.com/gpu`, `gpumem`, `gpucores`
+:::
+::: card {tag=green}
+### Volcano vGPU
+Volcano `deviceshare` + volcano-vgpu-device-plugin.
+`volcano.sh/vgpu-number`, `vgpu-memory`, `vgpu-cores`
+:::
+::: card {tag=yellow}
+### KAI Scheduler
+KAI GPU sharing + kai-resource-isolator.
+`gpu-memory` or `gpu-fraction` annotation
+:::
+:::
+
+All three use **HAMi-core** in the container for isolation. One device-plugin path per GPU node.
+
+---
+
+## Volcano: batch semantics on shared GPUs
+
+```yaml
+# volcano-scheduler.conf, second tier
+- name: deviceshare
+  arguments:
+    deviceshare.VGPUEnable: true
+    deviceshare.SchedulePolicy: binpack
+```
+
+```bash
+kubectl apply -f https://raw.githubusercontent.com/Project-HAMi/volcano-vgpu-device-plugin/v1.11.0/volcano-vgpu-device-plugin.yml
+```
+
+- No HAMi install needed. The node shows `volcano.sh/vgpu-number` and `vgpu-memory`.
+- Volcano 1.9 to 1.15 with plugin v1.11.0.
+
+---
+
+## Volcano: gang jobs and queue caps
+
+```yaml
+apiVersion: batch.volcano.sh/v1alpha1
+kind: Job
+spec:
+  schedulerName: volcano
+  minAvailable: 2          # both workers or none
+  queue: vgpu-queue
+  tasks:
+  - replicas: 2
+    template:
+      spec:
+        containers:
+        - resources:
+            limits:
+              volcano.sh/vgpu-number: 1
+              volcano.sh/vgpu-memory: 2000
+              volcano.sh/vgpu-cores: 30
+```
+
+- Gang that does not fit: PodGroup stays `Inqueue`, `NotEnoughResources`.
+- Queue `capability` caps vGPU memory per team, even when the node has room.
+
+---
+
+## KAI Scheduler: HAMi-core for hard isolation
+
+```bash
+helm install kai-scheduler oci://ghcr.io/nvidia/kai-scheduler --version v0.17.0 \
+  --set global.gpuSharing=true --set binder.plugins.hamicore.enabled=true \
+  -n kai-scheduler --create-namespace
+helm install kai-resource-isolator oci://docker.io/projecthami/kai-resource-isolator \
+  --version 1.0.0-chart -n kai-resource-isolator --create-namespace
+```
+
+- KAI keeps its own scheduling and queues. It adds HAMi-core only for memory isolation.
+- KAI injects `CUDA_DEVICE_MEMORY_LIMIT`. The isolator injects `libvgpu.so` with a webhook.
+- Cooperative sharing becomes a hard memory cap.
+
+---
+
+## KAI Scheduler: request a slice
+
+```yaml
+metadata:
+  labels:
+    kai.scheduler/queue: default-queue
+  annotations:
+    gpu-memory: "4096"        # MiB, no suffix
+spec:
+  schedulerName: kai-scheduler
+```
+
+- `nvidia-smi` in the Pod shows about 4096 MiB. KAI rounds to a two-decimal fraction: 4096 on a 15360 MiB T4 becomes 0.27, about 4147 MiB.
+- Opt out: `kai-resource-isolator.io/inject: "false"`.
+
+---
+
+## Which path when
+
+- **Standard HAMi**: many vendors, memory and core slices, binpack and spread per GPU, the metrics from Lab 3.
+- **Volcano vGPU**: training and batch jobs that need gang scheduling and team queues.
+- **KAI Scheduler**: clusters already on KAI that want a hard memory cap.
+
+Hands-on guides: project-hami.io → Tutorials → Lab 8 (Volcano vGPU), Lab 12 (KAI Scheduler on GKE)
+
+---
+
 ## Where HAMi Is Today
 
 @subtitle Production metrics from CNCF case studies
