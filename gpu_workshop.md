@@ -1,90 +1,113 @@
 ---
 theme: kubecon_japan
-title: "GPU Virtualization: First Setup and Understanding the Device Plugin / DRA"
+title: "From Zero to Shared GPUs: Hands-on GPU Scheduling in Kubernetes with HAMi"
 logo: assets/brand/dynamia-logo.svg
 logo_dark: assets/brand/dynamia-logo-white.png
-footer: "HAMi ContribFest"
+footer: "ContainerDays 2026 Singapore"
 transition: fade
 paginate: true
 size: 16:9
 style: |
   section.lab h1 { font-size: 3em; }
+  :root { --bg-image: none; --watermark: none; }
+  img[src$=".svg"] { max-height: 360px; }
+  img[src*="containerdays-lab-architecture"] { max-height: 290px; }
+  img[src*="containerdays-webui-overview"] { max-height: 240px; }
+  .layout-title { background: linear-gradient(135deg, #1D1D6B 0%, #3939D8 60%, #0A0A3A 100%); }
+  .layout-title h1 { max-width: 70%; }
+  .layout-title .kicker { color: rgba(255,255,255,0.88); margin-bottom: 1.1em; }
+  .layout-title .subtitle { color: rgba(255,255,255,0.92); font-weight: 500; margin-bottom: 1em; }
+  .layout-title .speaker { color: rgba(255,255,255,0.88); margin-top: 0.4em; }
+  .layout-title .speaker .role { color: rgba(255,255,255,0.78); }
+  .layout-title .speaker-links a { color: rgba(255,255,255,0.9); }
+  .layout-title .speaker-links svg { stroke: rgba(255,255,255,0.92); }
+  .layout-title .side-image { width: 170px; bottom: 40%; }
+  .layout-title .side-image img { width: 170px; max-width: 170px; max-height: none; }
 
 ---
 
 <!--
-75 min ContribFest. Plan: gpu_workshop_plan.md. Lab guide: fishing-agents/hami-workshop docs/labs/contribfest.md.
-Lab commands and outputs on these slides are from a run on 2026-10-20 (kind 0.33, HAMi chart 2.10.0, hami-mock-monitor 86adb51).
+45 min workshop (ContainerDays 2026 Singapore, Oct 27, 12:30 to 13:15). Plan: gpu_workshop_plan.md.
+Lab guide: https://workshop.project-hami.io/labs/containerdays-singapore/#lab-3-scheduler-policies
+Lab commands and outputs on these slides are from a run on 2026-10-20 (kind 0.33, kubectl 1.37, helm 4.3, HAMi chart 2.10.0, hami-mock-monitor 86adb51); Labs 2 and 3 re-verified 2026-10-23.
 -->
 @variant dark
 @side-image assets/qr-hami-repo.png
-@kicker KubeCon ContribFest · CNCF Incubating project
+@kicker ContainerDays 2026 Singapore · CNCF Incubating project
 
-# GPU Virtualization with HAMi
+# From Zero to Shared&nbsp;GPUs
 
-@subtitle First setup, the device plugin, and the road to DRA
+@subtitle Hands-on GPU Scheduling in Kubernetes with HAMi
 
-@speaker name="Xiao Zhang" role="HAMi Maintainer, CEO Dynamia AI" github=github.com/wawa0210
-@speaker name="Mengxuan Li" role="HAMi Maintainer, Chief Architect" github=github.com/archlitchi
-@speaker name="Reza Jelveh" role="Solution Architect, Dynamia AI - Makers of HAMi" github=github.com/fishman linkedin=linkedin.com/in/rezajelveh
+@speaker name="Reza Jelveh" role="Solution Architect, Dynamia AI" github=github.com/fishman linkedin=linkedin.com/in/rezajelveh
+@speaker name="Jimmy Song" role="VP of Open Source Ecosystem" github=github.com/rootsongjc linkedin=linkedin.com/in/jimmysongio
 
 ---
 
-## Today: 75 minutes, four labs
+## The 45 minutes
 
-::: grid {cols=4}
+@subtitle October 27, 12:30 to 13:15
+
+::: grid {cols=5}
 ::: card {tag=cyan}
-### Lab 1
-Install HAMi on kind with two fake GPUs.
+### 12:30 · Lab 1
+Install HAMi. A kind node advertises two fake A100s as vGPU capacity.
 :::
 ::: card {tag=green}
-### Lab 2
-Share a GPU. Read what the scheduler decided.
+### 12:40 · Lab 2
+Share a GPU. Fractional requests, the full interception chain, and a Pod that can never fit.
 :::
 ::: card {tag=yellow}
-### Lab 3
-Observe allocation and usage metrics.
+### 12:50 · Lab 3
+Scheduler policies. binpack vs spread on the card axis, and where topology comes in.
 :::
 ::: card {tag=red}
-### Lab 4
-Open a draft PR with a maintainer.
+### 13:00 · Lab 4
+Beyond the default scheduler. KAI Scheduler, Volcano, and the DRA path.
+:::
+::: card {tag=cyan}
+### 13:10 · Wrap-up
+Two metric families, what to try after the session.
 :::
 :::
 
-Lab guide: **github.com/fishing-agents/hami-workshop** → Labs → ContribFest
+Lab guide: **github.com/Project-HAMi/hami-workshop** → Labs → ContainerDays 2026 Singapore
 
 <!--
-Ask who has setup.sh already done. Helpers raise hands so people know who to ask.
+Ask who has the before-session pull already done. Helpers raise hands so people know who to ask.
 -->
 
 ---
 
-## Get ready while we talk
+## Before the session
+
+@subtitle Everything runs on your laptop. The GPUs are fake.
 
 ```bash
-git clone https://github.com/fishing-agents/hami-workshop
-cd hami-workshop/examples/contribfest
+git clone https://github.com/Project-HAMi/hami-workshop
+cd hami-workshop/examples/containerdays-singapore
 git clone https://github.com/fishman/hami-mock-monitor
-./setup.sh        # about 3 minutes
+docker pull kindest/node:v1.37.0 busybox:1.36 ghcr.io/llm-d/llm-d-inference-sim:v0.12.0
 ```
 
-Needs Docker, kind, kubectl, helm, jq. No GPU.
+- Needs Docker (or OrbStack / Colima), 4 CPU and 8 GB free, plus `kind`, `kubectl`, `helm`, `jq`, `git`
+- Go 1.27+ only to build HAMi or contribute code. A GitHub account for Lab 4
+- Conference Wi-Fi is slow. Pull images at home
 
 ---
 
-# Why HAMi
+# Why share GPUs
 
 ---
 
-## The Problem
+## One GPU per task is the default
 
-@subtitle One GPU per task is the default
+@subtitle What it costs
 
 Kubernetes allocates GPUs atomically: one whole device, one task.
 
 - A 1 GB task blocks an 80 GB device
 - Most GPUs sit idle most of the time
-- DRA (Dynamic Resource Allocation) is stable, but still work in progress
 - No advanced scheduling yet: no binpack, no spread, no topology
 
 ![Device Plugin vs DRA](assets/hami/device-plugin-vs-dra.png)
@@ -93,65 +116,12 @@ Kubernetes allocates GPUs atomically: one whole device, one task.
 
 ## What is HAMi
 
-@subtitle Before: one GPU, one task
+@subtitle One GPU, many tasks
 
 <!--
-GPUs are expensive and often underutilized. HAMi is a heterogeneous GPU sharing framework for Kubernetes. It slices GPUs and shares them across workloads, without rewriting your stack.
+HAMi is a CNCF Incubating project for heterogeneous GPU virtualization in Kubernetes, supporting 10+ GPU/NPU vendors. It slices GPUs and shares them across workloads, without rewriting your stack.
 -->
-
-![Before HAMi](assets/hami_intro/before-hami.png)
-
----
-
-## What is HAMi
-@transition none
-
-@subtitle After: one GPU, many tasks
-
 ![After HAMi](assets/hami_intro/after-hami.png)
-
----
-
-@layout compare
-
-## The GPU Challenge
-
-@subtitle What breaks, what HAMi needs to solve
-
-::: card {tag=compare}
-### Problem
-
-- GPUs are scarce, allocated whole
-- Vendors locked in, supply tight
-- Utilization stuck at 10%
-- No central observability
-- Fragmented inference workloads
-:::
-
-::: arrow
-
-{icon:arrow-right cls=accent-primary size=48}
-:::
-
-::: card {tag=compare}
-### Requirements
-
-- Hardware agnostic: one API, any accelerator
-- Fractional GPU: fine-grained slices, multiple tasks per device
-- Advanced scheduling: binpack, spread, topology-aware
-- Unified observability across vendors
-:::
-
-<!--
-Heterogeneous GPU sharing means you can run NVIDIA A100s, H100s, Ascend or other devices on the same cluster without manual partitioning. HAMi handles the scheduling logic. The real work is memory isolation.
--->
-
-::: notes{ tag="green" }
-Unified observability, 50% GPU utilization, 10x workloads running, 10x GPU availability. AMD MI355X: 80% of B200 perf at ~1/3 the cost. Not everyone needs Vera Rubin.
-:::
-
-
----
 
 ---
 
@@ -160,7 +130,7 @@ Unified observability, 50% GPU utilization, 10x workloads running, 10x GPU avail
 @subtitle Six things HAMi brings to GPU scheduling
 
 <!--
-Six capabilities. The key ones for this talk: hard isolation, advanced scheduling, and unified monitoring. Heterogeneous management is the differentiator, not just NVIDIA.
+Six capabilities. The key ones for this workshop: hard isolation, advanced scheduling, and unified monitoring. Heterogeneous management is the differentiator, not just NVIDIA.
 -->
 
 ::: grid {cols=2}
@@ -200,21 +170,25 @@ Consistent metrics and visibility across vendors.
 
 @layout two-col
 
-## GPU Sharing
+## Asking for a slice
 
-@subtitle Dynamic fine-grained device slicing
+@subtitle One API across vendors, no code changes
 
-<!--
-Same YAML across vendors. Ascend example on the right. Memory is hard limit, cores are best-effort. This is what users actually write.
--->
-
-- **NVIDIA, Ascend, Cambricon, Hygon, Iluvatar** supported
-- **Fine-grained:** as small as 1MB device memory, 1% computing cores
+- **NVIDIA, Ascend, Cambricon, Hygon, Iluvatar** and more
+- **Fine-grained:** memory as small as 1 MB, compute as small as 1% of a card
 - **Transparent to tasks:** no code changes required
 - **Hard resource isolation** inside containers
-- One API across vendors: same YAML, any accelerator
 
 @col
+
+```yaml
+# NVIDIA: 15 GB and 30% of one card
+resources:
+  limits:
+    nvidia.com/gpu: 1
+    nvidia.com/gpumem: 15000
+    nvidia.com/gpucores: 30
+```
 
 ```yaml
 # Ascend 910C: 8GB + 20% compute
@@ -224,16 +198,6 @@ resources:
     huawei.com/Ascend910C-core: "20"
     huawei.com/Ascend910C-memory: "8192"
 ```
-
-```yaml
-# NVIDIA: 3GB on any GPU
-resources:
-  limits:
-    nvidia.com/gpu: 1
-    nvidia.com/gpumem: 3000
-```
-
----
 
 ---
 
@@ -249,117 +213,87 @@ Code: `cmd/scheduler`, `cmd/device-plugin`, `cmd/vGPUmonitor`, `pkg/device/<vend
 
 ---
 
-## Where the scheduler gets its cards
-
-The device plugin reads the GPUs (NVML) and writes them to the node:
-
-```text
-hami.io/node-nvidia-register: [
- {"id":"GPU-mock-0","index":0,"count":10,"devmem":40960,
-  "devcore":100,"type":"NVIDIA-A100-SXM4-40GB","health":true}, ...]
-```
-
-- `count`: how many Pods may share the card
-- `devmem` in MB, `devcore` in percent
-- The mock device plugin skips NVML. You write this annotation yourself.
-
----
-
 ## Lab setup: real scheduler, fake GPUs
+
+![Workshop lab architecture](assets/containerdays/containerdays-lab-architecture.svg)
 
 ::: grid {cols=2}
 ::: card {tag=cyan}
 ### mock-device-plugin
-Turns the node annotation into `gpumem` and `gpucores` capacity. Part of the HAMi chart: `mockDevicePlugin.enabled=true`.
+Turns a node annotation into `nvidia.com/gpumem` and `nvidia.com/gpucores` capacity. The real device plugin writes that annotation from NVML.
 :::
 ::: card {tag=green}
 ### hami-mock-monitor
-Serves the vGPUmonitor metrics from a load source. Completes the bind the mock plugin skips.
+Produces HAMi's usage metrics (normally from vGPUmonitor and HAMi-core) from a load source instead of a GPU.
 :::
 :::
 
-You do not get isolation inside the container. That part needs HAMi-core and a real GPU.
+What you do **not** get without a GPU: memory and compute isolation inside the container. That part is HAMi-core, shown live on a real card in the wrap-up.
 
 ---
 
 @variant dark
 <!--
-~15:00. Target: 10 minutes. Helpers check everyone gets gpumem=81920.
+12:30. Target: 10 minutes. Helpers check everyone gets gpumem=81920.
 -->
 
 # Lab 1: Install HAMi
 
-@subtitle docs/labs/contribfest.md → Lab 1
-
 ---
 
-## Lab 1: what setup.sh does
+## Lab 1: one command
 
 ```bash
-kind create cluster --name hami-lab
-helm install hami hami-charts/hami -n kube-system --version 2.10.0 \
-  --set devicePlugin.enabled=false --set mockDevicePlugin.enabled=true
-kubectl patch node $NODE --subresource=status --type=json \
-  -p '[{"op":"add","path":"/status/capacity/nvidia.com~1gpu","value":"20"}]'
-kubectl annotate node $NODE "hami.io/node-nvidia-register=$(cat fake-gpus.json)"
+./setup.sh
 ```
 
-Done when allocatable shows `gpu: 20`, `gpumem: 81920`, `gpucores: 200`.
+The script:
 
----
+1. Creates a kind cluster `hami-lab` and labels the node `gpu=on`
+2. Installs HAMi 2.10.0 with the real device plugin off and the mock plugin on
+3. Fakes two A100-40GB cards. Two pieces:
+    - the count resource `nvidia.com/gpu=20`: the mock plugin's health gate, 2 cards x 10 splits
+    - the node annotation `hami.io/node-nvidia-register` from `fake-gpus.json`, what the real device plugin writes after it reads NVML
+4. Builds and installs hami-mock-monitor with `completeBinds=true`
 
-# How a GPU request is placed
+Expected at the end:
 
----
-
-## Asking for a slice
-
-```yaml
-resources:
-  limits:
-    nvidia.com/gpu: 1          # number of cards
-    nvidia.com/gpumem: 15000   # MB per card
-    nvidia.com/gpucores: 30    # % of each card
+```json
+{ "nvidia.com/gpu": "20", "nvidia.com/gpucores": "200",
+  "nvidia.com/gpumem": "81920", "nvidia.com/gpumem-percentage": "200" }
 ```
 
-Also: `nvidia.com/gpumem-percentage`, and annotations to pick or avoid card types (`nvidia.com/use-gputype`, `nvidia.com/nouse-gputype`).
-
 ---
 
-## Filter, score, bind
+## Lab 1: look around
 
-- **Filter** calls `Fit()` for each card: enough memory, cores and share slots left?
-- **Score** applies the node and GPU policies: `binpack`, `spread`, topology-aware, NUMA
-- **Bind** writes the decision on the Pod and takes the node lock `hami.io/mutex.lock`
+```bash
+kubectl -n kube-system get pods | grep hami
+kubectl -n kube-system get cm hami-scheduler-device -o yaml | less
+kubectl get node hami-lab-control-plane \
+  -o jsonpath='{.metadata.annotations.hami\.io/node-nvidia-register}' | jq
+```
 
 ```text
-hami.io/vgpu-devices-allocated: GPU-mock-1,NVIDIA,15000,30:;
-hami.io/bind-phase: allocating
+[{"id":"GPU-mock-0","index":0,"count":10,"devmem":40960,"devcore":100,
+  "type":"NVIDIA-A100-SXM4-40GB","health":true,"numa":0,"mode":"hami-core"}, ...]
 ```
 
-Code: `pkg/scheduler/scheduler.go`, `pkg/device/nvidia/device.go`
+- `count`: how many Pods may share the card. `devmem` in MB, `devcore` in percent
+- The card list lives on the node, written by the device plugin. The scheduler reads it at `Filter`
 
----
-
-## The device plugin's job
-
-- Kubelet calls `Allocate` with the device IDs it picked from the count resource.
-- HAMi's plugin ignores that choice and reads the Pod annotation instead.
-- It mounts the chosen card, sets `CUDA_DEVICE_MEMORY_LIMIT` and `CUDA_DEVICE_SM_LIMIT`, and injects HAMi-core.
-- It sets `bind-phase=success` and releases the node lock.
-
-The mock plugin does not finish this step. hami-mock-monitor's `completeBinds` does it for the lab.
+<!--
+Questions from the guide: Where does the scheduler get the card list from? What would change if health was false?
+-->
 
 ---
 
 @variant dark
 <!--
-~30:00. Target: 12 minutes. Ask: why is too-big pending when 3 x 15000 < 81920?
+12:40. Target: 12 minutes. Ask: why is too-big pending when 3 x 15000 < 81920?
 -->
 
 # Lab 2: Share a GPU
-
-@subtitle docs/labs/contribfest.md → Lab 2
 
 ---
 
@@ -367,35 +301,240 @@ The mock plugin does not finish this step. hami-mock-monitor's `completeBinds` d
 
 ```bash
 kubectl apply -f share.yaml -f too-big.yaml
-kubectl get pods
-kubectl get events --field-selector involvedObject.name=too-big | tail -1
+kubectl get pods -o wide
 ```
 
-```text
-share-1   1/1   Running   GPU-mock-1,NVIDIA,15000,30
-share-2   1/1   Running   GPU-mock-0,NVIDIA,15000,30
-share-3   1/1   Running   GPU-mock-1,NVIDIA,15000,30
-too-big   0/1   Pending   2/2 CardInsufficientMemory
+`share-1..3` each ask for 15000 MB and 30% of a card, and run. `too-big` asks for 45000 MB, more than any 40960 MB card, and stays `Pending`:
+
+```bash
+kubectl get events --field-selector involvedObject.name=too-big | tail -2
+# 0/1 nodes are available: 1 2/2 CardInsufficientMemory.
 ```
 
 45000 MB fits the node total, but no single 40960 MB card.
 
 ---
 
-## Lab 2: change the policy
+## Lab 2: read what HAMi decided
+
+```bash
+for p in share-1 share-2 share-3; do
+  echo -n "$p "; kubectl get pod $p -o jsonpath='{.metadata.annotations.hami\.io/vgpu-devices-allocated}{"\n"}'
+done
+# share-1 GPU-mock-1,NVIDIA,15000,30:;
+# share-2 GPU-mock-0,NVIDIA,15000,30:;
+# share-3 GPU-mock-1,NVIDIA,15000,30:;
+```
+
+The format is `uuid,type,memory_mb,cores:` per device, `;` per container. The device plugin reads it in `Allocate`.
+
+---
+
+## The interception chain
+
+@subtitle Four steps, one node
+
+1. The admission **webhook** rewrites `schedulerName` to `hami-scheduler`
+2. The scheduler **extender** at `Filter` reads the node annotation `hami.io/node-nvidia-register` (the card list from Lab 1), checks memory and core headroom per card, and picks a physical card UUID
+3. At `Bind` it writes `hami.io/vgpu-devices-allocated` onto the Pod, sets `hami.io/bind-phase=allocating` and takes the node lock `hami.io/mutex.lock`
+4. The device plugin's `Allocate` mounts `/dev/nvidia*` and the vGPU files, reading the target from the Pod annotation, then marks `success` and releases the lock
+
+::: notes{ tag="green" }
+The mock plugin skips step 4's completion, which is why hami-mock-monitor's `completeBinds` exists. Without it the next Pod waits up to 5 minutes for the lock.
+:::
+
+On a real node, step 4 also injects `libvgpu.so` via `ld.so.preload`, and HAMi-core enforces the memory and core limits from that moment on.
+
+---
+
+@variant dark
+<!--
+12:50. Target: 12 minutes. One node, so the node axis has a single candidate. The card axis is fully observable on the two fake A100s.
+-->
+
+# Lab 3: Scheduler policies
+
+---
+
+## Placement happens on two axes
+
+| Axis | Annotation | binpack | spread |
+| --- | --- | --- | --- |
+| Which node | `hami.io/node-scheduler-policy` | fewer nodes | across nodes |
+| Which card on that node | `hami.io/gpu-scheduler-policy` | same card | across cards |
+
+- Both axes score cards by utilization ratios: binpack prefers the fuller card (consolidation), spread prefers the emptier one (dispersion)
+- This lab has one node, so the node axis has a single candidate
+- The card axis is fully observable on the two fake A100s
+
+---
+
+## Lab 3: binpack
+
+```bash
+kubectl delete -f share.yaml -f too-big.yaml
+kubectl apply -f binpack.yaml
+for p in pack-1 pack-2; do
+  echo -n "$p "; kubectl get pod $p -o jsonpath='{.metadata.annotations.hami\.io/vgpu-devices-allocated}{"\n"}'
+done
+```
+
+Both Pods report the same `GPU-mock-X`: two workloads sharing one card. Frees whole cards for big jobs.
+
+---
+
+## Lab 3: spread
+
+```bash
+kubectl delete -f binpack.yaml
+kubectl apply -f spread.yaml
+for p in spread-1 spread-2; do
+  echo -n "$p "; kubectl get pod $p -o jsonpath='{.metadata.annotations.hami\.io/vgpu-devices-allocated}{"\n"}'
+done
+```
+
+One Pod per card. Same cluster, same requests, different policy, different placement.
 
 ```yaml
 metadata:
   annotations:
-    hami.io/gpu-scheduler-policy: binpack   # or spread
+    hami.io/gpu-scheduler-policy: spread   # or binpack, per Pod
 ```
-
-- `binpack`: both Pods on `GPU-mock-0`. Frees whole cards for big jobs.
-- `spread`: one Pod per card. Less contention.
 
 ---
 
-# Observability: reserved is not used
+## Topology awareness
+
+- The allocation annotation names an exact card UUID, and card choice is a topology decision: on a multi-GPU node it decides NVLink and PCIe locality
+- `fake-gpus.json` carries a `numa` field per card, the same hint the real device plugin records from the driver
+- Card-level spread keeps Pods on separate cards, binpack packs them onto one
+- Explicit topology-aware placement across cards and nodes is what the schedulers in the next lab add
+
+---
+
+@variant dark
+<!--
+13:00. Target: 10 minutes. Read-along section: no live installs, 10 minutes does not fit them and one fake node does not need them.
+-->
+
+# Lab 4: Beyond the default scheduler
+
+---
+
+## HAMi is two things
+
+@subtitle One isolation layer, several scheduling brains
+
+![One isolation layer, several scheduling brains](assets/containerdays/containerdays-scheduling-brains.svg)
+
+- A **capacity model**: the extended resources plus the scheduler extender you just used
+- **HAMi-core**: the isolation library
+- Other schedulers can replace the placement brain and keep the isolation layer
+
+---
+
+## Three ways to use HAMi
+
+::: grid {cols=3}
+::: card {tag=cyan}
+### Standard HAMi
+HAMi scheduler extender + HAMi device plugin.
+`nvidia.com/gpu`, `gpumem`, `gpucores`
+:::
+::: card {tag=green}
+### Volcano vGPU
+Volcano `deviceshare` + volcano-vgpu-device-plugin.
+`volcano.sh/vgpu-number`, `vgpu-memory`, `vgpu-cores`
+:::
+::: card {tag=yellow}
+### KAI Scheduler
+KAI GPU sharing + kai-resource-isolator.
+`gpu-memory` or `gpu-fraction` annotation
+:::
+:::
+
+All three use **HAMi-core** in the container for isolation. One rule: one device-plugin path per GPU node.
+
+---
+
+## KAI Scheduler: composes with HAMi
+
+NVIDIA's scheduler for AI workloads (CNCF Sandbox): gang scheduling, hierarchical fair queues, fractional GPU, topology-aware placement.
+
+```bash
+helm install kai-scheduler oci://ghcr.io/nvidia/kai-scheduler --version v0.17.0 \
+  --set global.gpuSharing=true --set binder.plugins.hamicore.enabled=true \
+  -n kai-scheduler --create-namespace
+```
+
+- Since v0.16.4 the kai-resource-isolator DaemonSet plus a mutating webhook deliver the same `libvgpu.so` into Pods
+- `CUDA_DEVICE_MEMORY_LIMIT` injected from `gpu-fraction` or `gpu-memory` annotations
+- KAI makes the placement decisions, HAMi-core makes the memory cap hard
+
+---
+
+## Volcano: gang jobs on shared GPUs
+
+```yaml
+kind: Job                    # batch.volcano.sh/v1alpha1
+spec:
+  schedulerName: volcano
+  minAvailable: 2            # both workers or none
+  queue: vgpu-queue
+  tasks:
+  - replicas: 2
+    template:
+      spec:
+        containers:
+        - resources:
+            limits:
+              volcano.sh/vgpu-number: 1
+              volcano.sh/vgpu-memory: 2000
+              volcano.sh/vgpu-cores: 30
+```
+
+- Takes the vGPU path instead of the standard HAMi chart: Volcano `deviceshare` plugin plus the volcano-vgpu-device-plugin
+- Queue `capability` caps vGPU memory per team, even when the node has room
+- Never run the standard HAMi device plugin and a Volcano vGPU plugin on the same node
+
+---
+
+## DRA: the resource model changes
+
+- **HAMi-DRA** is a mutating webhook that rewrites `nvidia.com/gpu` requests into DRA ResourceClaims
+- The same Pod spec keeps working on Kubernetes 1.34+ with the DRA Consumable Capacity feature gate and CDI enabled in the runtime
+- A ResourceClaimTemplate mode exists for Kueue admission
+- Your Pod YAML does not change, the machinery underneath does
+
+github.com/Project-HAMi/HAMi-DRA
+
+::: notes{ tag="green" }
+No live installs in this slot: 10 minutes does not fit them and one fake node does not need them. Try the Volcano vGPU tutorial at home: project-hami.io/tutorials/labs/volcano-vgpu-gang-queue
+:::
+
+---
+
+@variant dark
+<!--
+13:10. Target: 5 minutes. The sim oscillates over 2 minutes, give it time. Then the live isolation demo if the real node is up.
+-->
+
+# Wrap-up
+
+@subtitle Two metric families, what to try after the session
+
+---
+
+## Reserved is not used
+
+![Reservation vs usage](assets/containerdays/containerdays-reservation-usage.svg)
+
+HAMi exposes two metric sets. Keep them apart: one is a reservation, the other is usage.
+
+```bash
+./metrics.sh scheduler   # allocation, port 9395
+./metrics.sh monitor     # usage, port 9394
+```
 
 ---
 
@@ -426,70 +565,23 @@ All names start with `hami_`. Same labels: `node`, `device_uuid`, `namespace`, `
 
 ---
 
-## Units and scopes
-
-- Memory: bytes. Cores: percent of one whole card, 100 = full card.
-- `hami_container_device_utilization_ratio` is the container's share of the card, so containers on one card sum to the host value.
-- Allocated ratio is 0 to 1. Utilization ratios are 0 to 100.
-- Real vGPUmonitor also reports temperature, power, ECC errors and time since last kernel. Use the last one to find idle reservations.
-
----
-
-## Without a GPU: hami-mock-monitor
-
-Reads only what HAMi writes to the API (Pod allocation, node registration) and fills in usage from a load source:
-
-- `seed`: a sine curve per container, repeatable
-- `static`: fixed values
-- `vllm`: scrapes a vLLM `/metrics` endpoint. Running requests / max seqs = load.
-
-Utilization = load × allocated cores. A container at full load on 30 cores reports 30.
-
-github.com/fishman/hami-mock-monitor
-
----
-
-@variant dark
-<!--
-~45:00. Target: 12 minutes. The sim oscillates over 2 minutes, give it time.
--->
-
-# Lab 3: Observe
-
-@subtitle docs/labs/contribfest.md → Lab 3
-
----
-
-## Lab 3: allocated vs used
+## Give the mock a realistic load
 
 ```bash
-./metrics.sh scheduler | grep node_gpu_memory_allocated_ratio
-./metrics.sh monitor   | grep host_gpu_utilization_ratio
-```
-
-From our run, with `share-1` and `share-3` on `GPU-mock-1`:
-
-```text
-hami_node_gpu_memory_allocated_ratio{device_uuid="GPU-mock-1"} 0.73
-hami_host_gpu_utilization_ratio{device_uuid="GPU-mock-1"}      24.0
-```
-
-73% of memory is reserved. 24% of compute is busy.
-
----
-
-## Lab 3: an inference load
-
-```bash
-kubectl apply -f sim.yaml     # llm-d-inference-sim, 0 to 5 requests over 2 min
+kubectl apply -f sim.yaml      # llm-d-inference-sim, requests oscillate 0 to 5
 watch -n 5 "./metrics.sh monitor | grep 'pod=\"sim\"'"
 ```
 
 ```text
 hami_container_device_utilization_ratio{pod="sim"} 26.4
+hami_node_gpu_memory_allocated_ratio{device_uuid="GPU-mock-1"} 0.73
+hami_host_gpu_utilization_ratio{device_uuid="GPU-mock-1"}      20.0
 ```
 
-Moves between 0 and 33 (its `gpucores`). Memory stays at 0.9 × limit, because vLLM preallocates its KV cache.
+- `sim` is a vLLM-compatible inference simulator: utilization moves between 0 and 33 (load x allocated cores)
+- Memory stays at 0.9 x the limit, because vLLM preallocates its KV cache
+
+**Question.** Card `GPU-mock-1` shows 73% memory allocated but 20% used. Which number goes on a capacity dashboard, and which on a cost report?
 
 ---
 
@@ -509,196 +601,76 @@ Moves between 0 and 33 (its `gpucores`). Memory stays at 0.9 × limit, because v
 Allocating past the limit fails inside the Pod with out of memory. Neighbours keep running.
 
 <!--
-Presenter only, real NVIDIA node. Pre-recorded fallback if the node is down.
+Presenter only, real NVIDIA node. This is the part the lab cannot show: HAMi-core enforcement. Pre-recorded fallback if the node is down.
 -->
 
 ---
 
-# The road to DRA
+## After the session: HAMi WebUI
+
+`metrics.sh` is fine for a terminal, but the HAMi WebUI turns the same numbers into dashboards. It needs a Prometheus in the cluster:
+
+```bash
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo add hami-webui https://project-hami.github.io/HAMi-WebUI
+helm upgrade --install prometheus prometheus-community/kube-prometheus-stack \
+  --version 75.15.1 -n monitoring --create-namespace --set grafana.enabled=false --wait
+kubectl apply -f monitoring.yaml   # scrape :9395 and :9394
+kubectl apply -f webui-rules.yaml  # translate metric names for the WebUI
+helm upgrade --install my-hami-webui hami-webui/hami-webui \
+  --set externalPrometheus.enabled=true --set dcgm-exporter.enabled=false \
+  -n kube-system --wait
+kubectl -n kube-system port-forward svc/my-hami-webui 3000:3000
+```
+
+Open http://localhost:3000.
 
 ---
 
-## Device plugin vs DRA
+## Why `webui-rules.yaml`
 
-::: grid {cols=2}
-::: card {tag=yellow}
-### Device plugin
-- Count of identical devices
-- HAMi adds memory and cores via extended resources and annotations
-- Needs a scheduler extender
+![HAMi WebUI cluster overview](assets/containerdays/containerdays-webui-overview.png)
+
+- The WebUI queries vGPUmonitor's metric names (`hami_memory_size`, `hami_core_util`, `hami_container_vgpu_allocated`, ...)
+- This lab's scheduler and mock monitor expose the newer byte/ratio names (`hami_gpu_memory_limit_bytes`, `hami_host_gpu_utilization_ratio`, ...)
+- The PrometheusRule records one set as the other. Without it every allocation and usage panel stays empty
+
+::: notes{ tag="green" }
+Pre-pulling for an offline room: `--set image.*.digest=""` makes the chart use the v1.3.0 tags, which matters because digest references cannot be re-tagged after kind load.
 :::
-::: card {tag=green}
-### Dynamic Resource Allocation
-- ResourceClaims with device attributes
-- Consumable capacity: memory and cores as first-class claims
-- kube-scheduler does the placement
-:::
-:::
 
 ---
 
-## HAMi-DRA
+## After the session: contribute
 
-- A mutating webhook that turns `nvidia.com/gpu`, `gpumem`, `gpucores` requests into ResourceClaims.
-- Users keep the same Pod spec. The cluster moves to DRA underneath.
-- Multi-vendor: NVIDIA, Hygon, Ascend.
-- Requires Kubernetes 1.34+ with DRA consumable capacity and CDI in the runtime.
-
-github.com/Project-HAMi/HAMi-DRA
-
----
-
-@variant dark
-<!--
-~62:00. Target: 10 minutes. Maintainers walk the room.
--->
-
-# Lab 4: Contribute
-
-@subtitle docs/labs/contribfest.md → Lab 4
-
----
-
-## Lab 4: pick one
-
-::: grid {cols=3}
+::: grid {cols=4}
 ::: card {tag=cyan}
 ### HAMi
-`make test`. Start in `Fit`, `Filter`, `Bind`. `git commit -s`.
+`make test`. Start in `Fit`, `PatchAnnotations` (`pkg/device/nvidia/device.go`) or `Filter`, `Bind` (`pkg/scheduler/scheduler.go`). `git commit -s`.
 :::
 ::: card {tag=green}
-### Mocks
-Complete the bind in mock-device-plugin. More vendors in hami-mock-monitor. A lab Grafana dashboard.
+### HAMi-DRA
+The webhook that turns `nvidia.com/gpu` requests into DRA ResourceClaims. Needs Kubernetes 1.34+.
 :::
 ::: card {tag=yellow}
-### DRA and docs
-HAMi-DRA webhook, lab fixes, Chinese pages.
+### mock-device-plugin
+Complete the bind in `Allocate` (a patch is prepared in `hami-mock-monitor/upstream/mock-device-plugin`), or add a vendor.
+:::
+::: card {tag=red}
+### hami-mock-monitor
+Other vendors (Ascend, Hygon), a Grafana dashboard for the lab, a published image.
 :::
 :::
 
-Look for `good first issue`. Open a draft PR before you leave.
+Look for `good first issue`. Open a draft PR before you leave. Disclose AI help in the PR.
 
 ---
 
-# Bring your own scheduler
-
-@subtitle HAMi with Volcano and KAI Scheduler
-
-<!--
-Reference section, not a hands-on lab: both paths need a real NVIDIA GPU. Sources: project-hami.io tutorials Lab 8 (Volcano vGPU, verified 2026-06-08) and Lab 12 (KAI Scheduler on GKE), plus docs/userguide/kai-scheduler.
--->
-
----
-
-## Three ways to use HAMi
-
-::: grid {cols=3}
-::: card {tag=cyan}
-### Standard HAMi
-HAMi scheduler extender + HAMi device plugin.
-`nvidia.com/gpu`, `gpumem`, `gpucores`
-:::
-::: card {tag=green}
-### Volcano vGPU
-Volcano `deviceshare` + volcano-vgpu-device-plugin.
-`volcano.sh/vgpu-number`, `vgpu-memory`, `vgpu-cores`
-:::
-::: card {tag=yellow}
-### KAI Scheduler
-KAI GPU sharing + kai-resource-isolator.
-`gpu-memory` or `gpu-fraction` annotation
-:::
-:::
-
-All three use **HAMi-core** in the container for isolation. One device-plugin path per GPU node.
-
----
-
-## Volcano: batch semantics on shared GPUs
-
-```yaml
-# volcano-scheduler.conf, second tier
-- name: deviceshare
-  arguments:
-    deviceshare.VGPUEnable: true
-    deviceshare.SchedulePolicy: binpack
-```
+## Clean up
 
 ```bash
-kubectl apply -f https://raw.githubusercontent.com/Project-HAMi/volcano-vgpu-device-plugin/v1.11.0/volcano-vgpu-device-plugin.yml
+kind delete cluster --name hami-lab
 ```
-
-- No HAMi install needed. The node shows `volcano.sh/vgpu-number` and `vgpu-memory`.
-- Volcano 1.9 to 1.15 with plugin v1.11.0.
-
----
-
-## Volcano: gang jobs and queue caps
-
-```yaml
-apiVersion: batch.volcano.sh/v1alpha1
-kind: Job
-spec:
-  schedulerName: volcano
-  minAvailable: 2          # both workers or none
-  queue: vgpu-queue
-  tasks:
-  - replicas: 2
-    template:
-      spec:
-        containers:
-        - resources:
-            limits:
-              volcano.sh/vgpu-number: 1
-              volcano.sh/vgpu-memory: 2000
-              volcano.sh/vgpu-cores: 30
-```
-
-- Gang that does not fit: PodGroup stays `Inqueue`, `NotEnoughResources`.
-- Queue `capability` caps vGPU memory per team, even when the node has room.
-
----
-
-## KAI Scheduler: HAMi-core for hard isolation
-
-```bash
-helm install kai-scheduler oci://ghcr.io/nvidia/kai-scheduler --version v0.17.0 \
-  --set global.gpuSharing=true --set binder.plugins.hamicore.enabled=true \
-  -n kai-scheduler --create-namespace
-helm install kai-resource-isolator oci://docker.io/projecthami/kai-resource-isolator \
-  --version 1.0.0-chart -n kai-resource-isolator --create-namespace
-```
-
-- KAI keeps its own scheduling and queues. It adds HAMi-core only for memory isolation.
-- KAI injects `CUDA_DEVICE_MEMORY_LIMIT`. The isolator injects `libvgpu.so` with a webhook.
-- Cooperative sharing becomes a hard memory cap.
-
----
-
-## KAI Scheduler: request a slice
-
-```yaml
-metadata:
-  labels:
-    kai.scheduler/queue: default-queue
-  annotations:
-    gpu-memory: "4096"        # MiB, no suffix
-spec:
-  schedulerName: kai-scheduler
-```
-
-- `nvidia-smi` in the Pod shows about 4096 MiB. KAI rounds to a two-decimal fraction: 4096 on a 15360 MiB T4 becomes 0.27, about 4147 MiB.
-- Opt out: `kai-resource-isolator.io/inject: "false"`.
-
----
-
-## Which path when
-
-- **Standard HAMi**: many vendors, memory and core slices, binpack and spread per GPU, the metrics from Lab 3.
-- **Volcano vGPU**: training and batch jobs that need gang scheduling and team queues.
-- **KAI Scheduler**: clusters already on KAI that want a hard memory cap.
-
-Hands-on guides: project-hami.io → Tutorials → Lab 8 (Volcano vGPU), Lab 12 (KAI Scheduler on GKE)
 
 ---
 
@@ -729,10 +701,8 @@ Prep Edu
 :::
 :::
 
-@row
-
 ::: notes{ tag="green" }
-China Merchants Bank - SNOW Corp. - NIO - KE Holdings - DaoCloud - SF Technology - Prep Education - [cncf.io/case-studies](https://www.cncf.io/case-studies/)
+China Merchants Bank - SNOW Corp. - NIO - KE Holdings - DaoCloud - SF Technology - Prep Education - cncf.io/case-studies
 :::
 
 ---
@@ -743,17 +713,17 @@ China Merchants Bank - SNOW Corp. - NIO - KE Holdings - DaoCloud - SF Technology
 @subtitle Devices, integrations, and who uses HAMi
 
 <!--
-5.2k stars, 325k pulls, 500+ contributors, 27 countries. 11 device types, 20+ adopters. This is the ecosystem slide: show the breadth. The QR code links to github.com/Project-HAMi/HAMi.
+5k stars, 700k+ pulls, 500+ contributors, 27 countries. 13 device types, 20+ adopters. The QR code links to github.com/Project-HAMi/HAMi.
 -->
 
 #### Open Source, CNCF Backed, Production Ready
 ::: grid {cols=5}
 ::: card {metric}
-5.2k
+5k
 Github Stars
 :::
 ::: card {metric}
-325k
+700k
 Docker Pulls
 :::
 ::: card {metric}
@@ -773,9 +743,13 @@ Contributor Countries
 #### Ecosystem & Device Support
 ::: grid {cols=2}
 ::: card
-![NVIDIA](assets/ecosystem/devices/nvidia.png) ![Ascend](assets/ecosystem/devices/ascend.png) ![Cambricon](assets/ecosystem/devices/cambricon.png) ![Hygon](assets/ecosystem/devices/hygon.png) ![Iluvatar](assets/ecosystem/devices/illuvitar.png)
+![NVIDIA](assets/ecosystem/devices/nvidia.png)
+
+![AMD](assets/ecosystem/devices/amd.png) ![Ascend](assets/ecosystem/devices/ascend.png) ![Cambricon](assets/ecosystem/devices/cambricon.png) ![Hygon](assets/ecosystem/devices/hygon.png) ![Iluvatar](assets/ecosystem/devices/illuvitar.png)
 ![Metax](assets/ecosystem/devices/metax.png) ![Moore Threads](assets/ecosystem/devices/moorethreads.png) ![Kunlunxin](assets/ecosystem/devices/kunlunxin.png) ![Enflame](assets/ecosystem/devices/enflame.png)
-![AWS](assets/ecosystem/devices/aws.png) ![VastStream](assets/ecosystem/devices/vaststream.png)
+
+![Biren](assets/ecosystem/devices/biren.png)![AWS](assets/ecosystem/devices/aws.png) ![VastStream](assets/ecosystem/devices/vaststream.png)
+:::
 :::
 :::
 
@@ -797,6 +771,7 @@ Contributor Countries
 
 # Thank you
 
-@subtitle github.com/Project-HAMi/HAMi · project-hami.io · lab: github.com/fishing-agents/hami-workshop
+@subtitle github.com/Project-HAMi/HAMi · project-hami.io · lab: github.com/Project-HAMi/hami-workshop
 
-@speaker name="Reza Jelveh" role="Solution Architect, Dynamia AI - Makers of HAMi" github=github.com/fishman linkedin=linkedin.com/in/rezajelveh
+@speaker name="Reza Jelveh" role="Solution Architect, Dynamia AI" github=github.com/fishman linkedin=linkedin.com/in/rezajelveh
+@speaker name="Jimmy Song" role="VP of Open Source Ecosystem" github=github.com/rootsongjc linkedin=linkedin.com/in/jimmysongio
