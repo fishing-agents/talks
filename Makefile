@@ -1,4 +1,4 @@
-DECKS := snow_corp_cncf kcd_vietnam coscup_2026 ossummit_korea hitcon_lightning hami_cross_platform_observability ossummit_europe_agents
+DECKS := snow_corp_cncf kcd_vietnam coscup_2026 ossummit_korea hitcon_lightning hami_cross_platform_observability ossummit_europe_agents gpu_workshop
 HTMLS := $(addprefix dist/,$(addsuffix .html,$(DECKS)))
 PDFS  := $(HTMLS:.html=.pdf)
 TAG   ?= v$(shell date +%Y.%m.%d)
