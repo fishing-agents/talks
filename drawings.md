@@ -663,3 +663,98 @@ ax.tick_params(left=False, bottom=False, labelleft=False, labelbottom=False)
 - Memory and compute fenced per slot: strongest isolation
 
 ---
+
+## Circular Charts
+
+@subtitle Donut, ring, sunburst and radial bars
+
+<!--
+Donut (top left): parts of a whole, total in the centre.
+Ring (top right): one value as a percentage, a progress bar bent into a circle.
+Sunburst (bottom left): inner ring = parent (Cloud vs On-prem), outer ring = children (AWS/GCP, DC1/DC2).
+Radial bars (bottom right): one arc per category, arc length = value. Good for comparing, but easy to misread: outer arcs look longer than inner ones for the same value.
+-->
+
+```seaborn
+import matplotlib.pyplot as plt
+
+fg = plt.rcParams["text.color"]
+dimmed = plt.rcParams["xtick.color"]
+card = plt.rcParams["axes.facecolor"]
+cmap = plt.get_cmap("Paired")
+blue_l, blue = cmap(0.5 / 12), cmap(1.5 / 12)
+green_l, green = cmap(2.5 / 12), cmap(3.5 / 12)
+red = cmap(5.5 / 12)
+orange = cmap(7.5 / 12)
+track = "#e5e7eb"
+
+fig = plt.figure(figsize=(10, 5.4))
+fig.patch.set_alpha(0)
+axes = [fig.add_subplot(2, 2, i) for i in (1, 2, 3)]
+polar = fig.add_subplot(2, 2, 4, projection="polar")
+for ax in axes + [polar]:
+    ax.set_facecolor("none")
+
+def caption(ax, text):
+    ax.set_title(text, fontsize=10, color=dimmed, family="monospace", pad=6)
+
+wedge = dict(width=0.32, edgecolor=card, linewidth=2)
+
+# ---- donut: parts of a whole, total in the centre ----
+ax = axes[0]
+parts = [("Training", 39, blue), ("Inference", 60, green), ("Notebooks", 22, orange), ("Free", 20, track)]
+ax.pie([v for _, v, _ in parts], colors=[c for *_, c in parts], startangle=90,
+       counterclock=False, wedgeprops=wedge)
+ax.text(0, 0.08, "141 GB", ha="center", va="center", fontsize=15, color=fg, fontweight="bold")
+ax.text(0, -0.2, "total", ha="center", va="center", fontsize=9, color=dimmed)
+ax.legend([f"{n}  {v} GB" for n, v, _ in parts], loc="center left", bbox_to_anchor=(1.0, 0.5),
+          frameon=False, fontsize=9, labelcolor=fg)
+caption(ax, "DONUT: PARTS OF A WHOLE")
+
+# ---- ring / radial progress: one value as a percentage ----
+ax = axes[1]
+ax.pie([72, 28], colors=[red, track], startangle=90, counterclock=False,
+       wedgeprops=dict(width=0.22, edgecolor=card, linewidth=0))
+ax.text(0, 0.05, "72%", ha="center", va="center", fontsize=20, color=fg, fontweight="bold")
+ax.text(0, -0.25, "GPU utilization", ha="center", va="center", fontsize=9, color=dimmed)
+caption(ax, "RING: ONE VALUE AS %")
+
+# ---- multi-level donut / sunburst: parents inside, children outside ----
+ax = axes[2]
+children = [("AWS", 30, blue_l), ("GCP", 20, blue_l), ("DC1", 35, green_l), ("DC2", 15, green_l)]
+parents = [("Cloud", 50, blue), ("On-prem", 50, green)]
+# startangle=180: parents split top (Cloud) / bottom (On-prem), so each
+# inner label sits where the ring band runs horizontally and fits
+ax.pie([v for _, v, _ in children], colors=[c for *_, c in children], labels=[n for n, *_ in children],
+       labeldistance=1.12, textprops=dict(fontsize=9, color=fg), startangle=180, counterclock=False,
+       radius=1.0, wedgeprops=dict(width=0.3, edgecolor=card, linewidth=2))
+_, parent_labels = ax.pie(
+    [v for _, v, _ in parents], colors=[c for *_, c in parents], labels=[n for n, *_ in parents],
+    labeldistance=0.68, textprops=dict(fontsize=8.5, color="white", fontweight="bold"),
+    startangle=180, counterclock=False, radius=0.7, wedgeprops=dict(width=0.46, edgecolor=card, linewidth=2))
+for t in parent_labels:
+    t.set_ha("center")  # pie left-aligns labels just right of the axis
+caption(ax, "SUNBURST: PARENT -> CHILDREN")
+
+# ---- radial bar: arc length = value (outer arcs look longer: easy to misread) ----
+import math
+cats = [("NVIDIA", 92, blue), ("Ascend", 74, green), ("AMD", 58, orange), ("Kunlunxin", 41, red)]
+full = 1.5 * math.pi  # 100 = three-quarter turn
+polar.set_theta_zero_location("N")
+polar.set_theta_direction(-1)
+for i, (name, v, c) in enumerate(cats):
+    r = len(cats) - i + 1
+    polar.barh(r, full, left=0, height=0.62, color=track)
+    polar.barh(r, full * v / 100, left=0, height=0.62, color=c)
+    polar.text(-0.06, r, f"{name}  {v}", ha="right", va="center", fontsize=9, color=fg)
+polar.set_ylim(0, len(cats) + 1.6)
+polar.grid(False)
+polar.spines["polar"].set_visible(False)
+polar.set_xticks([])
+polar.set_yticks([])
+caption(polar, "RADIAL BARS: ARC = VALUE")
+
+fig.subplots_adjust(wspace=0.5, hspace=0.35)
+```
+
+---
