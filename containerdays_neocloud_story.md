@@ -272,6 +272,7 @@ resources:
     nvidia.com/gpucores: 30    # % of SMs
 ```
 
+::: card {blueprint}
 ```dot
 digraph G {
   rankdir=LR
@@ -283,6 +284,7 @@ digraph G {
   lib -> gpu [label="within limits"]
 }
 ```
+:::
 
 ---
 
@@ -874,6 +876,7 @@ Before you build: profile workloads first, not a preset ratio (CETC); share smal
 
 @subtitle The reference architecture, HAMi chart v2.10.0
 
+::: card {blueprint}
 ```dot
 digraph G {
   rankdir=TB
@@ -926,6 +929,7 @@ digraph G {
   prom -> out
 }
 ```
+:::
 
 ---
 

@@ -180,6 +180,7 @@ resources:
 
 @col
 
+::: card {blueprint}
 ```dot
 digraph G {
   rankdir=TB
@@ -193,6 +194,7 @@ digraph G {
   drv -> gpu
 }
 ```
+:::
 
 ---
 
@@ -592,6 +594,7 @@ Dashed: HAMi-DRA, the request path for later. It needs Kubernetes 1.34+ with the
 
 @subtitle Follow one pod from tenant to card to bill
 
+::: card {blueprint}
 ```dot
 digraph G {
   rankdir=TB
@@ -644,6 +647,7 @@ digraph G {
   prom -> out
 }
 ```
+:::
 
 ---
 
@@ -660,6 +664,7 @@ For a seller: memory is a hard limit. gpucores on its own is a hint; we measured
 
 @subtitle Floor plan: three pools, one scheduler, SKU sizes are examples
 
+::: card {blueprint}
 ```dot
 digraph G {
   rankdir=TB
@@ -727,6 +732,7 @@ digraph G {
   sch -> i3 [lhead=cluster_p3]
 }
 ```
+:::
 
 1 Ke, CMB, NIO, CETC keep training whole · 2 NIO: algorithm dev on MIG · 3 DaoCloud sells SKUs
 
@@ -746,6 +752,7 @@ Install: helm install hami hami-charts/hami, then kubectl label nodes <node> gpu
 
 @subtitle One pod request, left to right, HAMi v2.10
 
+::: card {blueprint}
 ```dot
 digraph G {
   rankdir=TB
@@ -774,6 +781,7 @@ digraph G {
   s4 -> k4 [style=dotted arrowhead=none]
 }
 ```
+:::
 
 Dotted line: where the setting takes effect. Full YAML on the backup slide.
 
@@ -793,6 +801,7 @@ Viettel's summary of their rollout: it is an operations project, not a one-line 
 
 @subtitle Each stage ends at a gate: the signal that says it is done
 
+::: card {blueprint}
 ```dot
 digraph G {
   rankdir=TB
@@ -838,6 +847,7 @@ digraph G {
   g5 -> x5 [style=dotted arrowhead=none]
 }
 ```
+:::
 
 ---
 
@@ -925,6 +935,7 @@ The case study does not publish SKU sizes or prices, so I do not show any. Your 
 
 @subtitle The D.run model, step by step
 
+::: card {blueprint}
 ```dot
 digraph G {
   rankdir=TB
@@ -942,6 +953,7 @@ digraph G {
   sku -> ent
 }
 ```
+:::
 
 @col
 
