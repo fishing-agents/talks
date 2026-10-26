@@ -3,51 +3,13 @@ theme: kubecon_japan
 title: "10x Your Neocloud's GPU Utilization with HAMi"
 logo: assets/brand/dynamia-logo.svg
 logo_dark: assets/brand/dynamia-logo-white.png
+background: none
+watermark: none
 footer: "ContainerDays 2026 Singapore"
 transition: fade
 paginate: true
 size: 16:9
 seaborn_theme: kubecon_japan
-style: |
-  :root { --bg-image: none; --watermark: none; }
-  img[src$=".svg"] { max-height: 470px; }
-  .layout-bigtable table { font-size: 1em; }
-  .layout-bigtable td, .layout-bigtable th { padding: 0.45em 0.7em; }
-  .layout-title { background: linear-gradient(135deg, #1D1D6B 0%, #3939D8 60%, #0A0A3A 100%); }
-  .layout-title h1 { max-width: 70%; }
-  .layout-title .kicker { color: rgba(255,255,255,0.88); margin-bottom: 1.1em; }
-  .layout-title .subtitle { color: rgba(255,255,255,0.92); font-weight: 500; margin-bottom: 1em; }
-  .layout-title .speaker { color: rgba(255,255,255,0.88); margin-top: 0.4em; }
-  .layout-title .speaker .role { color: rgba(255,255,255,0.78); }
-  .layout-title .speaker-links a { color: rgba(255,255,255,0.9); }
-  .layout-title .speaker-links svg { stroke: rgba(255,255,255,0.92); }
-  .layout-title .side-image { width: 170px; bottom: 40%; }
-  .layout-title .side-image img { width: 170px; max-width: 170px; max-height: none; }
-  .layout-timeline-horizontal .card { padding: 0.6em 0.8em; font-size: 0.85em; }
-  .layout-timeline-horizontal .card.focus { padding: 0.6em 0.8em; border: 0.15em solid var(--color-accent-primary); }
-  .layout-timeline-horizontal .timeline-label { font-size: 0.75em; }
-  [class*="layout-metrics"] .slide-body > :not(:first-child) { margin-top: 0.9em; }
-  [class*="layout-metrics"] .slide-body > ul { align-self: stretch; }
-  .layout-dense table { font-size: 0.8em; }
-  .layout-dense th, .layout-dense td { padding: 0.28em 0.55em; }
-  .cfg pre { font-size: 0.6em; }
-  .cfg pre code { font-size: 1em; white-space: pre; }
-  .cfg { grid-template-columns: minmax(0, 0.95fr) minmax(0, 1fr) minmax(0, 1.2fr) !important; }
-  .cfg .card { padding: 0.8em 0.9em; }
-  .layout-blueprint { --logo: var(--logo-dark); --section-padding-h: 2.4em; color: #eaf4ff; background: linear-gradient(rgba(143,211,255,0.16) 1px, transparent 1px), linear-gradient(90deg, rgba(143,211,255,0.16) 1px, transparent 1px), linear-gradient(rgba(143,211,255,0.07) 1px, transparent 1px), linear-gradient(90deg, rgba(143,211,255,0.07) 1px, transparent 1px), linear-gradient(160deg, #0f3b73 0%, #0b2f5c 100%); background-size: 120px 120px, 120px 120px, 24px 24px, 24px 24px, 100% 100%; }
-  .layout-blueprint h2 { color: #ffffff; }
-  .layout-blueprint .subtitle { color: #8fd3ff; font-family: var(--font-mono); }
-  .layout-blueprint p, .layout-blueprint li { color: #eaf4ff; }
-  .layout-blueprint footer, .layout-blueprint .slide-num { color: rgba(234,244,255,0.7); background: transparent; }
-  .layout-blueprint .graphviz-plot { display: flex; justify-content: center; }
-  .layout-blueprint .graphviz-plot svg { max-height: 505px; width: auto; }
-  .layout-blueprint .card { background: rgba(143,211,255,0.06); border: 1px solid #8fd3ff; box-shadow: none; }
-  .layout-blueprint .card h3 { color: #8fd3ff; font-family: var(--font-mono); font-size: 0.85em; }
-  .layout-blueprint .card p { color: #eaf4ff; }
-  .layout-blueprint pre, .layout-blueprint pre code { background: rgba(11,47,92,0.7) !important; color: #eaf4ff !important; }
-  .layout-blueprint pre span { color: #eaf4ff !important; }
-  .layout-blueprint code { color: #ffffff; background: rgba(143,211,255,0.14); }
-  .layout-blueprint .slide-body > p { font-family: var(--font-mono); font-size: 0.66em; color: #8fd3ff; margin-top: 0.6em; }
 ---
 
 <!--
@@ -251,7 +213,7 @@ Morning: split the card and cap each slice's memory and compute. Late morning: s
 ::: grid {cols=6}
 ::: card {focus, label="Morning"}
 ### Split
-Cap memory + compute
+Cap each slice
 :::
 ::: card {label="Late AM"}
 ### Scale
@@ -313,12 +275,10 @@ resources:
 ```dot
 digraph G {
   rankdir=LR
-  bgcolor=transparent
-  node [shape=box style="rounded,filled" fontname="Roboto" fontsize=15 margin="0.2,0.14"]
-  edge [fontname="Roboto" fontsize=12]
-  app [label="Your app\n(unchanged)" fillcolor="#e0f7fa" color="#00838f"]
-  lib [label="HAMi-core\nlibvgpu.so" fillcolor="#e3f0ff" color="#3939D8"]
-  gpu [label="H200 slice" fillcolor="#e8f5e9" color="#2e7d32"]
+  node [shape=box style="rounded,filled"]
+  app [label="Your app"]
+  lib [label="HAMi-core\nlibvgpu.so" class="yellow"]
+  gpu [label="H200 slice" class="green"]
   app -> lib [label="CUDA calls"]
   lib -> gpu [label="within limits"]
 }
@@ -688,6 +648,8 @@ avg utilization per card
 lower GPU opex
 :::
 
+How D.run turns cards into products:
+
 ::: grid {cols=4}
 ::: card {tag=cyan}
 ### {icon:scissors cls=accent-primary} 1. Define
@@ -835,8 +797,6 @@ NIO runs all three: MIG for algorithm development where they want strong isolati
 CETC's lesson: start from workload profiles, not a preset partition ratio.
 -->
 
-@layout bigtable
-
 ## What production users don't share
 
 @subtitle Share small, bursty, interactive. Keep big training whole.
@@ -910,8 +870,6 @@ In the day story: morning was box 5, office hours box 3, the afternoon the amber
 Before you build: profile workloads first, not a preset ratio (CETC); share small, bursty, interactive and keep training whole; validate every upgrade in phases (NIO). Gotchas from our Viettel rollout: turn off the GPU operator's device plugin, both claim nvidia.com/gpu; libvgpu needs glibc, Alpine images fail. It is an operations project, not a one-line install. Exact config is on the backup slide.
 -->
 
-@layout blueprint
-
 ## Blueprint: GPU box to GPU cloud
 
 @subtitle The reference architecture, HAMi chart v2.10.0
@@ -919,38 +877,40 @@ Before you build: profile workloads first, not a preset ratio (CETC); share smal
 ```dot
 digraph G {
   rankdir=TB
-  bgcolor=transparent
   newrank=true
-  nodesep=0.28
-  ranksep=0.16
-  fontname="Noto Sans Mono SemiCondensed"
-  node [shape=box style="rounded,filled" fillcolor="#0d3769" fontname="Noto Sans Mono SemiCondensed" fontsize=14 margin="0.05,0.02" color="#eaf4ff" fontcolor="#eaf4ff" penwidth=1.1]
-  edge [color="#8fd3ff" fontname="Noto Sans Mono SemiCondensed" fontsize=12 fontcolor="#8fd3ff" arrowsize=0.6 penwidth=1.1]
+  nodesep=0.25
+  ranksep=0.22
+  node [shape=box style="rounded,filled" margin="0.1,0.04"]
+
   subgraph cluster_t {
-    label="TENANTS" labeljust=l fontname="Noto Sans Mono SemiCondensed" fontsize=11 fontcolor="#8fd3ff" style="rounded,dashed" color="#8fd3ff" penwidth=0.9 margin=6
-    ns [label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="1"><TR><TD ALIGN="LEFT"><FONT COLOR="#8fd3ff">ResourceQuota per namespace</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT>limits.nvidia.com/gpumem</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT>limits.nvidia.com/gpucores</FONT></TD></TR></TABLE>>]
-    pod [label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="2" CELLPADDING="0"><TR><TD VALIGN="MIDDLE"><TABLE BORDER="0" CELLPADDING="0" CELLSPACING="0"><TR><TD BGCOLOR="#8fd3ff" STYLE="ROUNDED" FIXEDSIZE="TRUE" WIDTH="22" HEIGHT="22"><FONT COLOR="#0b2f5c">1</FONT></TD></TR></TABLE></TD><TD ALIGN="LEFT"><TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="1"><TR><TD ALIGN="LEFT"><FONT COLOR="#8fd3ff">tenant pod</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT>nvidia.com/gpu</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT>+ gpumem + gpucores</FONT></TD></TR></TABLE></TD></TR></TABLE>>]
+    label="TENANTS" labeljust=l
+    ns [label="ResourceQuota per namespace\llimits.nvidia.com/gpumem\llimits.nvidia.com/gpucores\l" class="red"]
+    pod [label="1  tenant pod\lnvidia.com/gpu\l+ gpumem + gpucores\l" class="red"]
     {rank=same; ns; pod}
   }
+
   subgraph cluster_cp {
-    label="CONTROL PLANE" labeljust=l fontname="Noto Sans Mono SemiCondensed" fontsize=11 fontcolor="#8fd3ff" style="rounded,dashed" color="#8fd3ff" penwidth=0.9 margin=6
-    dra [style="rounded,dashed,filled" label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="1"><TR><TD ALIGN="LEFT"><FONT COLOR="#8fd3ff">HAMi-DRA (later)</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT>ResourceClaims</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT>K8s 1.34+</FONT></TD></TR></TABLE>>]
-    wh [color="#8fd3ff" fillcolor="#15467f" label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="2" CELLPADDING="0"><TR><TD VALIGN="MIDDLE"><TABLE BORDER="0" CELLPADDING="0" CELLSPACING="0"><TR><TD BGCOLOR="#8fd3ff" STYLE="ROUNDED" FIXEDSIZE="TRUE" WIDTH="22" HEIGHT="22"><FONT COLOR="#0b2f5c">2</FONT></TD></TR></TABLE></TD><TD ALIGN="LEFT"><TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="1"><TR><TD ALIGN="LEFT"><FONT COLOR="#8fd3ff">webhook vgpu.hami.io</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT>sets schedulerName:</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT>hami-scheduler</FONT></TD></TR></TABLE></TD></TR></TABLE>>]
-    sch [color="#8fd3ff" fillcolor="#15467f" label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="2" CELLPADDING="0"><TR><TD VALIGN="MIDDLE"><TABLE BORDER="0" CELLPADDING="0" CELLSPACING="0"><TR><TD BGCOLOR="#8fd3ff" STYLE="ROUNDED" FIXEDSIZE="TRUE" WIDTH="22" HEIGHT="22"><FONT COLOR="#0b2f5c">3</FONT></TD></TR></TABLE></TD><TD ALIGN="LEFT"><TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="1"><TR><TD ALIGN="LEFT"><FONT COLOR="#8fd3ff">hami-scheduler pod :9395</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT>kube-scheduler</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT>+ vgpu-scheduler-extender</FONT></TD></TR></TABLE></TD></TR></TABLE>>]
-    bs [style="rounded,dashed,filled" label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="1"><TR><TD ALIGN="LEFT"><FONT COLOR="#8fd3ff">optional brain</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT>Volcano</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT>Kueue / KAI</FONT></TD></TR></TABLE>>]
+    label="CONTROL PLANE" labeljust=l
+    dra [label="HAMi-DRA (later)\lResourceClaims\lK8s 1.34+\l" class="cyan" style="rounded,filled,dashed"]
+    wh [label="2  webhook vgpu.hami.io\lsets schedulerName:\lhami-scheduler\l" class="cyan"]
+    sch [label="3  hami-scheduler pod :9395\lkube-scheduler\l+ vgpu-scheduler-extender\l" class="cyan"]
+    bs [label="optional brain\lVolcano\lKueue / KAI\l" style="rounded,filled,dashed"]
     {rank=same; dra; wh; sch; bs}
   }
+
   subgraph cluster_o {
-    label="OBSERVE AND SELL" labeljust=r fontname="Noto Sans Mono SemiCondensed" fontsize=11 fontcolor="#8fd3ff" style="rounded,dashed" color="#8fd3ff" penwidth=0.9 margin=6
-    prom [label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="2" CELLPADDING="0"><TR><TD VALIGN="MIDDLE"><TABLE BORDER="0" CELLPADDING="0" CELLSPACING="0"><TR><TD BGCOLOR="#8fd3ff" STYLE="ROUNDED" FIXEDSIZE="TRUE" WIDTH="22" HEIGHT="22"><FONT COLOR="#0b2f5c">6</FONT></TD></TR></TABLE></TD><TD ALIGN="LEFT"><TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="1"><TR><TD ALIGN="LEFT"><FONT COLOR="#8fd3ff">Prometheus</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT>:9395 reserved</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT>:9394 used</FONT></TD></TR></TABLE></TD></TR></TABLE>>]
-    out [label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="1"><TR><TD ALIGN="LEFT"><FONT>allocation vs utilization</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT>KEDA scaling</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT>metering, billing</FONT></TD></TR></TABLE>>]
+    label="OBSERVE AND SELL" labeljust=r
+    prom [label="6  Prometheus\l:9395 reserved\l:9394 used\l"]
+    out [label="allocation vs utilization\lKEDA scaling\lmetering, billing\l"]
   }
+
   subgraph cluster_n {
-    label="NODE POOLS" labeljust=l fontname="Noto Sans Mono SemiCondensed" fontsize=11 fontcolor="#8fd3ff" style="rounded,dashed" color="#8fd3ff" penwidth=0.9 margin=6
-    nv [color="#8fd3ff" fillcolor="#15467f" label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="2" CELLPADDING="0"><TR><TD VALIGN="MIDDLE"><TABLE BORDER="0" CELLPADDING="0" CELLSPACING="0"><TR><TD BGCOLOR="#8fd3ff" STYLE="ROUNDED" FIXEDSIZE="TRUE" WIDTH="22" HEIGHT="22"><FONT COLOR="#0b2f5c">4</FONT></TD></TR></TABLE></TD><TD ALIGN="LEFT"><TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="1"><TR><TD ALIGN="LEFT"><FONT COLOR="#8fd3ff">NVIDIA nodes, gpu=on</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT>hami-device-plugin DaemonSet</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT>device-plugin + vgpu-monitor :9394</FONT></TD></TR></TABLE></TD></TR></TABLE>>]
-    oth [color="#ffd166" label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="1"><TR><TD ALIGN="LEFT"><FONT COLOR="#ffd166">Ascend / Kunlunxin / Hygon</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT>own limiter: vNPU-Core,</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT>vXPU, vDCU</FONT></TD></TR></TABLE>>]
-    core [color="#8fd3ff" fillcolor="#15467f" label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="2" CELLPADDING="0"><TR><TD VALIGN="MIDDLE"><TABLE BORDER="0" CELLPADDING="0" CELLSPACING="0"><TR><TD BGCOLOR="#8fd3ff" STYLE="ROUNDED" FIXEDSIZE="TRUE" WIDTH="22" HEIGHT="22"><FONT COLOR="#0b2f5c">5</FONT></TD></TR></TABLE></TD><TD ALIGN="LEFT"><TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="1"><TR><TD ALIGN="LEFT"><FONT COLOR="#8fd3ff">libvgpu.so in the pod</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT>via /etc/ld.so.preload</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT>caps memory, paces compute</FONT></TD></TR></TABLE></TD></TR></TABLE>>]
+    label="NODE POOLS" labeljust=l
+    nv [label="4  NVIDIA nodes, gpu=on\lhami-device-plugin DaemonSet\ldevice-plugin + vgpu-monitor :9394\l" class="green"]
+    oth [label="Ascend / Kunlunxin / Hygon\lown limiter: vNPU-Core,\lvXPU, vDCU\l" class="green"]
+    core [label="5  libvgpu.so in the pod\lvia /etc/ld.so.preload\lcaps memory, paces compute\l" class="yellow"]
   }
+
   {rank=same; prom; nv}
   {rank=same; out; core; oth}
   ns -> pod
@@ -991,9 +951,17 @@ Questions.
 BACKUP for 'which scheduler?' questions. Sangfor: Volcano (gang, LWS). SF Technology: kube-scheduler + Volcano, HAMi as extender + webhook + isolation. Zhuoyu: Koordinator Device Share, HAMi-Core only for isolation. CMB: Kueue for training, KEDA for inference. SNOW: KEDA on a custom saturation metric. DaoCloud: own quota + RBAC. KAI Scheduler's resource isolator delivers the same libvgpu.so.
 -->
 
+@layout image-right
+
 ## Backup: one isolation layer, several brains
 
 @subtitle Every production case pairs sharing with a scheduler
+
+- **Sangfor:** Volcano, gang + LWS
+- **SF Technology:** kube-scheduler + Volcano
+- **Zhuoyu:** Koordinator, HAMi-Core only
+- **CMB:** Kueue for training, KEDA for inference
+- **KAI:** resource isolator ships `libvgpu.so`
 
 ![One isolation layer, several scheduling brains](assets/containerdays/containerdays-scheduling-brains.svg)
 
@@ -1003,9 +971,15 @@ BACKUP for 'which scheduler?' questions. Sangfor: Volcano (gang, LWS). SF Techno
 BACKUP for observability questions. Scheduler and DRA metrics are reservations (allocation); vGPUmonitor or a runtime collector reports usage. Zhuoyu defines them explicitly: allocation = scheduled cards / schedulable cards (>95%); utilization = mean SM util from node telemetry (>55%).
 -->
 
+@layout image-right
+
 ## Backup: reserved is not used
 
 @subtitle Two metric families, keep them apart
+
+- **Reserved:** hami-scheduler `:9395`, e.g. `hami_gpu_memory_allocated_bytes`
+- **Used:** vgpu-monitor `:9394`, e.g. `hami_vgpu_memory_used_bytes`
+- **Zhuoyu:** allocation over 95%, utilization over 55%
 
 ![Reservation vs usage](assets/containerdays/containerdays-reservation-usage.svg)
 
@@ -1073,26 +1047,19 @@ Quota: the key needs the limits. prefix; HAMi tracks the memory and core names. 
 Pod: gpumem is MB and a hard limit; gpucores is percent and only a hint unless the container sets GPU_CORE_UTILIZATION_POLICY=force (or devices.nvidia.gpuCorePolicy cluster-wide). The annotation overrides the GPU-level policy for this pod; hami.io/node-scheduler-policy does the same for nodes.
 -->
 
-@layout blueprint
-
 ## Backup: the blueprint as config
 
 @subtitle Chart defaults, a tenant quota, a tenant pod
 
-::: grid {cols=3, class="cfg"}
+::: grid {cols=2}
 ::: card {tag=cyan}
-### Install
-`gpu=on` node label, Helm values:
+### Helm values + tenant quota
 ```yaml
 scheduler:
   defaultSchedulerPolicy:
     nodeSchedulerPolicy: binpack
     gpuSchedulerPolicy: spread
 ```
-:::
-::: card {tag=yellow}
-### Tenant quota
-ResourceQuota in the tenant namespace:
 ```yaml
 kind: ResourceQuota
 spec:
@@ -1102,8 +1069,7 @@ spec:
 ```
 :::
 ::: card {tag=green}
-### Tenant pod
-Per-pod policy override:
+### Tenant pod, per-pod policy
 ```yaml
 metadata:
   annotations:
@@ -1124,8 +1090,6 @@ spec:
 <!--
 All at cncf.io/case-studies/?_sft_lf-project=hami (read 2026-10-24). Own measurements: Viettel Cloud H200 work (drawings.md).
 -->
-
-@layout dense
 
 ## Backup: sources
 

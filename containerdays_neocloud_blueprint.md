@@ -3,48 +3,13 @@ theme: kubecon_japan
 title: "10x Your Neocloud's GPU Utilization with HAMi"
 logo: assets/brand/dynamia-logo.svg
 logo_dark: assets/brand/dynamia-logo-white.png
+background: none
+watermark: none
 footer: "ContainerDays 2026 Singapore"
 transition: fade
 paginate: true
 size: 16:9
 seaborn_theme: kubecon_japan
-style: |
-  :root { --bg-image: none; --watermark: none; }
-  img[src*="device-plugin-vs-dra"] { max-height: 240px; }
-  .layout-midtable table { font-size: 0.95em; }
-  .layout-midtable td, .layout-midtable th { padding: 0.5em 0.7em; }
-  .layout-midtable td:first-child { white-space: nowrap; }
-  .slide-body > .notes { align-self: stretch; }
-  .slide-body > .notes + .quote { margin-top: 0.8em; }
-  .layout-table-md table { font-size: 0.84em; }
-  .layout-title { background: linear-gradient(135deg, #1D1D6B 0%, #3939D8 60%, #0A0A3A 100%); }
-  .layout-title h1 { max-width: 70%; }
-  .layout-title .kicker { color: rgba(255,255,255,0.88); margin-bottom: 1.1em; }
-  .layout-title .subtitle { color: rgba(255,255,255,0.92); font-weight: 500; margin-bottom: 1em; white-space: nowrap; }
-  .layout-title .subtitle a { color: inherit; text-decoration: none; }
-  .layout-title .speaker { color: rgba(255,255,255,0.88); margin-top: 0.4em; }
-  .layout-title .speaker .role { color: rgba(255,255,255,0.78); }
-  .layout-title .speaker-links a { color: rgba(255,255,255,0.9); }
-  .layout-title .speaker-links svg { stroke: rgba(255,255,255,0.92); }
-  .layout-title .side-image { width: 170px; bottom: 40%; }
-  .layout-title .side-image img { width: 170px; max-width: 170px; max-height: none; }
-  .layout-blueprint { --logo: var(--logo-dark); --section-padding-h: 2.4em; color: #eaf4ff; background: linear-gradient(rgba(143,211,255,0.16) 1px, transparent 1px), linear-gradient(90deg, rgba(143,211,255,0.16) 1px, transparent 1px), linear-gradient(rgba(143,211,255,0.07) 1px, transparent 1px), linear-gradient(90deg, rgba(143,211,255,0.07) 1px, transparent 1px), linear-gradient(160deg, #0f3b73 0%, #0b2f5c 100%); background-size: 120px 120px, 120px 120px, 24px 24px, 24px 24px, 100% 100%; }
-  .layout-blueprint h2 { color: #ffffff; }
-  .layout-blueprint .subtitle { color: #8fd3ff; font-family: var(--font-mono); }
-  .layout-blueprint p, .layout-blueprint li { color: #eaf4ff; }
-  .layout-blueprint footer, .layout-blueprint .slide-num { color: rgba(234,244,255,0.7); background: transparent; }
-  .layout-blueprint .graphviz-plot { display: flex; justify-content: center; }
-  .layout-blueprint .graphviz-plot svg { max-height: 505px; width: auto; }
-  .layout-blueprint .card { background: rgba(143,211,255,0.06); border: 1px solid #8fd3ff; box-shadow: none; }
-  .layout-blueprint .card h3 { color: #8fd3ff; font-family: var(--font-mono); font-size: 0.85em; }
-  .layout-blueprint .card p { color: #eaf4ff; }
-  .layout-blueprint pre, .layout-blueprint pre code { background: rgba(11,47,92,0.7) !important; color: #eaf4ff !important; }
-  .layout-blueprint pre span { color: #eaf4ff !important; }
-  .layout-blueprint code { color: #ffffff; background: rgba(143,211,255,0.14); }
-  .layout-blueprint .slide-body > p { font-family: var(--font-mono); font-size: 0.66em; color: #8fd3ff; margin-top: 0.6em; }
-  .cfg2 pre { font-size: 0.72em; }
-  .cfg2 pre code { font-size: 1em; white-space: pre; }
-  .cfg2 .card { padding: 0.7em 0.9em; }
 ---
 
 <!--
@@ -147,14 +112,14 @@ So the stack has more than one layer. Next slide.
 
 @subtitle Why DRA alone does not fix utilization
 
-![Device plugin vs DRA](assets/hami/device-plugin-vs-dra.png)
+Device plugin: `nvidia.com/gpu: 1`, the whole card. DRA: a claim for part of one.
 
 ::: card {tag=green}
 ### {icon:file-text cls=accent-primary} Request
 ResourceClaims, ResourceSlices, typed capacity. **This is DRA.**
 :::
 ::: card {tag=red}
-### {icon:shield cls=accent-secondary} Cap memory + compute
+### {icon:shield cls=accent-secondary} Cap the slice
 Stop a pod from using more than its slice inside the container. **Not DRA.**
 :::
 ::: card {tag=yellow}
@@ -168,8 +133,6 @@ Publish fractional capacity, pack slices, respect topology. **Needs a driver and
 0.5 min. The map for the rest of the talk. Read it bottom-up: you cannot sell a slice you cannot cap, and you cannot cap a slice you did not place on a card.
 Every layer has a production user from the CNCF case studies; I will show their numbers as we climb, then the last four slides turn the stack into something you can build. HAMi is a CNCF Incubating project, and these case studies are all on cncf.io.
 -->
-
-@layout midtable
 
 ## The neocloud stack, bottom-up
 
@@ -220,13 +183,11 @@ resources:
 ```dot
 digraph G {
   rankdir=TB
-  bgcolor=transparent
-  node [shape=box style="rounded,filled" fontsize=15 margin="0.25,0.15" width=2.6]
-  edge [fontsize=11]
+  node [shape=box style="rounded,filled"]
   app [label="Your app\n(unchanged)"]
-  lib [label="libvgpu.so\nmemory MiB · compute %" fillcolor="#e3f0ff" color="#3939D8"]
+  lib [label="libvgpu.so\nmemory MiB · compute %" class="yellow"]
   drv [label="CUDA driver"]
-  gpu [label="GPU slice\n3000 MiB · 30%" fillcolor="#e8f5e9" color="#2e7d32"]
+  gpu [label="GPU slice\n3000 MiB · 30%" class="green"]
   app -> lib [label=" CUDA calls"]
   lib -> drv [label=" within limits"]
   drv -> gpu
@@ -245,8 +206,6 @@ The tenant always asks the same way. Underneath, the mechanism depends on the si
 For a neocloud this matters: the SKU you sell is the same, the guarantee behind it is not. Know which row each of your chips is in.
 Supported list from the CETC case study: NVIDIA, Ascend, Cambricon, Hygon, Iluvatar CoreX, Moore Threads, MetaX, Enflame, Kunlunxin, AWS Neuron, Vastai. DaoCloud uses the phrase "first-class citizens" for domestic GPUs on D.run.
 -->
-
-@layout table-md
 
 ## Layer 1: domestic chips are first-class
 
@@ -272,8 +231,6 @@ Policy: binpack and spread exist on the node axis and the card axis, set per pod
 Topology: NVLink, PCIe and NUMA are part of the card choice. On domestic hardware it gets harder: dual-chip modules. China Merchants Bank is next.
 Bring your own brain: no case study runs HAMi alone. Sangfor uses Volcano, SF Technology the HAMi extender in front of kube-scheduler and Volcano, Zhuoyu Koordinator with only HAMi-Core for isolation, CMB Kueue for training and KEDA for inference, and KAI Scheduler's resource isolator ships the same libvgpu.so. You do not have to replace the scheduler you already run. Backup slide has the table.
 -->
-
-@layout midtable
 
 ## Layer 2: schedule what you sliced
 
@@ -381,6 +338,7 @@ DaoCloud CNCF case study (Dec 2025). D.run is their public GPU cloud for develop
 - 20-30% lower GPU-related opex, and faster regional expansion. They also avoided proprietary vGPU licensing.
 DaoCloud is one of HAMi's earliest contributors: over-subscription, node config and heterogeneous hardware went upstream from them.
 How they sell it: slice cards into vGPU units with defined memory and compute, package the slices as standard SKUs in a central marketplace so users pay by workload size, fill with controlled over-subscription, and on DCE govern with quotas and RBAC at vGPU level per department and queue. The blueprint section turns this into pools and SKUs.
+Quote, Captain, AI/LLM Infra Product Lead at DaoCloud: "With HAMi's unified vGPU abstraction, D.run seamlessly manages both NVIDIA and domestic GPUs at scale."
 Note: they give no "before" number for the 80%, so I do not turn it into a multiplier.
 -->
 
@@ -408,11 +366,8 @@ average utilization per card
 lower GPU-related opex
 :::
 
-::: notes {tag="green"}
-vGPU slices are standard SKUs in a marketplace. Users pay by workload size, not by full card.
-:::
-
-> "With HAMi's unified vGPU abstraction, D.run seamlessly manages both NVIDIA and domestic GPUs at scale." DaoCloud
+- vGPU slices sold as standard SKUs: users pay by workload size, not by the card
+- NVIDIA and domestic GPUs under one abstraction
 
 ---
 
@@ -633,8 +588,6 @@ KEDA, Kueue and Fluid share the credit. SNOW and CMB say so themselves.
 Dashed: HAMi-DRA, the request path for later. It needs Kubernetes 1.34+ with the DRA Consumable Capacity gate and CDI, and keeps the same pod YAML.
 -->
 
-@layout blueprint
-
 ## Blueprint 1: reference architecture
 
 @subtitle Follow one pod from tenant to card to bill
@@ -642,38 +595,40 @@ Dashed: HAMi-DRA, the request path for later. It needs Kubernetes 1.34+ with the
 ```dot
 digraph G {
   rankdir=TB
-  bgcolor=transparent
   newrank=true
-  nodesep=0.28
-  ranksep=0.16
-  fontname="Noto Sans Mono SemiCondensed"
-  node [shape=box style="rounded,filled" fillcolor="#0d3769" fontname="Noto Sans Mono SemiCondensed" fontsize=14 margin="0.05,0.02" color="#eaf4ff" fontcolor="#eaf4ff" penwidth=1.1]
-  edge [color="#8fd3ff" fontname="Noto Sans Mono SemiCondensed" fontsize=12 fontcolor="#8fd3ff" arrowsize=0.6 penwidth=1.1]
+  nodesep=0.25
+  ranksep=0.22
+  node [shape=box style="rounded,filled" margin="0.1,0.04"]
+
   subgraph cluster_t {
-    label="TENANTS" labeljust=l fontname="Noto Sans Mono SemiCondensed" fontsize=11 fontcolor="#8fd3ff" style="rounded,dashed" color="#8fd3ff" penwidth=0.9 margin=6
-    ns [label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="1"><TR><TD ALIGN="LEFT"><FONT COLOR="#8fd3ff">ResourceQuota per namespace</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT>limits.nvidia.com/gpumem</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT>limits.nvidia.com/gpucores</FONT></TD></TR></TABLE>>]
-    pod [label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="2" CELLPADDING="0"><TR><TD VALIGN="MIDDLE"><TABLE BORDER="0" CELLPADDING="0" CELLSPACING="0"><TR><TD BGCOLOR="#8fd3ff" STYLE="ROUNDED" FIXEDSIZE="TRUE" WIDTH="22" HEIGHT="22"><FONT COLOR="#0b2f5c">1</FONT></TD></TR></TABLE></TD><TD ALIGN="LEFT"><TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="1"><TR><TD ALIGN="LEFT"><FONT COLOR="#8fd3ff">tenant pod</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT>nvidia.com/gpu</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT>+ gpumem + gpucores</FONT></TD></TR></TABLE></TD></TR></TABLE>>]
+    label="TENANTS" labeljust=l
+    ns [label="ResourceQuota per namespace\llimits.nvidia.com/gpumem\llimits.nvidia.com/gpucores\l" class="red"]
+    pod [label="1  tenant pod\lnvidia.com/gpu\l+ gpumem + gpucores\l" class="red"]
     {rank=same; ns; pod}
   }
+
   subgraph cluster_cp {
-    label="CONTROL PLANE" labeljust=l fontname="Noto Sans Mono SemiCondensed" fontsize=11 fontcolor="#8fd3ff" style="rounded,dashed" color="#8fd3ff" penwidth=0.9 margin=6
-    dra [style="rounded,dashed,filled" label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="1"><TR><TD ALIGN="LEFT"><FONT COLOR="#8fd3ff">HAMi-DRA (later)</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT>ResourceClaims</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT>K8s 1.34+</FONT></TD></TR></TABLE>>]
-    wh [color="#8fd3ff" fillcolor="#15467f" label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="2" CELLPADDING="0"><TR><TD VALIGN="MIDDLE"><TABLE BORDER="0" CELLPADDING="0" CELLSPACING="0"><TR><TD BGCOLOR="#8fd3ff" STYLE="ROUNDED" FIXEDSIZE="TRUE" WIDTH="22" HEIGHT="22"><FONT COLOR="#0b2f5c">2</FONT></TD></TR></TABLE></TD><TD ALIGN="LEFT"><TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="1"><TR><TD ALIGN="LEFT"><FONT COLOR="#8fd3ff">webhook vgpu.hami.io</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT>sets schedulerName:</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT>hami-scheduler</FONT></TD></TR></TABLE></TD></TR></TABLE>>]
-    sch [color="#8fd3ff" fillcolor="#15467f" label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="2" CELLPADDING="0"><TR><TD VALIGN="MIDDLE"><TABLE BORDER="0" CELLPADDING="0" CELLSPACING="0"><TR><TD BGCOLOR="#8fd3ff" STYLE="ROUNDED" FIXEDSIZE="TRUE" WIDTH="22" HEIGHT="22"><FONT COLOR="#0b2f5c">3</FONT></TD></TR></TABLE></TD><TD ALIGN="LEFT"><TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="1"><TR><TD ALIGN="LEFT"><FONT COLOR="#8fd3ff">hami-scheduler pod :9395</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT>kube-scheduler</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT>+ vgpu-scheduler-extender</FONT></TD></TR></TABLE></TD></TR></TABLE>>]
-    bs [style="rounded,dashed,filled" label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="1"><TR><TD ALIGN="LEFT"><FONT COLOR="#8fd3ff">optional brain</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT>Volcano</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT>Kueue / KAI</FONT></TD></TR></TABLE>>]
+    label="CONTROL PLANE" labeljust=l
+    dra [label="HAMi-DRA (later)\lResourceClaims\lK8s 1.34+\l" class="cyan" style="rounded,filled,dashed"]
+    wh [label="2  webhook vgpu.hami.io\lsets schedulerName:\lhami-scheduler\l" class="cyan"]
+    sch [label="3  hami-scheduler pod :9395\lkube-scheduler\l+ vgpu-scheduler-extender\l" class="cyan"]
+    bs [label="optional brain\lVolcano\lKueue / KAI\l" style="rounded,filled,dashed"]
     {rank=same; dra; wh; sch; bs}
   }
+
   subgraph cluster_o {
-    label="OBSERVE AND SELL" labeljust=r fontname="Noto Sans Mono SemiCondensed" fontsize=11 fontcolor="#8fd3ff" style="rounded,dashed" color="#8fd3ff" penwidth=0.9 margin=6
-    prom [label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="2" CELLPADDING="0"><TR><TD VALIGN="MIDDLE"><TABLE BORDER="0" CELLPADDING="0" CELLSPACING="0"><TR><TD BGCOLOR="#8fd3ff" STYLE="ROUNDED" FIXEDSIZE="TRUE" WIDTH="22" HEIGHT="22"><FONT COLOR="#0b2f5c">6</FONT></TD></TR></TABLE></TD><TD ALIGN="LEFT"><TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="1"><TR><TD ALIGN="LEFT"><FONT COLOR="#8fd3ff">Prometheus</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT>:9395 reserved</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT>:9394 used</FONT></TD></TR></TABLE></TD></TR></TABLE>>]
-    out [label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="1"><TR><TD ALIGN="LEFT"><FONT>allocation vs utilization</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT>KEDA scaling</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT>metering, billing</FONT></TD></TR></TABLE>>]
+    label="OBSERVE AND SELL" labeljust=r
+    prom [label="6  Prometheus\l:9395 reserved\l:9394 used\l"]
+    out [label="allocation vs utilization\lKEDA scaling\lmetering, billing\l"]
   }
+
   subgraph cluster_n {
-    label="NODE POOLS" labeljust=l fontname="Noto Sans Mono SemiCondensed" fontsize=11 fontcolor="#8fd3ff" style="rounded,dashed" color="#8fd3ff" penwidth=0.9 margin=6
-    nv [color="#8fd3ff" fillcolor="#15467f" label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="2" CELLPADDING="0"><TR><TD VALIGN="MIDDLE"><TABLE BORDER="0" CELLPADDING="0" CELLSPACING="0"><TR><TD BGCOLOR="#8fd3ff" STYLE="ROUNDED" FIXEDSIZE="TRUE" WIDTH="22" HEIGHT="22"><FONT COLOR="#0b2f5c">4</FONT></TD></TR></TABLE></TD><TD ALIGN="LEFT"><TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="1"><TR><TD ALIGN="LEFT"><FONT COLOR="#8fd3ff">NVIDIA nodes, gpu=on</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT>hami-device-plugin DaemonSet</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT>device-plugin + vgpu-monitor :9394</FONT></TD></TR></TABLE></TD></TR></TABLE>>]
-    oth [color="#ffd166" label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="1"><TR><TD ALIGN="LEFT"><FONT COLOR="#ffd166">Ascend / Kunlunxin / Hygon</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT>own limiter: vNPU-Core,</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT>vXPU, vDCU</FONT></TD></TR></TABLE>>]
-    core [color="#8fd3ff" fillcolor="#15467f" label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="2" CELLPADDING="0"><TR><TD VALIGN="MIDDLE"><TABLE BORDER="0" CELLPADDING="0" CELLSPACING="0"><TR><TD BGCOLOR="#8fd3ff" STYLE="ROUNDED" FIXEDSIZE="TRUE" WIDTH="22" HEIGHT="22"><FONT COLOR="#0b2f5c">5</FONT></TD></TR></TABLE></TD><TD ALIGN="LEFT"><TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="1"><TR><TD ALIGN="LEFT"><FONT COLOR="#8fd3ff">libvgpu.so in the pod</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT>via /etc/ld.so.preload</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT>caps memory, paces compute</FONT></TD></TR></TABLE></TD></TR></TABLE>>]
+    label="NODE POOLS" labeljust=l
+    nv [label="4  NVIDIA nodes, gpu=on\lhami-device-plugin DaemonSet\ldevice-plugin + vgpu-monitor :9394\l" class="green"]
+    oth [label="Ascend / Kunlunxin / Hygon\lown limiter: vNPU-Core,\lvXPU, vDCU\l" class="green"]
+    core [label="5  libvgpu.so in the pod\lvia /etc/ld.so.preload\lcaps memory, paces compute\l" class="yellow"]
   }
+
   {rank=same; prom; nv}
   {rank=same; out; core; oth}
   ns -> pod
@@ -701,8 +656,6 @@ The slice sizes are examples, not anyone's price list: 2000 MB and 30% is the Vi
 For a seller: memory is a hard limit. gpucores on its own is a hint; we measured 10% and 90% running at the same speed. With GPU_CORE_UTILIZATION_POLICY=force it is a real cap (our 70% run took 1 h 20 instead of 1 h). Promise memory; promise compute only with force.
 -->
 
-@layout blueprint
-
 ## Blueprint 2: pools and SKUs
 
 @subtitle Floor plan: three pools, one scheduler, SKU sizes are examples
@@ -710,25 +663,72 @@ For a seller: memory is a hard limit. gpucores on its own is a hint; we measured
 ```dot
 digraph G {
   rankdir=TB
-  bgcolor=transparent
   newrank=true
-  nodesep=0.3
-  ranksep=0.3
-  fontname="Noto Sans Mono SemiCondensed"
-  node [shape=box style="rounded,filled" fillcolor="#0d3769" fontname="Noto Sans Mono SemiCondensed" fontsize=13 margin="0.05,0.02" color="#eaf4ff" fontcolor="#eaf4ff" penwidth=1.1]
-  edge [color="#8fd3ff" fontname="Noto Sans Mono SemiCondensed" fontsize=12 fontcolor="#8fd3ff" arrowsize=0.6 penwidth=1.1]
-  sch [color="#8fd3ff" fillcolor="#15467f" label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="1"><TR><TD ALIGN="LEFT"><FONT COLOR="#8fd3ff">hami-scheduler: one cluster, three pools</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT>routes by what the pod asks for</FONT></TD></TR></TABLE>>]
-  p1 [shape=box style="rounded,dashed,filled" label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="2" CELLPADDING="1"><TR><TD ALIGN="LEFT"><TABLE ALIGN="LEFT" BORDER="0" CELLSPACING="2" CELLPADDING="0"><TR><TD><TABLE BORDER="0" CELLPADDING="0" CELLSPACING="0"><TR><TD BGCOLOR="#8fd3ff" STYLE="ROUNDED" FIXEDSIZE="TRUE" WIDTH="22" HEIGHT="22"><FONT COLOR="#0b2f5c">1</FONT></TD></TR></TABLE></TD><TD ALIGN="LEFT"><FONT COLOR="#8fd3ff">WHOLE-CARD POOL</FONT></TD></TR></TABLE></TD></TR><TR><TD ALIGN="LEFT"><FONT POINT-SIZE="12">node gpu=on, taint pool=training</FONT></TD></TR><TR><TD ALIGN="LEFT"><TABLE ALIGN="LEFT" BORDER="0" CELLBORDER="0" CELLSPACING="6" CELLPADDING="0"><TR><TD><TABLE BORDER="1" COLOR="#8fd3ff" CELLBORDER="0" CELLSPACING="2" CELLPADDING="0"><TR><TD BORDER="1" COLOR="#eaf4ff" BGCOLOR="#2a6aa8" WIDTH="46" HEIGHT="44" CELLPADDING="2"><FONT POINT-SIZE="12">GPU</FONT></TD></TR></TABLE></TD><TD><TABLE BORDER="1" COLOR="#8fd3ff" CELLBORDER="0" CELLSPACING="2" CELLPADDING="0"><TR><TD BORDER="1" COLOR="#eaf4ff" BGCOLOR="#2a6aa8" WIDTH="46" HEIGHT="44" CELLPADDING="2"><FONT POINT-SIZE="12">GPU</FONT></TD></TR></TABLE></TD><TD><TABLE BORDER="1" COLOR="#8fd3ff" CELLBORDER="0" CELLSPACING="2" CELLPADDING="0"><TR><TD BORDER="1" COLOR="#eaf4ff" BGCOLOR="#2a6aa8" WIDTH="46" HEIGHT="44" CELLPADDING="2"><FONT POINT-SIZE="12">GPU</FONT></TD></TR></TABLE></TD><TD><TABLE BORDER="1" COLOR="#8fd3ff" CELLBORDER="0" CELLSPACING="2" CELLPADDING="0"><TR><TD BORDER="1" COLOR="#eaf4ff" BGCOLOR="#2a6aa8" WIDTH="46" HEIGHT="44" CELLPADDING="2"><FONT POINT-SIZE="12">GPU</FONT></TD></TR></TABLE></TD></TR></TABLE></TD></TR><TR><TD ALIGN="LEFT"><FONT POINT-SIZE="12" COLOR="#8fd3ff">policy</FONT><FONT POINT-SIZE="12"> node binpack, GPU mutex</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT POINT-SIZE="12" COLOR="#8fd3ff">runs</FONT><FONT POINT-SIZE="12"> training, large LLMs</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT POINT-SIZE="12" COLOR="#8fd3ff">SKU</FONT><FONT POINT-SIZE="12"> 1 or 8 whole cards</FONT></TD></TR></TABLE>>]
-  p2 [shape=box style="rounded,dashed,filled" label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="2" CELLPADDING="1"><TR><TD ALIGN="LEFT"><TABLE ALIGN="LEFT" BORDER="0" CELLSPACING="2" CELLPADDING="0"><TR><TD><TABLE BORDER="0" CELLPADDING="0" CELLSPACING="0"><TR><TD BGCOLOR="#8fd3ff" STYLE="ROUNDED" FIXEDSIZE="TRUE" WIDTH="22" HEIGHT="22"><FONT COLOR="#0b2f5c">2</FONT></TD></TR></TABLE></TD><TD ALIGN="LEFT"><FONT COLOR="#8fd3ff">MIG POOL</FONT></TD></TR></TABLE></TD></TR><TR><TD ALIGN="LEFT"><FONT POINT-SIZE="12">node gpu=on, operatingmode: mig</FONT></TD></TR><TR><TD ALIGN="LEFT"><TABLE ALIGN="LEFT" BORDER="0" CELLBORDER="0" CELLSPACING="6" CELLPADDING="0"><TR><TD><TABLE BORDER="1" COLOR="#8fd3ff" CELLBORDER="0" CELLSPACING="2" CELLPADDING="0"><TR><TD BORDER="1" COLOR="#eaf4ff" BGCOLOR="#2a6aa8" WIDTH="60" HEIGHT="44" CELLPADDING="2"><FONT POINT-SIZE="12">2g.12gb</FONT></TD><TD BORDER="1" COLOR="#eaf4ff" BGCOLOR="#2a6aa8" WIDTH="50" HEIGHT="44" CELLPADDING="2"><FONT POINT-SIZE="12">1g.6gb</FONT></TD><TD BORDER="1" COLOR="#8fd3ff" BGCOLOR="#0d3769" STYLE="dashed" WIDTH="50" HEIGHT="44" CELLPADDING="2"><FONT POINT-SIZE="12">1g.6gb</FONT></TD></TR></TABLE></TD><TD><TABLE BORDER="1" COLOR="#8fd3ff" CELLBORDER="0" CELLSPACING="2" CELLPADDING="0"><TR><TD BORDER="1" COLOR="#eaf4ff" BGCOLOR="#2a6aa8" WIDTH="120" HEIGHT="44" CELLPADDING="2"><FONT POINT-SIZE="12">4g.24gb</FONT></TD></TR></TABLE></TD></TR></TABLE></TD></TR><TR><TD ALIGN="LEFT"><FONT POINT-SIZE="12" COLOR="#8fd3ff">select</FONT><FONT POINT-SIZE="12"> nvidia.com/vgpu-mode: mig</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT POINT-SIZE="12" COLOR="#8fd3ff">runs</FONT><FONT POINT-SIZE="12"> untrusted tenants</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT POINT-SIZE="12" COLOR="#8fd3ff">SKU</FONT><FONT POINT-SIZE="12"> MIG profile, A30 example</FONT></TD></TR></TABLE>>]
-  p3 [shape=box style="rounded,dashed,filled" label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="2" CELLPADDING="1"><TR><TD ALIGN="LEFT"><TABLE ALIGN="LEFT" BORDER="0" CELLSPACING="2" CELLPADDING="0"><TR><TD><TABLE BORDER="0" CELLPADDING="0" CELLSPACING="0"><TR><TD BGCOLOR="#8fd3ff" STYLE="ROUNDED" FIXEDSIZE="TRUE" WIDTH="22" HEIGHT="22"><FONT COLOR="#0b2f5c">3</FONT></TD></TR></TABLE></TD><TD ALIGN="LEFT"><FONT COLOR="#8fd3ff">SHARED POOL (HAMi-core)</FONT></TD></TR></TABLE></TD></TR><TR><TD ALIGN="LEFT"><FONT POINT-SIZE="12">node gpu=on, operatingmode: hami-core</FONT></TD></TR><TR><TD ALIGN="LEFT"><TABLE ALIGN="LEFT" BORDER="0" CELLBORDER="0" CELLSPACING="6" CELLPADDING="0"><TR><TD><TABLE BORDER="1" COLOR="#8fd3ff" CELLBORDER="0" CELLSPACING="2" CELLPADDING="0"><TR><TD BORDER="1" COLOR="#eaf4ff" BGCOLOR="#2a6aa8" WIDTH="56" HEIGHT="44" CELLPADDING="2"><FONT POINT-SIZE="12">2000 MB<BR/>30%</FONT></TD><TD BORDER="1" COLOR="#eaf4ff" BGCOLOR="#2a6aa8" WIDTH="56" HEIGHT="44" CELLPADDING="2"><FONT POINT-SIZE="12">8000 MB<BR/>20%</FONT></TD><TD BORDER="1" COLOR="#8fd3ff" BGCOLOR="#0d3769" STYLE="dashed" WIDTH="40" HEIGHT="44" CELLPADDING="2"><FONT POINT-SIZE="12">free</FONT></TD></TR></TABLE></TD><TD><TABLE BORDER="1" COLOR="#8fd3ff" CELLBORDER="0" CELLSPACING="2" CELLPADDING="0"><TR><TD BORDER="1" COLOR="#eaf4ff" BGCOLOR="#2a6aa8" WIDTH="64" HEIGHT="44" CELLPADDING="2"><FONT POINT-SIZE="12">15000 MB<BR/>30%</FONT></TD><TD BORDER="1" COLOR="#8fd3ff" BGCOLOR="#0d3769" STYLE="dashed" WIDTH="60" HEIGHT="44" CELLPADDING="2"><FONT POINT-SIZE="12">free</FONT></TD></TR></TABLE></TD></TR></TABLE></TD></TR><TR><TD ALIGN="LEFT"><FONT POINT-SIZE="12" COLOR="#8fd3ff">policy</FONT><FONT POINT-SIZE="12"> node binpack, GPU spread</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT POINT-SIZE="12" COLOR="#8fd3ff">runs</FONT><FONT POINT-SIZE="12"> inference, dev, notebooks</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT POINT-SIZE="12" COLOR="#8fd3ff">SKU</FONT><FONT POINT-SIZE="12"> MB + %, sizes are examples</FONT></TD></TR></TABLE>>]
-  {rank=same; p1; p2; p3}
-  sch -> p1 [label=" nvidia.com/gpu: 8 "]
-  sch -> p2 [label=" vgpu-mode: mig "]
-  sch -> p3 [label=" gpumem + gpucores "]
+  compound=true
+  nodesep=0.08
+  ranksep=0.22
+  node [shape=box style="rounded,filled" margin="0.06,0.03"]
+  sch [label="hami-scheduler: one cluster, three pools\nroutes by what the pod asks for" class="cyan"]
+  subgraph cluster_p1 {
+    label=""
+    i1 [shape=plaintext style="" label="1  WHOLE-CARD POOL\lgpu=on, taint pool=training\lpod asks: nvidia.com/gpu: 8\l"]
+    subgraph cluster_p1g0 { label="" margin=4
+      p1g0c0 [label="GPU" class="green"]
+    }
+    subgraph cluster_p1g1 { label="" margin=4
+      p1g1c0 [label="GPU" class="green"]
+    }
+    subgraph cluster_p1g2 { label="" margin=4
+      p1g2c0 [label="GPU" class="green"]
+    }
+    subgraph cluster_p1g3 { label="" margin=4
+      p1g3c0 [label="GPU" class="green"]
+    }
+    f1 [shape=plaintext style="" label="policy: node binpack, GPU mutex\lruns: training, large LLMs\lSKU: 1 or 8 whole cards\l"]
+  }
+  subgraph cluster_p2 {
+    label=""
+    i2 [shape=plaintext style="" label="2  MIG POOL\lgpu=on, operatingmode: mig\lpod asks: vgpu-mode: mig\l"]
+    subgraph cluster_p2g0 { label="" margin=4
+      p2g0c0 [label="2g.12gb" class="green"]
+      p2g0c1 [label="1g.6gb" class="green"]
+      p2g0c2 [label="free" style="rounded,filled,dashed"]
+    }
+    subgraph cluster_p2g1 { label="" margin=4
+      p2g1c0 [label="4g.24gb" class="green"]
+    }
+    f2 [shape=plaintext style="" label="annotation: nvidia.com/vgpu-mode\lruns: untrusted tenants\lSKU: MIG profile (A30 example)\l"]
+  }
+  subgraph cluster_p3 {
+    label=""
+    i3 [shape=plaintext style="" label="3  SHARED POOL, HAMi-core\lgpu=on, operatingmode: hami-core\lpod asks: gpumem + gpucores\l"]
+    subgraph cluster_p3g0 { label="" margin=4
+      p3g0c0 [label="2000 MB\n30%" class="green"]
+      p3g0c1 [label="8000 MB\n20%" class="green"]
+      p3g0c2 [label="free" style="rounded,filled,dashed"]
+    }
+    subgraph cluster_p3g1 { label="" margin=4
+      p3g1c0 [label="15000 MB\n30%" class="green"]
+      p3g1c1 [label="free" style="rounded,filled,dashed"]
+    }
+    f3 [shape=plaintext style="" label="policy: node binpack, GPU spread\lruns: inference, dev, notebooks\lSKU: MB + %, sizes are examples\l"]
+  }
+  i1 -> p1g0c0 [style=invis]
+  p1g0c0 -> f1 [style=invis]
+  i2 -> p2g0c0 [style=invis]
+  p2g0c0 -> f2 [style=invis]
+  i3 -> p3g0c0 [style=invis]
+  p3g0c0 -> f3 [style=invis]
+  {rank=same; i1; i2; i3}
+  {rank=same; p1g0c0; p1g1c0; p1g2c0; p1g3c0; p2g0c0; p2g0c1; p2g0c2; p2g1c0; p3g0c0; p3g0c1; p3g0c2; p3g1c0; p3g1c1}
+  {rank=same; f1; f2; f3}
+  sch -> i1 [lhead=cluster_p1]
+  sch -> i2 [lhead=cluster_p2]
+  sch -> i3 [lhead=cluster_p3]
 }
 ```
 
-1 Ke, CMB, NIO, CETC keep training whole · 2 NIO puts algorithm dev on MIG · 3 DaoCloud D.run sells slices as SKUs
+1 Ke, CMB, NIO, CETC keep training whole · 2 NIO: algorithm dev on MIG · 3 DaoCloud sells SKUs
 
 ---
 
@@ -742,8 +742,6 @@ digraph G {
 Install: helm install hami hami-charts/hami, then kubectl label nodes <node> gpu=on.
 -->
 
-@layout blueprint
-
 ## Blueprint 3: where each setting acts
 
 @subtitle One pod request, left to right, HAMi v2.10
@@ -751,23 +749,20 @@ Install: helm install hami hami-charts/hami, then kubectl label nodes <node> gpu
 ```dot
 digraph G {
   rankdir=TB
-  bgcolor=transparent
   newrank=true
   nodesep=0.22
   ranksep=0.28
-  fontname="Noto Sans Mono SemiCondensed"
-  node [shape=box style="rounded,filled" fillcolor="#0d3769" fontname="Noto Sans Mono SemiCondensed" fontsize=13 margin="0.05,0.02" color="#eaf4ff" fontcolor="#eaf4ff" penwidth=1.1]
-  edge [color="#8fd3ff" fontname="Noto Sans Mono SemiCondensed" fontsize=12 fontcolor="#8fd3ff" arrowsize=0.6 penwidth=1.1]
-  s1 [color="#8fd3ff" fillcolor="#15467f" label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="2" CELLPADDING="0"><TR><TD VALIGN="MIDDLE"><TABLE BORDER="0" CELLPADDING="0" CELLSPACING="0"><TR><TD BGCOLOR="#8fd3ff" STYLE="ROUNDED" FIXEDSIZE="TRUE" WIDTH="22" HEIGHT="22"><FONT COLOR="#0b2f5c">1</FONT></TD></TR></TABLE></TD><TD ALIGN="LEFT"><TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="1"><TR><TD ALIGN="LEFT"><FONT COLOR="#8fd3ff">tenant pod</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT>asks for MB + %</FONT></TD></TR></TABLE></TD></TR></TABLE>>]
-  s2 [color="#8fd3ff" fillcolor="#15467f" label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="2" CELLPADDING="0"><TR><TD VALIGN="MIDDLE"><TABLE BORDER="0" CELLPADDING="0" CELLSPACING="0"><TR><TD BGCOLOR="#8fd3ff" STYLE="ROUNDED" FIXEDSIZE="TRUE" WIDTH="22" HEIGHT="22"><FONT COLOR="#0b2f5c">2</FONT></TD></TR></TABLE></TD><TD ALIGN="LEFT"><TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="1"><TR><TD ALIGN="LEFT"><FONT COLOR="#8fd3ff">webhook</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT>vgpu.hami.io</FONT></TD></TR></TABLE></TD></TR></TABLE>>]
-  s3 [color="#8fd3ff" fillcolor="#15467f" label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="2" CELLPADDING="0"><TR><TD VALIGN="MIDDLE"><TABLE BORDER="0" CELLPADDING="0" CELLSPACING="0"><TR><TD BGCOLOR="#8fd3ff" STYLE="ROUNDED" FIXEDSIZE="TRUE" WIDTH="22" HEIGHT="22"><FONT COLOR="#0b2f5c">3</FONT></TD></TR></TABLE></TD><TD ALIGN="LEFT"><TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="1"><TR><TD ALIGN="LEFT"><FONT COLOR="#8fd3ff">quota check</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT>ResourceQuota</FONT></TD></TR></TABLE></TD></TR></TABLE>>]
-  s4 [color="#8fd3ff" fillcolor="#15467f" label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="2" CELLPADDING="0"><TR><TD VALIGN="MIDDLE"><TABLE BORDER="0" CELLPADDING="0" CELLSPACING="0"><TR><TD BGCOLOR="#8fd3ff" STYLE="ROUNDED" FIXEDSIZE="TRUE" WIDTH="22" HEIGHT="22"><FONT COLOR="#0b2f5c">4</FONT></TD></TR></TABLE></TD><TD ALIGN="LEFT"><TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="1"><TR><TD ALIGN="LEFT"><FONT COLOR="#8fd3ff">hami-scheduler</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT>picks node + GPU</FONT></TD></TR></TABLE></TD></TR></TABLE>>]
-  s5 [color="#8fd3ff" fillcolor="#15467f" label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="2" CELLPADDING="0"><TR><TD VALIGN="MIDDLE"><TABLE BORDER="0" CELLPADDING="0" CELLSPACING="0"><TR><TD BGCOLOR="#8fd3ff" STYLE="ROUNDED" FIXEDSIZE="TRUE" WIDTH="22" HEIGHT="22"><FONT COLOR="#0b2f5c">5</FONT></TD></TR></TABLE></TD><TD ALIGN="LEFT"><TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="1"><TR><TD ALIGN="LEFT"><FONT COLOR="#8fd3ff">GPU node</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT>device plugin,</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT>libvgpu.so</FONT></TD></TR></TABLE></TD></TR></TABLE>>]
-  k1 [style="rounded,dashed,filled" color="#eaf4ff" fillcolor="#0d3769" margin="0.16,0.07" label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="1"><TR><TD ALIGN="LEFT"><FONT POINT-SIZE="12">nvidia.com/gpu: 1</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT POINT-SIZE="12">nvidia.com/gpumem: 8000</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT POINT-SIZE="12">nvidia.com/gpucores: 20</FONT></TD></TR></TABLE>>]
-  k2 [style="rounded,dashed,filled" color="#eaf4ff" fillcolor="#0d3769" margin="0.16,0.07" label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="1"><TR><TD ALIGN="LEFT"><FONT POINT-SIZE="12">sets schedulerName:</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT POINT-SIZE="12">  hami-scheduler</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT POINT-SIZE="12">failurePolicy: Ignore (default)</FONT></TD></TR></TABLE>>]
-  k3 [style="rounded,dashed,filled" color="#eaf4ff" fillcolor="#0d3769" margin="0.16,0.07" label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="1"><TR><TD ALIGN="LEFT"><FONT POINT-SIZE="12">limits.nvidia.com/gpumem: 32000</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT POINT-SIZE="12">limits.nvidia.com/gpucores: 200</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT POINT-SIZE="12">over: ResourceQuotaNotFit</FONT></TD></TR></TABLE>>]
-  k4 [style="rounded,dashed,filled" color="#eaf4ff" fillcolor="#0d3769" margin="0.16,0.07" label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="1"><TR><TD ALIGN="LEFT"><FONT POINT-SIZE="12">scheduler.defaultSchedulerPolicy:</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT POINT-SIZE="12">  nodeSchedulerPolicy: binpack</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT POINT-SIZE="12">  gpuSchedulerPolicy: spread</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT POINT-SIZE="12">pod: hami.io/gpu-scheduler-policy</FONT></TD></TR></TABLE>>]
-  k5 [style="rounded,dashed,filled" color="#eaf4ff" fillcolor="#0d3769" margin="0.16,0.07" label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="1"><TR><TD ALIGN="LEFT"><FONT POINT-SIZE="12">CUDA_DEVICE_MEMORY_LIMIT_&lt;idx&gt;=8000m</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT POINT-SIZE="12">CUDA_DEVICE_SM_LIMIT=20</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT POINT-SIZE="12">devices.nvidia.gpuCorePolicy: force</FONT></TD></TR></TABLE>>]
+  node [shape=box style="rounded,filled" margin="0.1,0.04"]
+  s1 [label="1  tenant pod\lasks for MB + %\l" class="red"]
+  s2 [label="2  webhook\lvgpu.hami.io\l" class="cyan"]
+  s3 [label="3  quota check\lResourceQuota\l" class="red"]
+  s4 [label="4  hami-scheduler\lpicks node + GPU\l" class="cyan"]
+  s5 [label="5  GPU node\ldevice plugin,\llibvgpu.so\l" class="green"]
+  k1 [label="nvidia.com/gpu: 1\lnvidia.com/gpumem: 8000\lnvidia.com/gpucores: 20\l" style="rounded,filled,dashed"]
+  k2 [label="sets schedulerName:\l  hami-scheduler\lfailurePolicy: Ignore (default)\l" style="rounded,filled,dashed"]
+  k3 [label="limits.nvidia.com/gpumem: 32000\llimits.nvidia.com/gpucores: 200\lover: ResourceQuotaNotFit\l" style="rounded,filled,dashed"]
+  k4 [label="scheduler.defaultSchedulerPolicy:\l  nodeSchedulerPolicy: binpack\l  gpuSchedulerPolicy: spread\lpod: hami.io/gpu-scheduler-policy\l" style="rounded,filled,dashed"]
+  k5 [label="CUDA_DEVICE_MEMORY_LIMIT_<idx>=8000m\lCUDA_DEVICE_SM_LIMIT=20\ldevices.nvidia.gpuCorePolicy: force\l" style="rounded,filled,dashed"]
   {rank=same; s1; s2; s3; s4; s5}
   {rank=same; k1; k3; k5}
   {rank=same; k2; k4}
@@ -794,8 +789,6 @@ Dotted line: where the setting takes effect. Full YAML on the backup slide.
 Viettel's summary of their rollout: it is an operations project, not a one-line install.
 -->
 
-@layout blueprint
-
 ## Blueprint 4: rollout with exit criteria
 
 @subtitle Each stage ends at a gate: the signal that says it is done
@@ -803,33 +796,30 @@ Viettel's summary of their rollout: it is an operations project, not a one-line 
 ```dot
 digraph G {
   rankdir=TB
-  bgcolor=transparent
   newrank=true
-  nodesep=0.1
+  nodesep=0.12
   ranksep=0.26
-  fontname="Noto Sans Mono SemiCondensed"
-  node [shape=box style="rounded,filled" fillcolor="#0d3769" fontname="Noto Sans Mono SemiCondensed" fontsize=13 margin="0.05,0.02" color="#eaf4ff" fontcolor="#eaf4ff" penwidth=1.1]
-  edge [color="#8fd3ff" fontname="Noto Sans Mono SemiCondensed" fontsize=12 fontcolor="#8fd3ff" arrowsize=0.6 penwidth=1.1]
-  s1 [color="#8fd3ff" fillcolor="#15467f" label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="2" CELLPADDING="0"><TR><TD VALIGN="MIDDLE"><TABLE BORDER="0" CELLPADDING="0" CELLSPACING="0"><TR><TD BGCOLOR="#8fd3ff" STYLE="ROUNDED" FIXEDSIZE="TRUE" WIDTH="22" HEIGHT="22"><FONT COLOR="#0b2f5c">1</FONT></TD></TR></TABLE></TD><TD ALIGN="LEFT"><TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="1"><TR><TD ALIGN="LEFT"><FONT COLOR="#8fd3ff">BASELINE</FONT></TD></TR></TABLE></TD></TR></TABLE>>]
-  g1 [shape=diamond style=filled fillcolor="#0d3769" color="#ffd166" fontcolor="#ffd166" width=0.42 height=0.42 fixedsize=true group=c1 label="1"]
-  d1 [style="rounded,dashed,filled" color="#eaf4ff" fillcolor="#0d3769" margin="0.16,0.07" label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="1"><TR><TD ALIGN="LEFT"><FONT POINT-SIZE="12">HAMi chart, gpu=on</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT POINT-SIZE="12">Prometheus on</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT POINT-SIZE="12">:9395 + :9394</FONT></TD></TR></TABLE>>]
-  x1 [group=c1] [style="rounded,dashed,filled" color="#ffd166" fillcolor="#0d3769" margin="0.16,0.07" label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="1"><TR><TD ALIGN="LEFT"><FONT POINT-SIZE="12">hami_gpu_memory_allocated_bytes</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT POINT-SIZE="12">next to</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT POINT-SIZE="12">hami_host_gpu_utilization_ratio</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT POINT-SIZE="12">names the 5-15% jobs</FONT></TD></TR></TABLE>>]
-  s2 [color="#8fd3ff" fillcolor="#15467f" label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="2" CELLPADDING="0"><TR><TD VALIGN="MIDDLE"><TABLE BORDER="0" CELLPADDING="0" CELLSPACING="0"><TR><TD BGCOLOR="#8fd3ff" STYLE="ROUNDED" FIXEDSIZE="TRUE" WIDTH="22" HEIGHT="22"><FONT COLOR="#0b2f5c">2</FONT></TD></TR></TABLE></TD><TD ALIGN="LEFT"><TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="1"><TR><TD ALIGN="LEFT"><FONT COLOR="#8fd3ff">DEV +</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT COLOR="#8fd3ff">NOTEBOOKS</FONT></TD></TR></TABLE></TD></TR></TABLE>>]
-  g2 [shape=diamond style=filled fillcolor="#0d3769" color="#ffd166" fontcolor="#ffd166" width=0.42 height=0.42 fixedsize=true group=c2 label="2"]
-  d2 [style="rounded,dashed,filled" color="#eaf4ff" fillcolor="#0d3769" margin="0.16,0.07" label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="1"><TR><TD ALIGN="LEFT"><FONT POINT-SIZE="12">notebook SKUs:</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT POINT-SIZE="12">gpumem + gpucores</FONT></TD></TR></TABLE>>]
-  x2 [group=c2] [style="rounded,dashed,filled" color="#ffd166" fillcolor="#0d3769" margin="0.16,0.07" label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="1"><TR><TD ALIGN="LEFT"><FONT POINT-SIZE="12">hami_gpu_shared_count &gt; 1,</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT POINT-SIZE="12">hami_vgpu_memory_used_bytes</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT POINT-SIZE="12">under</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT POINT-SIZE="12">hami_vgpu_memory_limit_bytes</FONT></TD></TR></TABLE>>]
-  s3 [color="#8fd3ff" fillcolor="#15467f" label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="2" CELLPADDING="0"><TR><TD VALIGN="MIDDLE"><TABLE BORDER="0" CELLPADDING="0" CELLSPACING="0"><TR><TD BGCOLOR="#8fd3ff" STYLE="ROUNDED" FIXEDSIZE="TRUE" WIDTH="22" HEIGHT="22"><FONT COLOR="#0b2f5c">3</FONT></TD></TR></TABLE></TD><TD ALIGN="LEFT"><TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="1"><TR><TD ALIGN="LEFT"><FONT COLOR="#8fd3ff">INFERENCE</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT COLOR="#8fd3ff">+ KEDA</FONT></TD></TR></TABLE></TD></TR></TABLE>>]
-  g3 [shape=diamond style=filled fillcolor="#0d3769" color="#ffd166" fontcolor="#ffd166" width=0.42 height=0.42 fixedsize=true group=c3 label="3"]
-  d3 [style="rounded,dashed,filled" color="#eaf4ff" fillcolor="#0d3769" margin="0.16,0.07" label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="1"><TR><TD ALIGN="LEFT"><FONT POINT-SIZE="12">slices for small</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT POINT-SIZE="12">models, KEDA on</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT POINT-SIZE="12">queue saturation</FONT></TD></TR></TABLE>>]
-  x3 [group=c3] [style="rounded,dashed,filled" color="#ffd166" fillcolor="#0d3769" margin="0.16,0.07" label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="1"><TR><TD ALIGN="LEFT"><FONT POINT-SIZE="12">p95 holds while</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT POINT-SIZE="12">replicas share a card,</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT POINT-SIZE="12">utilization climbs</FONT></TD></TR></TABLE>>]
-  s4 [color="#8fd3ff" fillcolor="#15467f" label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="2" CELLPADDING="0"><TR><TD VALIGN="MIDDLE"><TABLE BORDER="0" CELLPADDING="0" CELLSPACING="0"><TR><TD BGCOLOR="#8fd3ff" STYLE="ROUNDED" FIXEDSIZE="TRUE" WIDTH="22" HEIGHT="22"><FONT COLOR="#0b2f5c">4</FONT></TD></TR></TABLE></TD><TD ALIGN="LEFT"><TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="1"><TR><TD ALIGN="LEFT"><FONT COLOR="#8fd3ff">SELL</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT COLOR="#8fd3ff">SKUs</FONT></TD></TR></TABLE></TD></TR></TABLE>>]
-  g4 [shape=diamond style=filled fillcolor="#0d3769" color="#ffd166" fontcolor="#ffd166" width=0.42 height=0.42 fixedsize=true group=c4 label="4"]
-  d4 [style="rounded,dashed,filled" color="#eaf4ff" fillcolor="#0d3769" margin="0.16,0.07" label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="1"><TR><TD ALIGN="LEFT"><FONT POINT-SIZE="12">SKU catalog,</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT POINT-SIZE="12">quota per tenant,</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT POINT-SIZE="12">metering</FONT></TD></TR></TABLE>>]
-  x4 [group=c4] [style="rounded,dashed,filled" color="#ffd166" fillcolor="#0d3769" margin="0.16,0.07" label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="1"><TR><TD ALIGN="LEFT"><FONT POINT-SIZE="12">hami_resource_quota_used</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT POINT-SIZE="12">is what you bill,</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT POINT-SIZE="12">over quota shows</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT POINT-SIZE="12">ResourceQuotaNotFit</FONT></TD></TR></TABLE>>]
-  s5 [color="#8fd3ff" fillcolor="#15467f" label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="2" CELLPADDING="0"><TR><TD VALIGN="MIDDLE"><TABLE BORDER="0" CELLPADDING="0" CELLSPACING="0"><TR><TD BGCOLOR="#8fd3ff" STYLE="ROUNDED" FIXEDSIZE="TRUE" WIDTH="22" HEIGHT="22"><FONT COLOR="#0b2f5c">5</FONT></TD></TR></TABLE></TD><TD ALIGN="LEFT"><TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="1"><TR><TD ALIGN="LEFT"><FONT COLOR="#8fd3ff">MOVE TO</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT COLOR="#8fd3ff">DRA</FONT></TD></TR></TABLE></TD></TR></TABLE>>]
-  g5 [shape=diamond style=filled fillcolor="#0d3769" color="#ffd166" fontcolor="#ffd166" width=0.42 height=0.42 fixedsize=true group=c5 label="5"]
-  d5 [style="rounded,dashed,filled" color="#eaf4ff" fillcolor="#0d3769" margin="0.16,0.07" label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="1"><TR><TD ALIGN="LEFT"><FONT POINT-SIZE="12">HAMi-DRA,</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT POINT-SIZE="12">K8s 1.34+, CDI,</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT POINT-SIZE="12">DRAConsumableCapacity</FONT></TD></TR></TABLE>>]
-  x5 [group=c5] [style="rounded,dashed,filled" color="#ffd166" fillcolor="#0d3769" margin="0.16,0.07" label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="1"><TR><TD ALIGN="LEFT"><FONT POINT-SIZE="12">same pod YAML lands</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT POINT-SIZE="12">via ResourceClaims,</FONT></TD></TR><TR><TD ALIGN="LEFT"><FONT POINT-SIZE="12">hami_dra_* report</FONT></TD></TR></TABLE>>]
+  node [shape=box style="rounded,filled" margin="0.1,0.04"]
+  s1 [label="1  BASELINE\l"]
+  g1 [shape=diamond width=0.45 height=0.45 fixedsize=true group=c1 label="1"]
+  d1 [label="HAMi chart, gpu=on\lPrometheus on\l:9395 + :9394\l" style="rounded,filled,dashed"]
+  x1 [group=c1 label="hami_gpu_memory_allocated_bytes\lnext to\lhami_host_gpu_utilization_ratio\lnames the 5-15% jobs\l" style="rounded,filled,dashed"]
+  s2 [label="2  DEV +\lNOTEBOOKS\l"]
+  g2 [shape=diamond width=0.45 height=0.45 fixedsize=true group=c2 label="2"]
+  d2 [label="notebook SKUs:\lgpumem + gpucores\l" style="rounded,filled,dashed"]
+  x2 [group=c2 label="hami_gpu_shared_count > 1,\lhami_vgpu_memory_used_bytes\lunder\lhami_vgpu_memory_limit_bytes\l" style="rounded,filled,dashed"]
+  s3 [label="3  INFERENCE\l+ KEDA\l"]
+  g3 [shape=diamond width=0.45 height=0.45 fixedsize=true group=c3 label="3"]
+  d3 [label="slices for small\lmodels, KEDA on\lqueue saturation\l" style="rounded,filled,dashed"]
+  x3 [group=c3 label="p95 holds while\lreplicas share a card,\lutilization climbs\l" style="rounded,filled,dashed"]
+  s4 [label="4  SELL\lSKUs\l"]
+  g4 [shape=diamond width=0.45 height=0.45 fixedsize=true group=c4 label="4"]
+  d4 [label="SKU catalog,\lquota per tenant,\lmetering\l" style="rounded,filled,dashed"]
+  x4 [group=c4 label="hami_resource_quota_used\lis what you bill,\lover quota shows\lResourceQuotaNotFit\l" style="rounded,filled,dashed"]
+  s5 [label="5  MOVE TO\lDRA\l"]
+  g5 [shape=diamond width=0.45 height=0.45 fixedsize=true group=c5 label="5"]
+  d5 [label="HAMi-DRA, CDI,\lK8s 1.34+,\lDRAConsumableCapacity\l" style="rounded,filled,dashed"]
+  x5 [group=c5 label="same pod YAML lands\lvia ResourceClaims,\lhami_dra_* report\l" style="rounded,filled,dashed"]
   {rank=same; s1; g1; s2; g2; s3; g3; s4; g4; s5; g5}
   {rank=same; d1; d2; d3; d4; d5}
   {rank=same; x1; x3; x5}
@@ -837,15 +827,15 @@ digraph G {
   x1 -> x2 [style=invis]
   s1 -> g1 -> s2 -> g2 -> s3 -> g3 -> s4 -> g4 -> s5 -> g5
   d1 -> s1 [style=dotted arrowhead=none]
-  g1 -> x1 [style=dotted arrowhead=none color="#ffd166"]
+  g1 -> x1 [style=dotted arrowhead=none]
   d2 -> s2 [style=dotted arrowhead=none]
-  g2 -> x2 [style=dotted arrowhead=none color="#ffd166"]
+  g2 -> x2 [style=dotted arrowhead=none]
   d3 -> s3 [style=dotted arrowhead=none]
-  g3 -> x3 [style=dotted arrowhead=none color="#ffd166"]
+  g3 -> x3 [style=dotted arrowhead=none]
   d4 -> s4 [style=dotted arrowhead=none]
-  g4 -> x4 [style=dotted arrowhead=none color="#ffd166"]
+  g4 -> x4 [style=dotted arrowhead=none]
   d5 -> s5 [style=dotted arrowhead=none]
-  g5 -> x5 [style=dotted arrowhead=none color="#ffd166"]
+  g5 -> x5 [style=dotted arrowhead=none]
 }
 ```
 
@@ -862,7 +852,7 @@ Every number in this talk: cncf.io/case-studies, filter project HAMi. Backup sli
 
 # Thank you
 
-@subtitle github.com/Project-HAMi/HAMi
+@subtitle Project-HAMi/HAMi on GitHub
 
 @speaker name="Reza Jelveh" role="Head of Global Market, Dynamia" github=github.com/fishman linkedin=linkedin.com/in/rezajelveh
 
@@ -873,13 +863,11 @@ Backup for "what do I actually type". Exact keys from HAMi chart v2.10.0 and the
 Helm: the two scheduler policies are the chart defaults; gpuCorePolicy force turns gpucores from a hint into a cap. Quota: limits. prefix, memory and core keys only, HAMi v2.7.0+. Pod: one SKU, 8000 MB and 20%, with a per-pod GPU policy.
 -->
 
-@layout blueprint
-
 ## Backup: the config as YAML
 
 @subtitle Helm values, tenant quota, one SKU
 
-::: grid {cols=2, class="cfg2"}
+::: grid {cols=2}
 ::: card
 ### Helm values + quota (v2.7.0+)
 ```yaml
@@ -940,14 +928,14 @@ The case study does not publish SKU sizes or prices, so I do not show any. Your 
 ```dot
 digraph G {
   rankdir=TB
-  bgcolor=transparent
-  node [shape=box style="rounded,filled" fontsize=14 margin="0.22,0.12" width=2.8]
-  edge [fontsize=11]
-  pool [label="Card pool\nNVIDIA + domestic" fillcolor="#e3f0ff" color="#3939D8"]
-  slice [label="vGPU slices\nmemory + compute" fillcolor="#e8f5e9" color="#2e7d32"]
-  sku [label="SKU catalog\npay by workload size" fillcolor="#fff9e6" color="#f9a825"]
+  nodesep=0.2
+  ranksep=0.2
+  node [shape=box style="rounded,filled" margin="0.08,0.03"]
+  pool [label="Card pool\nNVIDIA + domestic" class="green"]
+  slice [label="vGPU slices\nmemory + compute" class="yellow"]
+  sku [label="SKU catalog\npay by workload size" class="red"]
   pub [label="D.run marketplace\npublic cloud"]
-  ent [label="DCE quotas + RBAC\nenterprise pool"]
+  ent [label="DCE quotas + RBAC\nenterprise pool" class="red"]
   pool -> slice [label=" HAMi-core"]
   slice -> sku [label=" package"]
   sku -> pub
@@ -978,8 +966,6 @@ Backup. Still promise 3, the scheduling side, and the first production pattern: 
 Also KAI Scheduler (NVIDIA, CNCF Sandbox): since v0.16.4 the kai-resource-isolator delivers the same libvgpu.so.
 For a neocloud: you probably already picked a batch scheduler. You do not have to replace it.
 -->
-
-@layout table-md
 
 ## Backup: keep your scheduler
 
@@ -1041,8 +1027,6 @@ Large LLM serving too: CETC keeps text generation on 4 exclusive GPUs, Ke runs l
 What they share: small and bursty inference (Ke typically 1-2 GB VRAM per service), dev environments and notebooks (CETC, Zhuoyu Codespaces, our Viettel notebook), CI (NIO, SF test cluster), embedding and rerank (CETC), simulation (NIO).
 NIO runs all three: MIG for algorithm development where they want strong isolation, HAMi for CI, simulation and some inference, time-slicing for contention-tolerant work. That is not a vendor choice, it is a workload choice.
 -->
-
-@layout table-md
 
 ## Backup: what they chose not to share
 
