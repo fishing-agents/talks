@@ -129,6 +129,74 @@ Publish fractional capacity, pack slices, respect topology. **Needs a driver and
 
 ---
 
+## What is HAMi
+
+@subtitle Static allocation, one GPU per task
+
+<!--
+0.5 min. GPUs are expensive and mostly idle. HAMi is a CNCF Incubating project for heterogeneous GPU sharing on Kubernetes. Without it, Kubernetes hands every task a whole card, however little it uses.
+-->
+
+![Before HAMi](assets/hami_intro/before-hami.png)
+
+---
+
+## What is HAMi
+@transition none
+
+@subtitle Fractional vGPUs, multiple tasks per device
+
+<!--
+0.5 min. With HAMi, each task asks for a slice: memory in MiB, compute in percent. Several tasks share one device, each held to its own slice. No code changes, no driver changes.
+-->
+
+![After HAMi](assets/hami_intro/after-hami.png)
+
+---
+
+## HAMi Capabilities
+
+@subtitle Six things HAMi brings to GPU scheduling
+
+<!--
+1 min. Six capabilities. For a neocloud the important ones: heterogeneous management (one pool, whatever hardware arrives), memory and compute limits per slice, and scheduling policy. Kubernetes native means DRA and CDI too: we come back to DRA later.
+-->
+
+::: grid {cols=2}
+::: card
+### {icon:layers cls=accent-primary} Heterogeneous Management
+
+Manage GPU, NPU, MLU, and other accelerators in one workflow.
+:::
+::: card
+### {icon:shield-check cls=accent-primary} Hard Isolation
+
+Slice memory and compute with hard isolation at runtime.
+:::
+::: card
+### {icon:git-branch cls=accent-contrast} Advanced Scheduling
+
+Binpack, spread, and topology-aware placement policies.
+:::
+::: card
+### {icon:box cls=accent-primary} Kubernetes Native
+
+Kubernetes-native APIs, DRA, and CDI support.
+:::
+::: card
+### {icon:gauge cls=accent-primary} Resource Isolation & QoS
+
+Memory and core quotas for fair, stable sharing.
+:::
+::: card
+### {icon:chart-bar cls=accent-contrast} Unified Monitoring
+
+Consistent metrics and visibility across vendors.
+:::
+:::
+
+---
+
 <!--
 0.5 min. The map for the rest of the talk. Read it bottom-up: you cannot sell a slice you cannot cap, and you cannot cap a slice you did not place on a card.
 Every layer has a production user from the CNCF case studies; I will show their numbers as we climb, then the last four slides turn the stack into something you can build. HAMi is a CNCF Incubating project, and these case studies are all on cncf.io.
@@ -199,17 +267,17 @@ digraph G {
 ---
 
 <!--
-1.25 min. Still promise 2, plus promise 7: domestic chips as first-class citizens.
+1.25 min. Still promise 2, plus promise 7: every vendor's chips as first-class citizens.
 The tenant always asks the same way. Underneath, the mechanism depends on the silicon:
 - NVIDIA and Ascend have no hardware compute cap usable for this, so it is done in user space: HAMi-core on NVIDIA, vNPU-Core on Ascend. China Merchants Bank describes vNPU-Core as a token bucket for compute plus user-space memory management, 1 GB memory and 1% compute granularity.
 - AMD CU masking and NVIDIA MPS are caps the hardware scheduler honours, static per process.
 - Kunlunxin vXPU and Hygon vDCU are hardware-fenced: coarse, but the silicon itself stops a pod going past its partition. MIG belongs here too.
 - DeepX and Axelera today expose no hook point and no quota API: the scheduler can count what it reserved, but nothing on the chip stops a pod using more. Honest status, not a shipped feature.
 For a neocloud this matters: the SKU you sell is the same, the guarantee behind it is not. Know which row each of your chips is in.
-Supported list from the CETC case study: NVIDIA, Ascend, Cambricon, Hygon, Iluvatar CoreX, Moore Threads, MetaX, Enflame, Kunlunxin, AWS Neuron, Vastai. DaoCloud uses the phrase "first-class citizens" for domestic GPUs on D.run.
+Supported list from the CETC case study: NVIDIA, Ascend, Cambricon, Hygon, Iluvatar CoreX, Moore Threads, MetaX, Enflame, Kunlunxin, AWS Neuron, Vastai. DaoCloud uses the phrase "first-class citizens" for non-NVIDIA GPUs on D.run.
 -->
 
-## Layer 1: domestic chips are first-class
+## Layer 1: every vendor's chips are first-class
 
 @subtitle One request API, a different hook per vendor
 
@@ -230,7 +298,7 @@ Supported list from the CETC case study: NVIDIA, Ascend, Cambricon, Hygon, Iluva
 1.25 min. Promise 3: how the scheduler allocates heterogeneous devices.
 Capacity: the device plugin writes every card's memory, cores and share count onto the node. The scheduler extender filters per card: a pod that needs 45 GB stays pending on a node with two 40 GB cards even though the node total fits. That is Lab 2 in the workshop.
 Policy: binpack and spread exist on the node axis and the card axis, set per pod by annotation. For a neocloud: binpack small tenants so whole cards stay free for whole-card customers.
-Topology: NVLink, PCIe and NUMA are part of the card choice. On domestic hardware it gets harder: dual-chip modules. China Merchants Bank is next.
+Topology: NVLink, PCIe and NUMA are part of the card choice. On some non-NVIDIA hardware it gets harder: dual-chip modules. China Merchants Bank is next.
 Bring your own brain: no case study runs HAMi alone. Sangfor uses Volcano, SF Technology the HAMi extender in front of kube-scheduler and Volcano, Zhuoyu Koordinator with only HAMi-Core for isolation, CMB Kueue for training and KEDA for inference, and KAI Scheduler's resource isolator ships the same libvgpu.so. You do not have to replace the scheduler you already run. Backup slide has the table.
 -->
 
@@ -340,7 +408,7 @@ DaoCloud CNCF case study (Dec 2025). D.run is their public GPU cloud for develop
 - 20-30% lower GPU-related opex, and faster regional expansion. They also avoided proprietary vGPU licensing.
 DaoCloud is one of HAMi's earliest contributors: over-subscription, node config and heterogeneous hardware went upstream from them.
 How they sell it: slice cards into vGPU units with defined memory and compute, package the slices as standard SKUs in a central marketplace so users pay by workload size, fill with controlled over-subscription, and on DCE govern with quotas and RBAC at vGPU level per department and queue. The blueprint section turns this into pools and SKUs.
-Quote, Captain, AI/LLM Infra Product Lead at DaoCloud: "With HAMi's unified vGPU abstraction, D.run seamlessly manages both NVIDIA and domestic GPUs at scale."
+DaoCloud's AI/LLM infra product lead, paraphrased: with HAMi's unified vGPU abstraction, D.run manages NVIDIA and other vendors' GPUs at scale.
 Note: they give no "before" number for the 80%, so I do not turn it into a multiplier.
 -->
 
@@ -369,7 +437,7 @@ lower GPU-related opex
 :::
 
 - vGPU slices sold as standard SKUs: users pay by workload size, not by the card
-- NVIDIA and domestic GPUs under one abstraction
+- NVIDIA and other vendors' GPUs under one abstraction
 
 ---
 
@@ -851,6 +919,60 @@ digraph G {
 
 ---
 
+@layout ecosystem
+## Community & Adopters
+
+@subtitle Devices, integrations, and who uses HAMi
+
+<!--
+0.75 min. CNCF Incubating, 4,900+ GitHub stars, 500+ contributors from 20+ countries, 74 public adopters and hundreds of enterprises in production. Eleven device families. Schedulers it works with: Volcano, Kueue, Koordinator, KAI. Every number in this talk comes from a public CNCF case study.
+-->
+
+#### Open Source, CNCF Incubating, Production Ready
+::: grid {cols=5}
+::: card {metric}
+4.9k
+GitHub Stars
+:::
+::: card {metric}
+500+
+Contributors
+:::
+::: card {metric}
+20+
+Contributor Countries
+:::
+::: card {metric}
+74
+Public Adopters
+:::
+::: card
+
+![Kubernetes](assets/ecosystem/integrations/kubernetes.png) ![Volcano](assets/ecosystem/integrations/volcano.png) ![Kueue](assets/ecosystem/integrations/kueue.png) ![Koordinator](assets/ecosystem/integrations/koordinator.png) ![KAI Scheduler](assets/ecosystem/integrations/kai-scheduler.png) ![cozystack](assets/ecosystem/integrations/cozystack.svg)
+:::
+:::
+
+#### Ecosystem & Device Support
+::: grid {cols=2}
+::: card
+![NVIDIA](assets/ecosystem/devices/nvidia.png) ![Ascend](assets/ecosystem/devices/ascend.png) ![Cambricon](assets/ecosystem/devices/cambricon.png) ![Hygon](assets/ecosystem/devices/hygon.png) ![Iluvatar](assets/ecosystem/devices/illuvitar.png)
+![Metax](assets/ecosystem/devices/metax.png) ![Moore Threads](assets/ecosystem/devices/moorethreads.png) ![Kunlunxin](assets/ecosystem/devices/kunlunxin.png) ![Enflame](assets/ecosystem/devices/enflame.png)
+![AWS](assets/ecosystem/devices/aws.png) ![VastStream](assets/ecosystem/devices/vaststream.png)
+:::
+:::
+
+#### Adopters
+::: grid {cols=2}
+::: card
+![4Paradigm](assets/ecosystem/adopters/4paradigm.png) ![Baidu](assets/ecosystem/adopters/baiduzhineng.png) ![Baike](assets/ecosystem/adopters/baike.png) ![China Merchants](assets/ecosystem/adopters/chinamerchants.png) ![China Mobile](assets/ecosystem/adopters/chinamobile.png)
+![China Unicom](assets/ecosystem/adopters/chinaunicom.png) ![DaoCloud](assets/ecosystem/adopters/daocloud.png) ![Dynamia](assets/ecosystem/adopters/dynamia.png) ![H3C](assets/ecosystem/adopters/h3c.png) ![Huawei](assets/ecosystem/adopters/huawei.png)
+![LinkedIn](assets/ecosystem/adopters/linkedin.png) ![MSXF](assets/ecosystem/adopters/msxf.png) ![NIO](assets/ecosystem/adopters/nio.png) ![PPIO](assets/ecosystem/adopters/ppio.png) ![Prep](assets/ecosystem/adopters/prep.png)
+![SAP](assets/ecosystem/adopters/sap.png) ![SF Technology](assets/ecosystem/adopters/sftechnology.png) ![Si-Tech](assets/ecosystem/adopters/si-tech.png) ![Snow](assets/ecosystem/adopters/snow.png) ![Viettel](assets/ecosystem/adopters/viettel.png)
+:::
+:::
+
+---
+
 <!--
 0.25 min. Questions. Hands-on: the HAMi workshop at ContainerDays, today 12:30, github.com/Project-HAMi/hami-workshop.
 Numbers: 4,900+ GitHub stars (4,929 via GitHub API on 2026-10-24), 74 named organisations on the public adopters list, and production at hundreds of enterprises, 500+ contributors from 20+ countries (CETC case study, Sep 2026).
@@ -925,7 +1047,7 @@ Backup. The centerpiece, still promises 5 and 8. This is the blueprint as DaoClo
 2. Package slices as standardized SKUs in a central marketplace. The customer buys by workload size, not by the card. A small inference endpoint does not need a whole card; it needs a slice.
 3. Fill: controlled over-subscription. Not every tenant peaks at once, so you sell slightly more than the physical card, with the scheduler watching. DaoCloud contributed over-subscription upstream.
 4. Govern: on DCE, the private platform, quotas and RBAC are enforced at vGPU level, for department and queue limits. That is how an enterprise tenant gets a predictable share.
-5. Expand: NVIDIA and domestic GPUs under the same abstraction, so a new region can launch with whatever the supply chain delivers.
+5. Expand: NVIDIA and other vendors' GPUs under the same abstraction, so a new region can launch with whatever the supply chain delivers.
 The case study does not publish SKU sizes or prices, so I do not show any. Your SKUs come from your workload profiles: CETC's lesson is to start from workload profiles, not a preset partition ratio.
 -->
 
@@ -942,7 +1064,7 @@ digraph G {
   nodesep=0.2
   ranksep=0.2
   node [shape=box style="rounded,filled" margin="0.08,0.03"]
-  pool [label="Card pool\nNVIDIA + domestic" class="green"]
+  pool [label="Card pool\nNVIDIA + other vendors" class="green"]
   slice [label="vGPU slices\nmemory + compute" class="yellow"]
   sku [label="SKU catalog\npay by workload size" class="red"]
   pub [label="D.run marketplace\npublic cloud"]
@@ -963,7 +1085,7 @@ digraph G {
 | **Package** | Standard SKUs in a central marketplace |
 | **Fill** | Controlled over-subscription lifts card utilization |
 | **Govern** | Quotas + RBAC at vGPU level, per department and queue |
-| **Expand** | One abstraction over NVIDIA + domestic, region by region |
+| **Expand** | One abstraction over NVIDIA + other vendors, region by region |
 
 ---
 
