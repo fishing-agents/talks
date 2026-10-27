@@ -1184,7 +1184,7 @@ Share what is small, bursty, interactive or latency-tolerant. Keep big training 
 ---
 
 <!--
-Backup if asked "did you measure this yourselves". Own measurement, Viettel Cloud work (drawings.md). Two real jobs, each held a whole H200 (141 GB).
+Backup if asked "did you measure this yourselves". Own measurement, Viettel Cloud work (KCD Vietnam 2026 talk, kcd_vietnam.md). Two real jobs, each held a whole H200 (141 GB).
 1) Time-series forecast, small model: 1 GB of 141 GB, SM 16-18%.
 2) YOLO11 defect-detection training, about 17k images: 39 GB. Batch is sized for accuracy, not to fill the card, so the ~100 GB left over is genuinely free.
 Many cards have no MIG at all (L40, L40S, A6000), so hardware partitioning is not even an option there.
@@ -1239,9 +1239,9 @@ ax.grid(False)
 ---
 
 <!--
-Backup, from the Viettel Cloud work (drawings.md). Time-series inference service, p95 held at 160 ms.
+Backup, from the Viettel Cloud work (KCD Vietnam 2026 talk, kcd_vietnam.md). Time-series inference service, p95 held at 160 ms.
 Native: one pod per card, 20.7 req/s, SM 18%. With HAMi slices plus KEDA scaling to 10 replicas on the same card: 71.1 req/s at the same p95: 3.4x per card. SM goes 18 to 31 to 54 to 100% at 1, 2, 5, 10 replicas.
-The team challenged the baseline: bigger batches (32 to 512) left the GPU at 7-10%; one instance simply cannot fill an H200.
+The team challenged the baseline. The service is a Chronos forecasting model, about 200M parameters, predicting infrastructure load. Raising the batch, the number of forecast requests per inference call, from 32 to 512 left the GPU at 7-10%; one instance simply cannot fill an H200 (kcd_vietnam.md).
 Cost framing (example only): the same 71 req/s natively needs about 3.4 cards, so roughly 71% fewer cards, about 51% less power, about $7k/month at an example $4 per GPU-hour. Example price, not a quote.
 -->
 
@@ -1294,7 +1294,7 @@ ax2.set_ylim(-22, 140)
 
 - One pod uses **18%** of the SMs. Ten replicas on the same card: **100%, same p95**
 - HAMi does not make one pod faster: **it fills the card that sat empty**
-- Bigger batches did not help: **32 to 512**, GPU still at 7-10%
+- Bigger batches did not help: **32 to 512** forecast requests per call, GPU still at 7-10%
 
 ---
 
