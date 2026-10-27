@@ -92,9 +92,9 @@ ax.grid(False)
 <!--
 1 min. Is it just us? No. Seven independent measurements, before any sharing:
 - NIO (autonomous driving), CI/testing on full GPUs: 5-10%. CI is mostly CPU: compile, fetch, preprocess.
-- PREP EDU (Vietnam, EdTech, consumer RTX cards): 10-20% with static allocation.
+- PREP EDU (on-prem RTX 4070/4090 inference): 10-20% with static allocation.
 - CETC Cloud: an embedding model held a whole 64 GB card and used 8 GB: 12.5% of VRAM. That one is memory, not SM.
-- Ke Holdings: 13% across the whole platform, thousands of GPUs.
+- Ke Holdings: 13% across the whole platform, thousands of GPUs. Platform-wide, mixed training and inference, not one workload.
 - Zhuoyu: dev environments and small inference below 15%. Only an upper bound, so the bar is hatched.
 - Sangfor: small models 15-20%, one card one model.
 - Our H200 from the last slide: SM 16-18%.
@@ -104,7 +104,7 @@ Line to land: nobody here has a capacity problem. They have an allocation proble
 
 ## Seven teams measured the same 5-20%
 
-@subtitle Whole-card utilization before sharing, as each one reported it
+@subtitle Utilization before sharing, as each team reported it (workload, platform and VRAM measures differ)
 
 ```seaborn
 import matplotlib.pyplot as plt
@@ -127,7 +127,7 @@ rows = [
     ("NIO", "CI / testing", 5, 10, "5-10%", "range"),
     ("PREP EDU", "inference, RTX 4070/4090", 10, 20, "10-20%", "range"),
     ("CETC Cloud", "embedding model, VRAM", 12.5, 12.5, "12.5%", "point"),
-    ("Ke Holdings", "whole platform", 13, 13, "13%", "point"),
+    ("Ke Holdings", "platform-wide, mixed training + inference", 13, 13, "13%", "point"),
     ("Zhuoyu", "dev envs, small inference", 0, 15, "<15%", "upper"),
     ("Sangfor", "small models", 15, 20, "15-20%", "range"),
     ("Own H200", "time-series inference, SM", 16, 18, "16-18%", "range"),
@@ -216,7 +216,7 @@ Sangfor said it best in their CNCF case study (quote on slide). That pair, virtu
 @subtitle Fractional vGPUs, multiple tasks per device
 
 <!--
-0.5 min. With HAMi, each task asks for a slice: memory in MiB, compute in percent. Several tasks share one device, each held to its own slice. No code changes, no driver changes.
+0.5 min. With HAMi, each task asks for a slice: memory in MB, compute in percent. Several tasks share one device, each held to its own slice. No code changes, no driver changes.
 -->
 
 ![After HAMi](assets/hami_intro/after-hami.png)
@@ -314,13 +314,13 @@ Quotas, metering, accurate per-GPU usage records
 
 <!--
 1.5 min. Promise 2: how vGPU interception holds each pod to its memory and compute limits.
-1. The pod asks for memory in MiB and compute in percent of SMs, next to nvidia.com/gpu: 1.
+1. The pod asks for memory in MB and compute in percent of SMs, next to nvidia.com/gpu: 1.
 2. HAMi's scheduler extender picks a physical card UUID with enough headroom and writes it on the pod.
 3. The device plugin's Allocate mounts HAMi-core, libvgpu.so, and writes it into /etc/ld.so.preload, so the dynamic linker loads it before the app. It sits in front of the CUDA driver API.
-4. Memory: every allocation is checked against the slice in MiB. Over the limit means OOM inside this pod; the neighbours keep running. Compute: a token bucket meters kernel launches so the pod averages its percent of the SMs, 1% granularity.
-5. nvidia-smi inside the pod shows the slice, not the card: 15000 MiB, not 141 GB. Frameworks that size themselves from free memory behave.
+4. Memory: every allocation is checked against the slice in MB. Over the limit means OOM inside this pod; the neighbours keep running. Compute: a token bucket meters kernel launches so the pod averages its percent of the SMs, 1% granularity.
+5. nvidia-smi inside the pod shows the slice, not the card: 15000 MB, not 141 GB. Frameworks that size themselves from free memory behave.
 No kernel module, no driver change, no image change: SF Technology reports zero changes to driver, kernel, image or source.
-This is product one, fractional GPU capacity: the slice is the unit you rent. Same pattern per vendor where there is a hook point. Live demo of this is in the workshop at 12:30.
+This is product one, fractional GPU capacity: the slice is the unit you rent. Same pattern on other vendors, each with its own limiter. Live demo of this is in the workshop at 12:30.
 -->
 
 @layout two-col
@@ -329,7 +329,7 @@ This is product one, fractional GPU capacity: the slice is the unit you rent. Sa
 
 @subtitle How vGPU interception caps memory and compute
 
-1. Pod asks for **MiB** of memory and **%** of compute
+1. Pod asks for **MB** of memory and **%** of compute
 2. Scheduler picks a card **UUID** with headroom
 3. Device plugin injects **`libvgpu.so`** via `ld.so.preload`
 4. HAMi-core intercepts CUDA: allocations capped at the slice, launches paced by a **% token bucket**
@@ -341,7 +341,7 @@ This is product one, fractional GPU capacity: the slice is the unit you rent. Sa
 resources:
   limits:
     nvidia.com/gpu: 1
-    nvidia.com/gpumem: 15000   # MiB
+    nvidia.com/gpumem: 15000   # MB
     nvidia.com/gpucores: 30    # % of SMs
 ```
 
@@ -362,7 +362,7 @@ digraph G {
 ---
 
 <!--
-1 min. Left: the measured split of our H200. The training notebook (YOLO11) gets a 39 GB slice, the time-series job a 1 GB slice, about 100 GB is free for the next tenants. Memory is the hard constraint: an OOM cannot wait (NIO says the same in their case study), so memory is fenced, never over-committed by default.
+1 min. Left: the measured split of our H200. The training notebook (YOLO11) used 39 GB of a ~30% fence, the time-series job used 1 GB; about 100 GB is free for the next tenants. Memory is the hard constraint: an OOM cannot wait (NIO says the same in their case study), so memory is fenced, never over-committed by default.
 Right: compute is different. Illustration, not a measurement: a pod at 25% of the SMs is paced on every kernel launch and cannot burst above its share even if the rest is idle. A compute shortage can be absorbed as delay, a memory shortage cannot.
 -->
 
@@ -372,7 +372,7 @@ Right: compute is different. Illustration, not a measurement: a pod at 25% of th
 
 ::: grid {cols=2}
 ::: card
-### {icon:memory-stick cls=accent-primary} Memory: MiB slices
+### {icon:memory-stick cls=accent-primary} Memory: MB slices
 ```seaborn
 import matplotlib.pyplot as plt
 plt.rcParams["font.sans-serif"] = [*plt.rcParams["font.sans-serif"], "DejaVu Sans"]
@@ -388,7 +388,7 @@ fig, ax = plt.subplots(figsize=(6.2, 2.9))
 ax.set_facecolor("none")
 fig.patch.set_alpha(0)
 ax.text(0, 1.62, "MEMORY: ONE H200, 141 GB", fontsize=11, color=dim, family="monospace")
-segs = [(39, accent, "39 GB"), (1, red, ""), (101, grey, "~100 GB free")]
+segs = [(39, accent, "39 GB used"), (1, red, ""), (101, grey, "~100 GB free")]
 left = 0
 for w, c, t in segs:
     ax.barh(1, w, left=left, color=c, height=0.7, edgecolor="white", linewidth=1.5)
@@ -397,7 +397,7 @@ for w, c, t in segs:
                 color="white" if c == accent else fg, fontweight="bold")
     left += w
 ax.text(19.5, 0.42, "notebook\n(training)", ha="center", va="top", fontsize=11, color=fg, linespacing=1.3)
-ax.text(40, 0.42, "time-series\n1 GB", ha="left", va="top", fontsize=11, color=red, fontweight="bold", linespacing=1.3)
+ax.text(40, 0.42, "time-series\n1 GB used", ha="left", va="top", fontsize=11, color=red, fontweight="bold", linespacing=1.3)
 ax.text(141, 0.42, "next tenants", ha="right", va="top", fontsize=11, color=dim)
 ax.set_xlim(-1, 142)
 ax.set_ylim(-0.35, 1.85)
@@ -542,7 +542,7 @@ ax2.set_ylim(-22, 140)
 
 - One pod uses **18%** of the SMs. Ten replicas on the same card: **100%, same p95**
 - HAMi does not make one pod faster: **it fills the card that sat empty**
-- Bigger batches did not help: **32 to 512** forecast requests per call, GPU still at 7-10%
+- Bigger batches did not help: **batch size 32 to 512**, GPU still at 7-10%
 - Model APIs, same move: **many models per card** (Sangfor: 1 to 8+ per GPU)
 
 ---
@@ -553,7 +553,7 @@ The chart is our design for one AI notebook card: three load mixes on the same H
 Capacity model: every card reports its memory, cores and share count onto the node, and the scheduler extender fits per card, not per node. A pod that needs 45 GB stays pending on a node with two 40 GB cards, even though the node total fits.
 Placement: binpack or spread on two axes, which node and which card. Binpack small tenants so whole cards stay free for whole-card customers and big training; spread for fewer noisy neighbours. Topology (NVLink, PCIe, NUMA) is part of the card choice.
 Hand-off: KEDA scales the replicas, so freed capacity moves to whoever peaks next. They peak at different times, so they take turns on one card.
-Batch needs queues, fair share, gang scheduling, priorities and per-tenant quotas. HAMi does not do that itself: it is a capacity model plus extender, and the isolation library. Bring your own brain: Sangfor runs Volcano for gang scheduling, Zhuoyu Koordinator, CMB Kueue for training admission and quota; KAI Scheduler's resource isolator ships the same libvgpu.so. You do not have to replace the scheduler you have (backup slide).
+Batch needs queues, fair share, gang scheduling, priorities and per-tenant quotas. HAMi does not do that itself: it is a capacity model plus extender, and the isolation library. Bring your own brain: Sangfor runs Volcano for gang scheduling, Zhuoyu Koordinator, CMB Kueue for training admission and quota; KAI Scheduler's resource isolator ships the same libvgpu.so (references/KAI-resource-isolator/README.md:13). You do not have to replace the scheduler you have (backup slide).
 -->
 
 ## Batch and training: the scheduler decides
@@ -610,8 +610,8 @@ ax.set_ylim(-0.6, 3.2)
 
 <!--
 1 min. Promise 6, part 2: best-fit workloads, and why a neocloud's training product usually rents whole cards. The most useful table for an operator.
-Whole card for large training (Ke, CMB, NIO, CETC) and large LLM serving (CETC keeps 4 GPUs exclusive for text generation; Ke keeps H200/H100 for big LLMs on a separate cluster).
-HAMi slices for small and bursty inference (Ke typically 1-2 GB VRAM per service, Sangfor, DaoCloud, SF, PREP EDU, NIO), dev environments and notebooks (CETC, Zhuoyu Codespaces, our Viettel notebook), CI and testing (NIO, SF test cluster), embedding and rerank (CETC).
+Whole card for large training (Ke, NIO) and large LLM serving (CETC keeps 4 GPUs exclusive for text generation; Ke keeps H200/H100 for big LLMs on a separate cluster).
+HAMi slices for small and bursty inference (Ke typically 1-2 GB VRAM per service, Sangfor, DaoCloud, SF, PREP EDU, NIO), dev environments and notebooks (CETC, Zhuoyu Codespaces, our Viettel notebook), CI and testing (NIO), test service clusters (SF: 19 services on 6 GPUs), embedding and rerank (CETC).
 NIO runs all three: MIG for algorithm development where they want strong isolation, HAMi for CI, simulation and some inference, time-slicing for contention-tolerant work. That is not a vendor choice, it is a workload choice.
 CETC's lesson: start from workload profiles, not a preset partition ratio.
 -->
@@ -622,9 +622,10 @@ CETC's lesson: start from workload profiles, not a preset partition ratio.
 
 | Workload | How it runs | Who |
 | --- | --- | --- |
-| Large training, large LLM serving | **Whole card** | Ke, CMB, NIO, CETC |
+| Large training | **Whole card** | Ke, NIO |
+| Large LLM serving | **Whole card** | CETC, Ke |
 | Small or bursty inference | **HAMi slice** | Ke, Sangfor, DaoCloud, SF, PREP EDU, NIO |
-| Dev envs, notebooks, CI | **HAMi slice** (MIG for hard isolation) | CETC, Zhuoyu, NIO, SF, own |
+| Dev envs, notebooks, CI/test | **HAMi slice** (MIG for hard isolation) | CETC, Zhuoyu, NIO, SF, own |
 | Embedding, rerank, simulation | **HAMi slice** | CETC, NIO |
 
 ::: notes {tag=green}
@@ -635,14 +636,13 @@ Profile workloads first, not a preset ratio (CETC).
 
 <!--
 1.5 min. Promises 3 and 7: heterogeneous scheduling, every vendor's accelerators as first-class citizens. Every neocloud product sits on whatever hardware the supply chain delivers.
-The API stays one shape (memory + cores per vendor resource name); what stops a pod using more underneath depends on what the chip gives you:
-- NVIDIA and Ascend have no hardware compute cap, so HAMi intercepts in user space (token bucket, 1%). CMB built vNPU-core for Ascend the same way: 1 GB memory, 1% compute.
+The API stays one shape (memory + cores per vendor resource name); what stops a pod using more underneath depends on what the chip gives you (per-vendor map from the OSS Summit Korea talk, ossummit_korea.md:253):
+- NVIDIA and Ascend have no hardware compute cap, so HAMi intercepts in user space (token bucket, 1%). CMB used HAMi's vNPU-core (VMPO Core) for user-space partitioning: token bucket plus user-space memory management, down to 1 GB memory / 1% compute.
 - AMD CU masking and NVIDIA MPS are caps the hardware scheduler honours, static per process.
 - Kunlunxin vXPU, Hygon vDCU and MIG are hardware-fenced: coarse, but the silicon itself stops a pod going past its partition.
-- Vendors with no hook point and no quota API (DeepX, Axelera today): the scheduler can only count what it reserved; nothing on the chip stops a pod using more, and no compute slicing without reverse engineering. Honest boundary.
 For a neocloud: the SKU you sell is the same, the guarantee behind it is not. Know which row each of your chips is in.
-China Merchants Bank (CNCF case study, ~10,000 cards): Kunlunxin, several Ascend models, NVIDIA, PPUs, Moore Threads, MetaX. Without HAMi every hardware delivery would have been its own cluster: 8+ clusters, each with its own device plugin, scheduler policy, monitoring, runbooks. Their supernodes use dual-chip modules; odd-card allocation caused driver errors. Paired allocation inside a module made 100% of the pool usable; three-tier network scoring (same node, same LEAF, cross LEAF) cut cross-machine scheduling by 30%.
-DaoCloud calls non-NVIDIA accelerators 'first-class citizens' on D.run. CETC's supported list: NVIDIA, Ascend, Cambricon, Hygon, Iluvatar CoreX, Moore Threads, MetaX, Enflame, Kunlunxin, AWS Neuron, Vastai.
+China Merchants Bank (CNCF case study, ~10,000 cards): Kunlunxin, several Ascend models, NVIDIA, PPUs, Moore Threads, MetaX. Without HAMi every hardware delivery could have needed its own cluster: more than 8 clusters (a counterfactual, per CMB), each with its own device plugin, scheduler policy, monitoring, runbooks. Their supernodes use dual-chip modules; odd-card allocation caused driver errors and left some hardware effectively unusable. With paired allocation inside a module CMB reports hardware pool utilization of 100%; three-tier network scoring (same node, same LEAF, cross LEAF) cut cross-machine scheduling by 30%.
+DaoCloud calls non-NVIDIA accelerators 'first-class citizens' on D.run. HAMi's supported list (per the CETC case study): NVIDIA, Ascend, Cambricon, Hygon, Iluvatar CoreX, Moore Threads, MetaX, Enflame, Kunlunxin, AWS Neuron, Vastai.
 -->
 
 @layout two-col
@@ -656,7 +656,6 @@ DaoCloud calls non-NVIDIA accelerators 'first-class citizens' on D.run. CETC's s
 | NVIDIA, Ascend | User-space interception, 1% token bucket |
 | AMD CU masking, NVIDIA MPS | Hardware-honoured, static |
 | Kunlunxin vXPU, Hygon vDCU, MIG | Hardware-fenced, coarse |
-| DeepX, Axelera | No hook point today |
 
 ```yaml
 nvidia.com/gpucores: 30          # same shape,
@@ -666,20 +665,20 @@ huawei.com/Ascend910C-core: 20   # any vendor
 @col
 
 ::: card {tag=green}
-### {icon:merge cls=accent-primary} 8+ clusters avoided
-China Merchants Bank: Kunlunxin, Ascend, NVIDIA, PPU, Moore Threads, MetaX in **one pool**
+### {icon:merge cls=accent-primary} More than 8 clusters avoided
+China Merchants Bank: Kunlunxin, Ascend, NVIDIA, PPU, Moore Threads, MetaX in **one pool** (counterfactual, per CMB)
 :::
 
 ::: card {tag=cyan}
 ### {icon:network cls=accent-primary} Topology counts
-Paired allocation on supernodes: **100% of the pool usable**, cross-machine scheduling **-30%** (CMB)
+Paired allocation on supernodes: **100% hardware pool utilization**, cross-machine scheduling **-30%** (CMB)
 :::
 
 ---
 
 <!--
 1.5 min. Promise 4: how DRA fits, and where it falls short.
-Fits: HAMi-DRA (github.com/Project-HAMi/HAMi-DRA) is a mutating webhook that rewrites nvidia.com/gpu, gpumem, gpucores requests into DRA ResourceClaims. Kubernetes 1.34+ with the DRA Consumable Capacity feature gate and CDI in the runtime. Since HAMi v2.8 the same semantics exist on the DRA path: typed capacities in ResourceSlices (memory step 1 MiB, cores 0-100). A ResourceClaimTemplate mode exists for Kueue admission. Your pod YAML does not change.
+Fits: HAMi-DRA (github.com/Project-HAMi/HAMi-DRA) is a mutating webhook that rewrites nvidia.com/gpu, gpumem, gpucores requests into DRA ResourceClaims. Kubernetes 1.34+ with the DRA Consumable Capacity feature gate and CDI in the runtime. Since HAMi v2.8 the same semantics exist on the DRA path: typed capacities in ResourceSlices (memory step 1 MiB, cores 0-100; ossummit_korea.md:790-792). A ResourceClaimTemplate mode exists for Kueue admission. Your pod YAML does not change.
 Falls short today:
 - DRA reserves the slice, but on its own nothing stops the pod using more of the card. HAMi-core (or the vendor mechanism from the mixed-fleet slide) is what holds it to the slice.
 - Claims are accounting: they tell you what was reserved, not what is used.
@@ -719,22 +718,22 @@ Keep the Pod API stable now, move to DRA underneath when your Kubernetes and sch
 
 <!--
 1.25 min. Promises 5 and 8: production patterns from cloud providers running 10,000+ GPUs, and the cross-cutting layer every neocloud product needs: tenants, quotas, metering, billing.
-DaoCloud CNCF case study (Dec 2025): HAMi active on 10,000+ GPU cards, DaoCloud-operated plus customer-owned. D.run is their public GPU cloud: 7 active regions, 10+ data centers, single regions up to ~3,000 GPUs. DCE is their private platform for enterprises.
+DaoCloud CNCF case study (Dec 2025): HAMi active on 10,000+ GPU cards across D.run and DCE combined, DaoCloud-operated plus customer-owned. D.run is their public GPU cloud: 7 active regions, 10+ data centers, single regions up to ~3,000 GPUs. DCE is their private platform for enterprises.
 From card to SKU, as they describe it:
 1. Define the unit: a vGPU slice with fixed memory and compute. That is the split from the fractional-GPU slides.
 2. Package slices as standardized SKUs in a central marketplace. Users pay by workload size, not by full card. A 7B inference endpoint does not need an H100; it needs a slice.
-3. Fill: controlled over-subscription. Not every tenant peaks at once, so you sell slightly more than the physical card, with the scheduler watching.
+3. Fill: controlled over-subscription (DaoCloud publishes no ratio). My gloss, not DaoCloud's: tenants rarely peak together.
 4. Govern: on DCE, quotas and RBAC at vGPU level, per department and queue. NVIDIA and other vendors' accelerators under one abstraction.
 Results: >80% average utilization per card, 20-30% lower GPU-related opex. They give no before number, so I do not claim a multiplier for them. No SKU sizes or prices are published either, so I show none.
 -->
 
 ## Sell and meter: the slice becomes the product
 
-@subtitle DaoCloud D.run: the box became a cloud
+@subtitle DaoCloud D.run and DCE: the box became a cloud
 
 ::: card {metric}
 10,000+
-GPU cards under HAMi
+GPU cards under HAMi, D.run + DCE
 :::
 
 ::: card {metric}
@@ -747,7 +746,7 @@ avg utilization per card
 lower GPU opex
 :::
 
-How D.run turns cards into products:
+How DaoCloud turns cards into products:
 
 ::: grid {cols=4}
 ::: card {tag=cyan}
@@ -764,7 +763,7 @@ Controlled over-subscription
 :::
 ::: card {tag=red}
 ### {icon:users cls=accent-secondary} 4. Govern
-Quotas + RBAC per vGPU, 7 regions
+Quotas + RBAC per vGPU (DCE)
 :::
 :::
 
@@ -774,7 +773,7 @@ Quotas + RBAC per vGPU, 7 regions
 1 min. Promise 5, part 2: how production users operate it. For a neocloud this is metering: you bill from one number and plan capacity from the other. Quotas: one namespace per tenant with a standard ResourceQuota on limits.nvidia.com/gpumem and limits.nvidia.com/gpucores; HAMi tracks those keys since v2.7.0 (blueprint slide).
 Measure: Zhuoyu publishes clean definitions. Allocation = scheduled cards / schedulable cards. Utilization = mean SM utilization from node telemetry. They hit >95% allocation and >55% utilization at the same time, ~60% on shared inference. If you only watch allocation you will think you are full while the silicon idles. HAMi exposes both: scheduler metrics on 9395 are reservations, vGPUmonitor on 9394 is usage. Price from one, plan capacity from the other.
 Upgrade: NIO validates every HAMi version and upgrades inference device plugins blue-green.
-Scale: SNOW Corp (Korea, 1,000+ A100s) scales on unacked messages / active consumers at about 0.7, so replicas are warm before the queue explodes (~60 s model warm-up). They handled a 700% viral spike and need 2x fewer GPUs for train plus inference pipelines. Honest attribution: SNOW credits most savings to KEDA; HAMi for sharing and avoiding a re-architecture.
+Scale: SNOW Corp (Korea, 1,000+ A100s) scales on unacked messages / active consumers at about 0.7, so replicas are warm before the queue explodes (~60 s model warm-up). They handled a 700% viral spike and need 2x fewer GPUs for train plus inference pipelines. Honest attribution: SNOW credits proactive KEDA autoscaling with the 55% GPU-usage-time reduction; HAMi sharing avoided a full re-architecture; the 2x fewer GPUs figure is not attributed to one component.
 -->
 
 ## Operate it: allocation is not utilization
@@ -823,7 +822,7 @@ for y, v, c, name, sub, lab in [
     ax.text(-1.5, y + 0.01, sub, ha="right", va="top", fontsize=9, color=dim)
     ax.text(v - 1.5, y, lab, ha="right", va="center", fontsize=12, color="white", fontweight="bold")
 ax.annotate("", xy=(95, -0.42), xytext=(55, -0.42), arrowprops=dict(arrowstyle="<->", color=dim, linewidth=1.3))
-ax.text(75, -0.5, "reserved, not busy", ha="center", va="top", fontsize=10, color=fg, fontweight="bold")
+ax.text(75, -0.5, "different measures", ha="center", va="top", fontsize=10, color=fg, fontweight="bold")
 ax.text(-30, 1.55, "ZHUOYU, SAME FLEET, TWO NUMBERS", fontsize=10, color=dim, family="monospace")
 ax.set_xlim(-30, 101)
 ax.set_ylim(-0.95, 1.75)
@@ -836,14 +835,14 @@ ax.grid(False)
 
 <!--
 1 min. Now the honest version of the title. Every number here is from a CNCF case study or our own measurement.
-Per workload (red): CETC dev pods per device 2 to 30 (15x). NIO CI utilization 5% to 30-50%: up to 10x (their headline says 10x, the text says about 4x, so I say 'up to'). Sangfor models per GPU 1 to 8+. Our H200: 3.4x req/s per card.
-Whole platform (blue): Sangfor GPU utilization >3x. Ke Holdings 13% to 37%. SNOW: 2x fewer GPUs for train + inference. China Merchants Bank 35% to 60%+ on ~10,000 cards; CMB warns the gain cannot be attributed to any single component.
-10x is real where you start at 5-15%: CI, dev environments, notebooks, embedding, small inference. Whole platforms land at 2-3x because training already uses its cards. For a neocloud whose customers are mostly small inference and dev, your mix decides where you land. If someone promises 10x for your whole cloud, ask what your baseline is.
+Per workload (red): CETC dev pods per device 2 to 30 (15x, capacity, not utilization). NIO CI utilization 5% to 30-50%: up to 10x (their headline says 10x, the text says about 4x, so I say 'up to'). Sangfor models per GPU 1 to 8+ (density). Our H200: 3.4x req/s per card.
+Whole platform (blue): Sangfor GPU utilization >3x. Ke Holdings 13% to 37%. SNOW: 2x fewer GPUs for train + inference pipelines. China Merchants Bank 35% to 60%+ on ~10,000 cards; CMB warns the gain cannot be attributed to any single component.
+NIO's CI is the one utilization gain from a 5-10% baseline: 5-10% to 30-50%. Whole platforms land at roughly 1.7-3x (Ke 2.8x, Sangfor >3x, SNOW 2x, CMB 1.7x). Our reading: training already uses its cards. For a neocloud whose customers are mostly small inference and dev, your mix decides where you land. If someone promises 10x for your whole cloud, ask what your baseline is.
 -->
 
 ## It's not just one H200
 
-@subtitle 10x where the baseline is 5-15%, 2-3x platform-wide
+@subtitle Per-workload gains up to 15x, platform-wide 1.7-3x
 
 ```seaborn
 import matplotlib.pyplot as plt
@@ -887,8 +886,8 @@ for ax, rows, c, title in [(axes[0], per_workload, red, "PER WORKLOAD"), (axes[1
     ax.set_ylim(-0.6, 4.5)
 ```
 
-- **Whole-card baselines in the case studies: 5-20%.** Start there and 10x is reachable
-- Whole platforms land at **2-3x**: training already uses its cards
+- **Whole-card baselines in the case studies: 5-20%.** NIO's CI went 5-10% to 30-50% (headline 10x, text ~4x)
+- Whole platforms land at **1.7-3x**. Our reading: training already uses its cards
 
 ---
 
@@ -896,10 +895,10 @@ for ax, rows, c, title in [(axes[0], per_workload, red, "PER WORKLOAD"), (axes[1
 1.25 min. Promise 9: no vendor pitch. Say these plainly.
 - Soft isolation is a resource and fairness control for trusted workloads, not a security boundary. CUDA_DISABLE_CONTROL=true skips the libvgpu.so preload; statically linked CUDA and direct /dev/nvidia* ioctls bypass it. On a public neocloud, do not sell soft slices to mutually untrusted tenants as if they were VMs.
 - MIG for hard isolation: NIO runs algorithm development on MIG; untrusted tenants get MIG, VMs or whole cards.
-- Training stays on whole cards: Ke, CMB, NIO and CETC all keep big training and big LLMs exclusive.
+- Training stays on whole cards: Ke and NIO keep large training on whole GPUs; CETC keeps LLM serving (text generation) exclusive.
 - Finer is not better: NIO's 1/8 slices lost throughput against 1/6.
 - Interception has edges: NIO hit compiler and library features doing pointer and address analysis. Validate upgrades, roll out in phases. Per-tenant telemetry is uneven across vendors (AMD has no first-party tenant path).
-- Results are stack results: SNOW credits most of its savings to KEDA; CMB says the gain cannot be attributed to any single component. HAMi is one layer.
+- Results are stack results: SNOW attributes its 55% GPU-time reduction to KEDA autoscaling; CMB says the gain cannot be attributed to any single component. HAMi is one layer.
 -->
 
 ## Honest limits
@@ -917,7 +916,7 @@ NIO: algorithm dev on MIG. Untrusted tenants: MIG or whole cards
 :::
 ::: card {tag=cyan}
 ### {icon:dumbbell cls=accent-primary} Training stays whole
-Ke, CMB, NIO, CETC keep big jobs exclusive
+Ke, NIO keep large training on whole GPUs; CETC keeps LLM serving exclusive
 :::
 ::: card {tag=yellow}
 ### {icon:scissors cls=accent-contrast} Finer is not better
@@ -929,7 +928,7 @@ Toolchain clashes, validate every upgrade (NIO)
 :::
 ::: card {tag=cyan}
 ### {icon:layers cls=accent-primary} Results are stack results
-KEDA, Kueue, Fluid share the credit (SNOW, CMB)
+KEDA, Kueue, Fluid share the credit (CMB). SNOW credits KEDA for its GPU-time cut
 :::
 :::
 
@@ -1015,7 +1014,7 @@ digraph G {
 @subtitle Devices, integrations, and who uses HAMi
 
 <!--
-0.75 min. CNCF Incubating, 4,900+ GitHub stars, 500+ contributors from 20+ countries, 74 public adopters and hundreds of enterprises in production. Eleven device families. Schedulers it works with: Volcano, Kueue, Koordinator, KAI. Every number in this talk comes from a public CNCF case study.
+0.75 min. CNCF Incubating, 4,900+ GitHub stars, 500+ contributors from 20+ countries, 74 public adopters and hundreds of enterprises in production. Eleven device families. Schedulers it works with: Volcano, Kueue, Koordinator, KAI. Every number in this talk comes from a public CNCF case study or our own Viettel Cloud measurements; stars and adopters are from GitHub and the public adopters list.
 -->
 
 #### Open Source, CNCF Incubating, Production Ready
@@ -1064,7 +1063,7 @@ Public Adopters
 ---
 
 <!--
-30 s. Close: one wasted card, five products, one GPU layer under them. 10x where you start at 5-15%, 2-3x for a whole platform, and the limits are real.
+30 s. Close: one wasted card, five products, one GPU layer under them. Up to 10x for a workload that starts at 5-10% (NIO's CI), 1.7-3x for a whole platform, and the limits are real.
 HAMi: CNCF Incubating, 74 public adopters and in production at hundreds of enterprises (CETC case study), 500+ contributors from 20+ countries, 4,900+ GitHub stars (4,929 via GitHub API, 2026-10-24).
 QR goes to the HAMi repo. Workshop labs: github.com/Project-HAMi/hami-workshop (ContainerDays Singapore, same day 12:30). All case studies: cncf.io/case-studies, project HAMi.
 Questions.
@@ -1082,7 +1081,7 @@ Questions.
 ---
 
 <!--
-BACKUP for 'which scheduler?' questions. Sangfor: Volcano (gang, LWS). SF Technology: kube-scheduler + Volcano, HAMi as extender + webhook + isolation. Zhuoyu: Koordinator Device Share, HAMi-Core only for isolation. CMB: Kueue for training, KEDA for inference. SNOW: KEDA on a custom saturation metric. DaoCloud: own quota + RBAC. KAI Scheduler's resource isolator delivers the same libvgpu.so.
+BACKUP for 'which scheduler?' questions. Sangfor: Volcano (gang, LWS). SF Technology: kube-scheduler + Volcano, HAMi as extender + webhook + isolation. Zhuoyu: Koordinator Device Share, HAMi-Core only for isolation. CMB: Kueue for training, KEDA for inference. SNOW: KEDA on a custom saturation metric. DaoCloud: own quota + RBAC. KAI Scheduler's resource isolator delivers the same libvgpu.so (references/KAI-resource-isolator/README.md:13).
 -->
 
 @layout image-right
@@ -1232,7 +1231,7 @@ All at cncf.io/case-studies/?_sft_lf-project=hami (read 2026-10-24). Own measure
 | Organisation | Used for | Date |
 | --- | --- | --- |
 | DaoCloud | D.run blueprint, 10,000+ cards, >80%, -20-30% opex | Dec 2025 |
-| China Merchants Bank 1 + 2 | 8+ clusters avoided, topology, 35% → 60%+, +46.7% | Jul + Sep 2026 |
+| China Merchants Bank 1 + 2 | more than 8 clusters avoided, topology, 35% → 60%+, +46.7% | Jul + Sep 2026 |
 | Sangfor | Volcano, 1 → 8+ models per GPU, >3x | Sep 2026 |
 | NIO | CI 5% → 30-50%, finer is not better, MIG, upgrades | Mar 2026 |
 | SNOW Corp | KEDA saturation scaling, 700% spike, 2x fewer GPUs | May 2026 |
@@ -1240,4 +1239,4 @@ All at cncf.io/case-studies/?_sft_lf-project=hami (read 2026-10-24). Own measure
 | Zhuoyu | Koordinator, allocation >95% vs utilization >55% | Sep 2026 |
 | CETC Cloud | 2 → 30 dev pods, within 5% throughput | Sep 2026 |
 | SF Technology | zero app changes, Ascend / Kunlun / Sunway | Sep 2025 |
-| PREP EDU | 10-20% baseline, Vietnam on-prem | Aug 2025 |
+| PREP EDU | 10-20% baseline, on-prem RTX 4070/4090 inference | Aug 2025 |
