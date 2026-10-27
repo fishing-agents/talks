@@ -349,7 +349,7 @@ On a real node, step 4 also injects `libvgpu.so` via `ld.so.preload`, and HAMi-c
 
 @variant dark
 <!--
-12:50. Target: 12 minutes. One node, so the node axis has a single candidate. The card axis is fully observable on the two fake A100s.
+12:50. Target: 12 minutes, now with four concept slides up front (scheduling policies, GPU binpack, GPU spread, topology): keep them to ~3 minutes together, or cut topology to one sentence. The whole workshop already runs over 45 min (see practice/workshop.md cut list). One node, so the node axis has a single candidate. The card axis is fully observable on the two fake A100s.
 -->
 
 # Lab 3: Scheduler policies
@@ -414,6 +414,27 @@ GPU spread puts each workload on its own card. No tenant shares compute or memor
 @col
 
 ![GPU Spread](drawings/gpu_spread.drawio.png)
+
+---
+
+@layout image-right
+
+## Scheduling policies
+
+@subtitle Topology-aware
+
+<!--
+NVLink vs PCIe is a 7-14x bandwidth gap. HAMi schedules multi-GPU workloads to NVLink-connected pairs and avoids PCIe bridge pairs. Ascend uses HCCS, other vendors have their own high-speed interconnects: same topology logic applies. This matters for tensor parallelism and large-model training. (From the KubeCon Japan SNOW talk.)
+-->
+
+![NUMA topology-aware scheduling](assets/hami_intro/topology_numa.png)
+
+- **NVLink 3 (A100):** 600 GB/s, 12 links
+- **NVLink 4 (H100/H200):** 900 GB/s bidirectional across 18 links
+- **NVLink 5 (B200/B300):** 1.8 TB/s, 14x PCIe 5.0
+- **NVLink 6 (Rubin):** ~3.6 TB/s target
+- **PCIe 5.0 x16:** 128 GB/s. **PCIe 6.0:** 242 GB/s
+- **HAMi topology policy:** prefers NVLink (NVIDIA), HCCS (Ascend), and other high-speed interconnects, avoids PCIe bridge pairs
 
 ---
 
