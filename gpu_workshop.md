@@ -356,6 +356,67 @@ On a real node, step 4 also injects `libvgpu.so` via `ld.so.preload`, and HAMi-c
 
 ---
 
+@layout image-right
+
+## Scheduling policies
+
+@subtitle Binpack & spread, on nodes and on GPUs
+
+<!--
+Two axes, four patterns. Node binpack saves money, node spread saves uptime. GPU binpack saves whole GPUs for training, GPU spread saves tail latency. Pick by workload: training and small fleets want binpack, inference with SLOs wants spread. (From the KubeCon Japan SNOW talk and OSS Summit Korea.)
+-->
+
+![Binpack vs Spread scheduling](assets/hami_intro/scheduling_strategies.png)
+
+- **Node binpack** frees whole machines: reduces cost, helps cluster autoscaler
+- **Node spread** isolates faults: HA across zones, blast radius control
+- **GPU binpack** prevents fragmentation: frees entire GPUs for training
+- **GPU spread** protects tail latency: reduces HBM and NVLink contention
+
+---
+
+@layout two-col
+
+## GPU binpack
+
+@subtitle Fill one card, run many workloads
+
+<!--
+GPU binpack puts several workloads on the same card, each with its own slice of memory and compute. It matters most when cards are scarce: small workloads stop blocking whole cards, so the job that cannot share still finds an empty one.
+-->
+
+- Several workloads share one card, each with its own slice of memory and compute
+- Prevents fragmentation: scattered small workloads no longer block whole cards
+- Frees whole cards for the job that cannot share
+- Best for: fleets of small workloads, batch jobs, dev and test
+
+@col
+
+![GPU Binpack](drawings/gpu_binpack.drawio.png)
+
+---
+
+@layout two-col
+
+## GPU spread
+
+@subtitle One workload per card, no shared bottlenecks
+
+<!--
+GPU spread puts each workload on its own card. No tenant shares compute or memory bandwidth with another, so a thrashing neighbour does not slow the others. Use it for latency-sensitive serving. Next: try both on the two fake A100s.
+-->
+
+- One workload per card: compute and memory bandwidth are never shared
+- Isolates noisy neighbours: a thrasher on one card does not slow the others
+- Protects tail latency: no cross-tenant contention
+- Best for: latency-sensitive serving with strict SLOs
+
+@col
+
+![GPU Spread](drawings/gpu_spread.drawio.png)
+
+---
+
 ## Placement happens on two axes
 
 | Axis | Annotation | binpack | spread |
