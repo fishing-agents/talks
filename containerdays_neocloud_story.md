@@ -14,7 +14,7 @@ seaborn_theme: kubecon_japan
 
 <!--
 25 min talk, ContainerDays 2026 Singapore, Tuesday Oct 27. Story deck: start from one wasted H200, then walk through what a neocloud sells and what each product needs from the GPU layer. Each product adds one mechanism; the CNCF case studies then show it is not just our card, and where it stops working.
-Timing: hook, why and what HAMi is (6.5 min), what a neocloud sells, fractional GPUs, notebooks, inference (6 min), batch, mixed fleet, DRA, sell (6.25 min), operate, generalise, limits, blueprint (4.75 min), community and close (1.25 min). About 25 min.
+Timing: hook, why and what HAMi is (6.5 min), what a neocloud sells, fractional GPUs, notebooks, inference (6 min), scheduling policies: binpack/spread, GPU binpack, GPU spread, topology (2.25 min), batch, mixed fleet, DRA, sell (6.25 min), operate, generalise, limits, blueprint (4.75 min), community and close (1.25 min). About 27 min of a 30 min slot; if short on time, cut the topology slide first.
 Sources: research/containerdays-sg-2026/case-studies.md (11 CNCF case studies, cncf.io/case-studies, project HAMi) and our own H200 measurements from the Viettel Cloud work.
 30 s. Open: 'Raise your hand if you run GPUs on Kubernetes. Keep it up if you know your average utilization.' Then: this talk starts with one card and ends with a cloud. No vendor pitch: I will show where it does not work too.
 -->
@@ -544,6 +544,88 @@ ax2.set_ylim(-22, 140)
 - HAMi does not make one pod faster: **it fills the card that sat empty**
 - Bigger batches did not help: **batch size 32 to 512**, GPU still at 7-10%
 - Model APIs, same move: **many models per card** (Sangfor: 1 to 8+ per GPU)
+
+---
+
+<!--
+0.75 min. Promise 3 setup: placement happens on two axes, which node and which card. Node binpack saves money, node spread saves uptime. GPU binpack saves whole GPUs for training and whole-card customers, GPU spread saves tail latency. Chart defaults: binpack nodes, spread GPUs; override per pod with hami.io/node-scheduler-policy and hami.io/gpu-scheduler-policy. (From the KubeCon Japan SNOW talk.)
+-->
+
+@layout image-right
+
+## Scheduling policies
+
+@subtitle Binpack & spread, on nodes and on GPUs
+
+![Binpack vs Spread scheduling](assets/hami_intro/scheduling_strategies.png)
+
+- **Node binpack** frees whole machines: reduces cost, helps cluster autoscaler
+- **Node spread** isolates faults: HA across zones, blast radius control
+- **GPU binpack** prevents fragmentation: frees entire GPUs for training
+- **GPU spread** protects tail latency: reduces HBM and NVLink contention
+
+---
+
+<!--
+0.5 min. GPU binpack puts several workloads on the same card, each with its own slice of memory and compute. For a neocloud: binpack small tenants, so the customer who rents a whole card still finds an empty one.
+-->
+
+@layout two-col
+
+## GPU binpack
+
+@subtitle Fill one card, run many workloads
+
+- Several workloads share one card, each with its own slice of memory and compute
+- Prevents fragmentation: scattered small workloads no longer block whole cards
+- Frees whole cards for the job that cannot share
+- Best for: fleets of small workloads, batch jobs, dev and test
+
+@col
+
+![GPU Binpack](drawings/gpu_binpack.drawio.png)
+
+---
+
+<!--
+0.5 min. GPU spread puts each workload on its own card. No tenant shares compute or memory bandwidth with another, so a thrashing neighbour does not slow the others. Use it for latency-sensitive inference endpoints with SLOs.
+-->
+
+@layout two-col
+
+## GPU spread
+
+@subtitle One workload per card, no shared bottlenecks
+
+- One workload per card: compute and memory bandwidth are never shared
+- Isolates noisy neighbours: a thrasher on one card does not slow the others
+- Protects tail latency: no cross-tenant contention
+- Best for: latency-sensitive serving with strict SLOs
+
+@col
+
+![GPU Spread](drawings/gpu_spread.drawio.png)
+
+---
+
+<!--
+0.5 min. NVLink vs PCIe is a 7-14x bandwidth gap. HAMi schedules multi-GPU workloads to NVLink-connected pairs and avoids PCIe bridge pairs. Ascend uses HCCS, other vendors have their own high-speed interconnects: same topology logic applies. This matters for tensor parallelism and large-model training. (From the KubeCon Japan SNOW talk.)
+-->
+
+@layout image-right
+
+## Scheduling policies
+
+@subtitle Topology-aware
+
+![NUMA topology-aware scheduling](assets/hami_intro/topology_numa.png)
+
+- **NVLink 3 (A100):** 600 GB/s, 12 links
+- **NVLink 4 (H100/H200):** 900 GB/s bidirectional across 18 links
+- **NVLink 5 (B200/B300):** 1.8 TB/s, 14x PCIe 5.0
+- **NVLink 6 (Rubin):** ~3.6 TB/s target
+- **PCIe 5.0 x16:** 128 GB/s. **PCIe 6.0:** 242 GB/s
+- **HAMi topology policy:** prefers NVLink (NVIDIA), HCCS (Ascend), and other high-speed interconnects, avoids PCIe bridge pairs
 
 ---
 

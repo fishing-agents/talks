@@ -236,18 +236,16 @@ HAMi intercepts pod creation and GPU allocation through seven stages:
 ```dot
 digraph G {
   rankdir=TB
-  bgcolor=transparent
-  node [shape=box style="rounded,filled" fontname="Arial" fontsize=16 margin="0.25,0.18"]
-  edge [fontname="Arial" fontsize=12]
+  node [shape=box style="rounded,filled" margin="0.25,0.18"]
 
-  pod [label="Pod submitted" fillcolor="#F6ECD9" color="#F1C560" fontcolor="#3a2020"]
-  webhook [label="Mutating webhook" fillcolor="#fce8e8" color="#7A0504" fontcolor="#3a2020"]
-  sched [label="Scheduler" fillcolor="#fce8e8" color="#7A0504" fontcolor="#3a2020"]
-  device [label="HAMi driver" fillcolor="#fce8e8" color="#7A0504" fontcolor="#3a2020"]
+  pod [label="Pod submitted" class="yellow"]
+  webhook [label="Mutating webhook" class="cyan"]
+  sched [label="Scheduler" class="cyan"]
+  device [label="HAMi driver" class="cyan"]
 
-  runtime [label="Container runtime" fillcolor="#F6ECD9" color="#F1C560" fontcolor="#3a2020"]
-  core [label="HAMi core" fillcolor="#fce8e8" color="#7A0504" fontcolor="#3a2020"]
-  workload [label="Workload (isolated GPU)" fillcolor="#F6ECD9" color="#F1C560" fontcolor="#3a2020"]
+  runtime [label="Container runtime" class="yellow"]
+  core [label="HAMi core" class="cyan"]
+  workload [label="Workload (isolated GPU)" class="green"]
 
   { rank=same; pod; runtime }
   { rank=same; webhook; core }
@@ -257,7 +255,7 @@ digraph G {
   webhook -> sched [label="select GPU+node"]
   sched -> device [label="allocate device"]
 
-  device -> runtime [label="device config" constraint=false style=dashed exitX=1 exitY=0.5 entryX=0 entryY=0.5]
+  device -> runtime [label="device config" constraint=false style=dashed]
 
   runtime -> core [label="enforce isolation"]
   core -> workload [label="sees isolated GPU"]
