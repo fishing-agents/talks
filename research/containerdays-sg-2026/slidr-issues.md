@@ -15,7 +15,7 @@ Found by the deck agents on 2026-10-24 and worked around in the decks. Issues 1-
 | 9 | `timeline-horizontal` cards are content-sized with no shrink; 5-6 cards overflow the slide width | deck CSS: `.layout-timeline-horizontal .card { max-width: 11em; font-size: 0.88em; }` | medium |
 | 10 | `{focus}` uses `box-shadow`, which weasyprint ignores (invisible in PDF) | deck CSS adds a border on `.card.focus` | medium |
 | 11 | A metric grid followed by another grid gets no vertical gap | deck CSS `.slide-body > .grid + .grid { margin-top: 0.8em }` | low |
-| 12 | Graphviz node `class="cyan"/"green"` renders grey under `kubecon_japan` | explicit fillcolor/color | low |
+| 12 | Graphviz node `class="cyan"/"green"` renders grey under `kubecon_japan` | explicit fillcolor/color | low (fixed in slidr `7c2a96e`) |
 | 13 | `two-col` with a left column taller than the slide: flex children shrink and overlap | shorter bullets | low |
 | 14 | `seaborn_theme: kubecon_japan` sets `patch.force_edgecolor` with the red accent and darkgrid lines | charts set `force_edgecolor` False, `ax.grid(False)` | low |
 | 15 | Title-slide speaker link icons render dark on the dark gradient (also in `gpu_workshop.md`) | not fixed | cosmetic |

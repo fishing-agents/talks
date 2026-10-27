@@ -1241,7 +1241,7 @@ ax.grid(False)
 <!--
 Backup, from the Viettel Cloud work (KCD Vietnam 2026 talk, kcd_vietnam.md). Time-series inference service, p95 held at 160 ms.
 Native: one pod per card, 20.7 req/s, SM 18%. With HAMi slices plus KEDA scaling to 10 replicas on the same card: 71.1 req/s at the same p95: 3.4x per card. SM goes 18 to 31 to 54 to 100% at 1, 2, 5, 10 replicas.
-The team challenged the baseline. The service is a Chronos forecasting model, about 200M parameters, predicting infrastructure load. Raising the batch, the number of forecast requests per inference call, from 32 to 512 left the GPU at 7-10%; one instance simply cannot fill an H200 (kcd_vietnam.md).
+The team challenged the baseline: raising the batch size from 32 to 512 left the GPU at 7-10%; one instance simply cannot fill an H200. This is the time-series service from the 1 GB job, a Chronos forecaster of about 200M parameters predicting infrastructure load (same 18% SM; kcd_vietnam.md:688,752), so a batch is a group of forecast requests per inference call. The source records only "batch->512", so say it that way if asked.
 Cost framing (example only): the same 71 req/s natively needs about 3.4 cards, so roughly 71% fewer cards, about 51% less power, about $7k/month at an example $4 per GPU-hour. Example price, not a quote.
 -->
 
