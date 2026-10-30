@@ -177,20 +177,15 @@ resources:
 
 @col
 
-```dot
-digraph G {
-  rankdir=TB
-  bgcolor=transparent
-  node [shape=box style="rounded,filled" fontsize=15 margin="0.25,0.15" width=2.6]
-  edge [fontsize=11]
-  app [label="Your app\n(unchanged)"]
-  lib [label="libvgpu.so\nmemory MiB · compute %" fillcolor="#e3f0ff" color="#3939D8"]
-  drv [label="CUDA driver"]
-  gpu [label="GPU slice\n3000 MiB · 30%" fillcolor="#e8f5e9" color="#2e7d32"]
-  app -> lib [label=" CUDA calls"]
-  lib -> drv [label=" within limits"]
-  drv -> gpu
-}
+```pdg
+graph dir=TB
+app "Your app\n(unchanged)" shape=round
+lib "libvgpu.so\nmemory MiB · compute %" shape=round fill=#e3f0ff stroke=#3939D8
+drv "CUDA driver" shape=round
+gpu "GPU slice\n3000 MiB · 30%" shape=round fill=#e8f5e9 stroke=#2e7d32
+app -> lib " CUDA calls"
+lib -> drv " within limits"
+drv -> gpu
 ```
 
 <!--
@@ -387,22 +382,17 @@ Note: they give no "before" number, so I do not claim a multiplier for them.
 
 @subtitle The D.run model, step by step
 
-```dot
-digraph G {
-  rankdir=TB
-  bgcolor=transparent
-  node [shape=box style="rounded,filled" fontsize=14 margin="0.22,0.12" width=2.8]
-  edge [fontsize=11]
-  pool [label="Card pool\nNVIDIA + domestic" fillcolor="#e3f0ff" color="#3939D8"]
-  slice [label="vGPU slices\nmemory + compute" fillcolor="#e8f5e9" color="#2e7d32"]
-  sku [label="SKU catalog\npay by workload size" fillcolor="#fff9e6" color="#f9a825"]
-  pub [label="D.run marketplace\npublic cloud"]
-  ent [label="DCE quotas + RBAC\nenterprise pool"]
-  pool -> slice [label=" HAMi-core"]
-  slice -> sku [label=" package"]
-  sku -> pub
-  sku -> ent
-}
+```pdg
+graph dir=TB
+pool "Card pool\nNVIDIA + domestic" shape=round fill=#e3f0ff stroke=#3939D8
+slice "vGPU slices\nmemory + compute" shape=round fill=#e8f5e9 stroke=#2e7d32
+sku "SKU catalog\npay by workload size" shape=round fill=#fff9e6 stroke=#f9a825
+pub "D.run marketplace\npublic cloud" shape=round
+ent "DCE quotas + RBAC\nenterprise pool" shape=round
+pool -> slice " HAMi-core"
+slice -> sku " package"
+sku -> pub
+sku -> ent
 ```
 
 @col

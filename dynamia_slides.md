@@ -23,7 +23,7 @@ style: |
 @speaker name="Reza Jelveh" role="Engineering · Dynamia"
 
 <!--
-Welcome to the HAMi demo. This deck showcases all slidr features: layouts, grids, cards, tables, quotes, speaker notes, and the new @layout directive.
+Welcome to the HAMi demo. This deck showcases all decktile features: layouts, grids, cards, tables, quotes, speaker notes, and the new @layout directive.
 -->
 
 ---
@@ -43,54 +43,32 @@ API calls transparently -- no container modification required.
 
 @col
 
-```dot
-digraph standard_mode {
-    rankdir=TB;
-    compound=true;
-    newrank=true;
-
-    subgraph cluster_main {
-        label="Standard Mode";
-        penwidth=2;
-        fontsize=18;
-        fontname="sans-serif";
-        margin=8;
-        node [width=2.2];
-
-        app [label="Application" shape=box style=filled];
-        mem [label="Memory Interception" class="cyan" shape=box style=filled];
-        comp [label="Compute Interception" class="cyan" shape=box style=filled];
-        gpu [label="Physical GPU" class="green" shape=box style=filled];
-
-        app -> mem -> comp -> gpu;
-    }
+```pdg
+graph dir=TB
+group main "Standard Mode" {
+  app "Application"
+  mem "Memory Interception" .cyan
+  comp "Compute Interception" .cyan
+  gpu "Physical GPU" .green
 }
+app -> mem
+mem -> comp
+comp -> gpu
 ```
 
 @row
 
-```dot
-digraph standard_mode {
-    rankdir=TB;
-    compound=true;
-    newrank=true;
-
-    subgraph cluster_main {
-        label="Standard Mode";
-        penwidth=2;
-        fontsize=18;
-        fontname="sans-serif";
-        margin=8;
-        node [width=2.2];
-
-        app [label="Application" shape=box style=filled];
-        mem [label="Memory Interception" class="cyan" shape=box style=filled];
-        comp [label="Compute Interception" class="cyan" shape=box style=filled];
-        gpu [label="Physical GPU" class="green" shape=box style=filled];
-
-        app -> mem -> comp -> gpu;
-    }
+```pdg
+graph dir=TB
+group main "Standard Mode" {
+  app "Application"
+  mem "Memory Interception" .cyan
+  comp "Compute Interception" .cyan
+  gpu "Physical GPU" .green
 }
+app -> mem
+mem -> comp
+comp -> gpu
 ```
 
 ---

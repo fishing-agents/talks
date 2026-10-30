@@ -1,6 +1,6 @@
 # talks-slide-decks
 
-Talk slide decks built with [slidr](https://github.com/slidr-cli/slidr).
+Talk slide decks built with [decktile](https://github.com/decktile/decktile).
 
 ## Setup
 
@@ -11,8 +11,9 @@ git submodule update --init
 pdm install
 ```
 
-`pdm install` installs slidr from the `slidr/` submodule so `pdm run slidr`
-works from the project root.
+`pdm install` installs decktile from the `decktile/` submodule so `pdm run decktile`
+works from the project root. Diagrams are ` ```pdg ` blocks
+([predictygraph](https://github.com/predictygraph/predictygraph)); no graphviz needed.
 
 ## Build
 

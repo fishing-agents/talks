@@ -233,33 +233,21 @@ HAMi intercepts pod creation and GPU allocation through seven stages:
 
 @col
 
-```dot
-digraph G {
-  rankdir=TB
-  node [shape=box style="rounded,filled" margin="0.25,0.18"]
-
-  pod [label="Pod submitted" class="yellow"]
-  webhook [label="Mutating webhook" class="cyan"]
-  sched [label="Scheduler" class="cyan"]
-  device [label="HAMi driver" class="cyan"]
-
-  runtime [label="Container runtime" class="yellow"]
-  core [label="HAMi core" class="cyan"]
-  workload [label="Workload (isolated GPU)" class="green"]
-
-  { rank=same; pod; runtime }
-  { rank=same; webhook; core }
-  { rank=same; sched; workload }
-
-  pod -> webhook [label="set scheduler"]
-  webhook -> sched [label="select GPU+node"]
-  sched -> device [label="allocate device"]
-
-  device -> runtime [label="device config" constraint=false style=dashed]
-
-  runtime -> core [label="enforce isolation"]
-  core -> workload [label="sees isolated GPU"]
-}
+```pdg
+graph dir=TB order=source
+pod "Pod submitted" .yellow shape=round rank=0
+webhook "Mutating webhook" .cyan shape=round rank=1
+sched "Scheduler" .cyan shape=round rank=2
+device "HAMi driver" .cyan shape=round rank=3
+runtime "Container runtime" .yellow shape=round rank=0
+core "HAMi core" .cyan shape=round rank=1
+workload "Workload (isolated GPU)" .green shape=round rank=2
+pod -> webhook "set scheduler"
+webhook -> sched "select GPU+node"
+sched -> device "allocate device"
+device ..> runtime "device config" constraint=false
+runtime -> core "enforce isolation"
+core -> workload "sees isolated GPU"
 ```
 
 ---

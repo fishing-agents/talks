@@ -12,14 +12,14 @@ release: pdf
 
 dist/%.html: %.md
 	@mkdir -p dist
-	pdm run slidr $<
+	pdm run decktile $<
 
 dist/%.pdf: %.md
 	@mkdir -p dist
-	pdm run slidr --optimize-images --pdf $<
+	pdm run decktile --optimize-images --pdf $<
 
 watch-%: %.md
-	pdm run slidr -w $<
+	pdm run decktile -w $<
 
 clean:
 	rm -rf dist/

@@ -107,38 +107,10 @@ HAMi-Core uses **symbolic hijacking** inside containers:
 
 By enabling GPU sharing, tasks that once idled at 30% now combine with other workloads:
 
-```dot
-digraph G {
-  rankdir=LR
-  bgcolor=transparent
-  node [shape=plaintext margin=0 width=0 height=0]
-  edge [style=invis]
-
-  subgraph {
-    color=none
-    gauge [
-      label=<
-        <table border="0" cellborder="0" cellspacing="0" cellpadding="0">
-          <tr>
-            <td width="210" align="right"><font color="#166534" point-size="12"><b>▼</b></font></td>
-            <td width="2" bgcolor="#1e293b"></td>
-            <td width="88" align="left"><font color="#991b1b"> </font></td>
-          </tr>
-          <tr>
-            <td width="210" height="40" bgcolor="#22c55e" fixedsize="true"></td>
-            <td width="2" height="40" bgcolor="#1e293b" fixedsize="true"></td>
-            <td width="88" height="40" bgcolor="#ef4444" fixedsize="true"></td>
-          </tr>
-          <tr>
-            <td align="center"><font point-size="13" color="#166534"><b>70% Utilized</b></font></td>
-            <td></td>
-            <td align="center"><font point-size="13" color="#991b1b"><b>30% Idle</b></font></td>
-          </tr>
-        </table>
-      >
-    ]
-  }
-}
+```pdg
+graph layout=row gap=0
+used "70% Utilized" fill=#22c55e stroke=#166534 color=#ffffff width=420 height=56 font-weight=bold
+idle "30% Idle" fill=#ef4444 stroke=#991b1b color=#ffffff width=180 height=56 font-weight=bold
 ```
 
 

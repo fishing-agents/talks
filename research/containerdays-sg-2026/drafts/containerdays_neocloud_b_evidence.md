@@ -198,20 +198,15 @@ How it fits: HAMi-DRA is a mutating webhook that rewrites nvidia.com/gpu request
 
 @col
 
-```dot
-digraph G {
-  rankdir=TB
-  bgcolor=transparent
-  nodesep=0.25
-  ranksep=0.28
-  node [shape=box style="rounded,filled" fontname="Arial" fontsize=13 margin="0.16,0.07" width=3.6 color="#3939D8" fillcolor="#e3f0ff" fontcolor="#2a2a5a"]
-  edge [color="#6a7a99" arrowsize=0.8]
-  pod [label="Pod requests\ngpu-core + gpu-memory-ratio"]
-  sch [label="koord-scheduler Device Share\nbinds a slice of one card"]
-  nri [label="koordlet via NRI\ninjects limits as env"]
-  core [label="HAMi-Core intercepts CUDA\nenforces memory + compute" fillcolor="#e8f5e9" color="#2e7d32"]
-  pod -> sch -> nri -> core
-}
+```pdg
+graph dir=TB
+pod "Pod requests\ngpu-core + gpu-memory-ratio" shape=round fill=#e3f0ff stroke=#3939D8 color=#2a2a5a
+sch "koord-scheduler Device Share\nbinds a slice of one card" shape=round fill=#e3f0ff stroke=#3939D8 color=#2a2a5a
+nri "koordlet via NRI\ninjects limits as env" shape=round fill=#e3f0ff stroke=#3939D8 color=#2a2a5a
+core "HAMi-Core intercepts CUDA\nenforces memory + compute" shape=round fill=#e8f5e9 stroke=#2e7d32 color=#2a2a5a
+pod -> sch stroke=#6a7a99
+sch -> nri stroke=#6a7a99
+nri -> core stroke=#6a7a99
 ```
 
 **Zhuoyu:** Koordinator places, HAMi-Core enforces.
