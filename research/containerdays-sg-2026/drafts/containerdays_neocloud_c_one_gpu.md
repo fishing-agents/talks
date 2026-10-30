@@ -210,18 +210,13 @@ resources:
     nvidia.com/gpucores: 30    # % of SMs
 ```
 
-```dot
-digraph G {
-  rankdir=LR
-  bgcolor=transparent
-  node [shape=box style="rounded,filled" fontname="Roboto" fontsize=15 margin="0.2,0.14"]
-  edge [fontname="Roboto" fontsize=12]
-  app [label="Your app" class="cyan"]
-  lib [label="HAMi-core\nlibvgpu.so" class="yellow"]
-  gpu [label="H200 slice" class="green"]
-  app -> lib [label="CUDA calls"]
-  lib -> gpu [label="within limits"]
-}
+```pdg
+graph dir=LR
+app "Your app" .cyan shape=round
+lib "HAMi-core\nlibvgpu.so" .yellow shape=round
+gpu "H200 slice" .green shape=round
+app -> lib "CUDA calls"
+lib -> gpu "within limits"
 ```
 
 ---

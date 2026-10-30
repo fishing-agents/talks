@@ -653,35 +653,21 @@ Five stages from pod submission to isolated GPU. The mutating webhook routes the
 
 @col
 
-```dot
-digraph G {
-  rankdir=TB
-  bgcolor=transparent
-  node [shape=box style="rounded,filled" fontname="Arial" fontsize=16 margin="0.25,0.18"]
-  edge [fontname="Arial" fontsize=12]
-
-  pod [label="Pod submitted" fillcolor="#F6ECD9" color="#F1C560" fontcolor="#3a2020"]
-  webhook [label="Mutating webhook" fillcolor="#fce8e8" color="#7A0504" fontcolor="#3a2020"]
-  sched [label="Scheduler" fillcolor="#fce8e8" color="#7A0504" fontcolor="#3a2020"]
-  device [label="HAMi driver" fillcolor="#fce8e8" color="#7A0504" fontcolor="#3a2020"]
-
-  runtime [label="Container runtime" fillcolor="#F6ECD9" color="#F1C560" fontcolor="#3a2020"]
-  core [label="HAMi core" fillcolor="#fce8e8" color="#7A0504" fontcolor="#3a2020"]
-  workload [label="Workload (isolated device)" fillcolor="#F6ECD9" color="#F1C560" fontcolor="#3a2020"]
-
-  { rank=same; pod; runtime }
-  { rank=same; webhook; core }
-  { rank=same; sched; workload }
-
-  pod -> webhook [label="set scheduler"]
-  webhook -> sched [label="select device"]
-  sched -> device [label="allocate device"]
-
-  device -> runtime [label="device config" constraint=false style=dashed exitX=1 exitY=0.5 entryX=0 entryY=0.5]
-
-  runtime -> core [label="inject library"]
-  core -> workload [label="sees isolated device"]
-}
+```pdg
+graph dir=TB order=source
+pod "Pod submitted" shape=round fill=#F6ECD9 stroke=#F1C560 color=#3a2020 rank=2
+webhook "Mutating webhook" shape=round fill=#fce8e8 stroke=#7A0504 color=#3a2020 rank=3
+sched "Scheduler" shape=round fill=#fce8e8 stroke=#7A0504 color=#3a2020 rank=4
+device "HAMi driver" shape=round fill=#fce8e8 stroke=#7A0504 color=#3a2020 rank=5
+runtime "Container runtime" shape=round fill=#F6ECD9 stroke=#F1C560 color=#3a2020 rank=2
+core "HAMi core" shape=round fill=#fce8e8 stroke=#7A0504 color=#3a2020 rank=3
+workload "Workload (isolated device)" shape=round fill=#F6ECD9 stroke=#F1C560 color=#3a2020 rank=4
+pod -> webhook "set scheduler"
+webhook -> sched "select device"
+sched -> device "allocate device"
+device ..> runtime "device config" constraint=false
+runtime -> core "inject library"
+core -> workload "sees isolated device"
 ```
 
 ---
@@ -705,20 +691,13 @@ Your app calls CUDA. HAMi answers with a slice of the device.
 
 @col
 
-```dot
-digraph G {
-  rankdir=LR
-  bgcolor=transparent
-  node [shape=box style="rounded,filled" fontname="Arial" fontsize=16 margin="0.25,0.18"]
-  edge [fontname="Arial" fontsize=12]
-
-  app [label="Your app" fillcolor="#F6ECD9" color="#F1C560" fontcolor="#3a2020"]
-  lib [label="HAMi core\n(cuMemAlloc...)" fillcolor="#fce8e8" color="#7A0504" fontcolor="#3a2020"]
-  gpu [label="Device slice" fillcolor="#F6ECD9" color="#F1C560" fontcolor="#3a2020"]
-
-  app -> lib [label="CUDA calls"]
-  lib -> gpu [label="slice only"]
-}
+```pdg
+graph dir=LR
+app "Your app" shape=round fill=#F6ECD9 stroke=#F1C560 color=#3a2020
+lib "HAMi core\n(cuMemAlloc...)" shape=round fill=#fce8e8 stroke=#7A0504 color=#3a2020
+gpu "Device slice" shape=round fill=#F6ECD9 stroke=#F1C560 color=#3a2020
+app -> lib "CUDA calls"
+lib -> gpu "slice only"
 ```
 
 ---

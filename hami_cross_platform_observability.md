@@ -111,39 +111,28 @@ Source: [CUDA contexts](https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUD
 
 ## Why GPU usage is hard to attribute
 
-```dot
-digraph G {
-  rankdir=LR
-  size="11,3"
-  bgcolor=transparent
-  nodesep=0.35
-  ranksep=0.45
-  node [shape=box style="rounded,filled" fontname="Arial" fontsize=14 margin="0.14,0.08" color="#3939D8" fillcolor="#e3f0ff" fontcolor="#2a2a5a"]
-  edge [fontname="Arial" fontsize=11 color="#6a7a99" fontcolor="#2a2a5a"]
-
-  subgraph cluster_gpu {
-    label="GPU" labeljust=l fontname="Arial Bold" fontsize=15 fontcolor="#DB1E3D" color="#DB1E3D" style=rounded
-    gpod [label="Pod"]
-    pid [label="process\n(host PID)"]
-    ctx [label="CUDA context\n+ streams"]
-    sm [label="kernels\non SMs"]
-    nvml [label="NVML: device %,\nper-PID samples" fillcolor="#fff9e6" color="#f9a825"]
-    back [label="Pod (joined)" fillcolor="#ffe8eb" color="#DB1E3D"]
-    gpod -> pid -> ctx -> sm
-    sm -> nvml [label="sampled"]
-    nvml -> back [label="join PID ->\ncontainer -> Pod" style=dashed color="#DB1E3D" fontcolor="#DB1E3D"]
-  }
-
-  subgraph cluster_cpu {
-    label="CPU" labeljust=l fontname="Arial Bold" fontsize=15 fontcolor="#2e7d32" color="#2e7d32" style=rounded
-    cpod [label="Pod"]
-    cg [label="cgroup"]
-    cpu [label="CPU time per Pod" fillcolor="#e8f5e9" color="#2e7d32"]
-    cpod -> cg [label="processes in"]
-    cg -> cpu [label="kernel charges\nevery tick"]
-  }
-
+```pdg
+graph dir=LR
+group gpu "GPU" stroke=#DB1E3D color=#DB1E3D {
+  gpod "Pod" shape=round fill=#e3f0ff stroke=#3939D8 color=#2a2a5a
+  pid "process\n(host PID)" shape=round fill=#e3f0ff stroke=#3939D8 color=#2a2a5a
+  ctx "CUDA context\n+ streams" shape=round fill=#e3f0ff stroke=#3939D8 color=#2a2a5a
+  sm "kernels\non SMs" shape=round fill=#e3f0ff stroke=#3939D8 color=#2a2a5a
+  nvml "NVML: device %,\nper-PID samples" shape=round fill=#fff9e6 stroke=#f9a825 color=#2a2a5a
+  back "Pod (joined)" shape=round fill=#ffe8eb stroke=#DB1E3D color=#2a2a5a
 }
+group cpu_group "CPU" stroke=#2e7d32 color=#2e7d32 {
+  cpod "Pod" shape=round fill=#e3f0ff stroke=#3939D8 color=#2a2a5a
+  cg "cgroup" shape=round fill=#e3f0ff stroke=#3939D8 color=#2a2a5a
+  cpu "CPU time per Pod" shape=round fill=#e8f5e9 stroke=#2e7d32 color=#2a2a5a
+}
+gpod -> pid stroke=#6a7a99 color=#2a2a5a
+pid -> ctx stroke=#6a7a99 color=#2a2a5a
+ctx -> sm stroke=#6a7a99 color=#2a2a5a
+sm -> nvml "sampled" stroke=#6a7a99 color=#2a2a5a
+nvml ..> back "join PID ->\ncontainer -> Pod" stroke=#DB1E3D color=#DB1E3D
+cpod -> cg "processes in" stroke=#6a7a99 color=#2a2a5a
+cg -> cpu "kernel charges\nevery tick" stroke=#6a7a99 color=#2a2a5a
 ```
 
 - CPU: the kernel charges time to the cgroup, so Pod usage is a direct reading.
@@ -408,35 +397,21 @@ Five stages from pod submission to isolated GPU. The mutating webhook routes the
 
 @col
 
-```dot
-digraph G {
-  rankdir=TB
-  bgcolor=transparent
-  node [shape=box style="rounded,filled" fontname="Arial" fontsize=16 margin="0.25,0.18"]
-  edge [fontname="Arial" fontsize=12]
-
-  pod [label="Pod submitted" fillcolor="#F6ECD9" color="#F1C560" fontcolor="#3a2020"]
-  webhook [label="Mutating webhook" fillcolor="#fce8e8" color="#7A0504" fontcolor="#3a2020"]
-  sched [label="Scheduler" fillcolor="#fce8e8" color="#7A0504" fontcolor="#3a2020"]
-  device [label="HAMi driver" fillcolor="#fce8e8" color="#7A0504" fontcolor="#3a2020"]
-
-  runtime [label="Container runtime" fillcolor="#F6ECD9" color="#F1C560" fontcolor="#3a2020"]
-  core [label="HAMi core" fillcolor="#fce8e8" color="#7A0504" fontcolor="#3a2020"]
-  workload [label="Workload (isolated device)" fillcolor="#F6ECD9" color="#F1C560" fontcolor="#3a2020"]
-
-  { rank=same; pod; runtime }
-  { rank=same; webhook; core }
-  { rank=same; sched; workload }
-
-  pod -> webhook [label="set scheduler"]
-  webhook -> sched [label="select device"]
-  sched -> device [label="allocate device"]
-
-  device -> runtime [label="device config" constraint=false style=dashed exitX=1 exitY=0.5 entryX=0 entryY=0.5]
-
-  runtime -> core [label="inject library"]
-  core -> workload [label="sees isolated device"]
-}
+```pdg
+graph dir=TB order=source
+pod "Pod submitted" shape=round fill=#F6ECD9 stroke=#F1C560 color=#3a2020 rank=0
+webhook "Mutating webhook" shape=round fill=#fce8e8 stroke=#7A0504 color=#3a2020 rank=1
+sched "Scheduler" shape=round fill=#fce8e8 stroke=#7A0504 color=#3a2020 rank=2
+device "HAMi driver" shape=round fill=#fce8e8 stroke=#7A0504 color=#3a2020 rank=3
+runtime "Container runtime" shape=round fill=#F6ECD9 stroke=#F1C560 color=#3a2020 rank=0
+core "HAMi core" shape=round fill=#fce8e8 stroke=#7A0504 color=#3a2020 rank=1
+workload "Workload (isolated device)" shape=round fill=#F6ECD9 stroke=#F1C560 color=#3a2020 rank=2
+pod -> webhook "set scheduler"
+webhook -> sched "select device"
+sched -> device "allocate device"
+device ..> runtime "device config" constraint=false
+runtime -> core "inject library"
+core -> workload "sees isolated device"
 ```
 
 ---
@@ -460,20 +435,13 @@ Your app calls CUDA. HAMi answers with a slice of the device.
 
 @col
 
-```dot
-digraph G {
-  rankdir=LR
-  bgcolor=transparent
-  node [shape=box style="rounded,filled" fontname="Arial" fontsize=16 margin="0.25,0.18"]
-  edge [fontname="Arial" fontsize=12]
-
-  app [label="Your app" fillcolor="#F6ECD9" color="#F1C560" fontcolor="#3a2020"]
-  lib [label="HAMi core\n(cuMemAlloc...)" fillcolor="#fce8e8" color="#7A0504" fontcolor="#3a2020"]
-  gpu [label="Device slice" fillcolor="#F6ECD9" color="#F1C560" fontcolor="#3a2020"]
-
-  app -> lib [label="CUDA calls"]
-  lib -> gpu [label="slice only"]
-}
+```pdg
+graph dir=LR
+app "Your app" shape=round fill=#F6ECD9 stroke=#F1C560 color=#3a2020
+lib "HAMi core\n(cuMemAlloc...)" shape=round fill=#fce8e8 stroke=#7A0504 color=#3a2020
+gpu "Device slice" shape=round fill=#F6ECD9 stroke=#F1C560 color=#3a2020
+app -> lib "CUDA calls"
+lib -> gpu "slice only"
 ```
 ---
 
@@ -495,33 +463,22 @@ digraph G {
 
 @col
 
-```dot
-digraph G {
-  rankdir=TB
-  bgcolor=transparent
-  nodesep=0.25
-  ranksep=0.35
-  node [shape=box style="rounded,filled" fontname="Arial" fontsize=14 margin="0.16,0.10" color="#3939D8" fillcolor="#e3f0ff" fontcolor="#2a2a5a"]
-  edge [fontname="Arial" fontsize=11 color="#6a7a99" fontcolor="#2a2a5a"]
-
-  core [label="Pod: app + HAMi-core"]
-  nvml [label="NVML (driver)" fillcolor="#fff9e6" color="#f9a825"]
-  cache [label="usage.cache\nmemory, sm_util per process"]
-  api [label="Kubernetes API\n(Pod names)" fillcolor="#e8f5e9" color="#2e7d32"]
-  mon [label="vGPUmonitor :9394" fillcolor="#ffe8eb" color="#DB1E3D"]
-  dev [label="hami_host_gpu_*\ndevice" fillcolor="#fff9e6" color="#f9a825"]
-  ten [label="hami_vgpu_*, hami_container_*\ntenant" fillcolor="#e3f0ff"]
-
-  { rank=same; core; nvml }
-  nvml -> core [label="per-PID samples"]
-  core -> cache [label="writes"]
-  cache -> mon [label="mmap"]
-  nvml -> mon [label="device"]
-  api -> mon [label="identity"]
-  { rank=same; cache; api }
-  mon -> dev
-  mon -> ten
-}
+```pdg
+graph dir=TB order=source
+core "Pod: app + HAMi-core" shape=round fill=#e3f0ff stroke=#3939D8 color=#2a2a5a rank=3
+nvml "NVML (driver)" shape=round fill=#fff9e6 stroke=#f9a825 color=#2a2a5a rank=3
+cache "usage.cache\nmemory, sm_util per process" shape=round fill=#e3f0ff stroke=#3939D8 color=#2a2a5a rank=3
+api "Kubernetes API\n(Pod names)" shape=round fill=#e8f5e9 stroke=#2e7d32 color=#2a2a5a rank=3
+mon "vGPUmonitor :9394" shape=round fill=#ffe8eb stroke=#DB1E3D color=#2a2a5a rank=3
+dev "hami_host_gpu_*\ndevice" shape=round fill=#fff9e6 stroke=#f9a825 color=#2a2a5a rank=4
+ten "hami_vgpu_*, hami_container_*\ntenant" shape=round fill=#e3f0ff stroke=#3939D8 color=#2a2a5a rank=4
+nvml -> core "per-PID samples" stroke=#6a7a99 color=#2a2a5a
+core -> cache "writes" stroke=#6a7a99 color=#2a2a5a
+cache -> mon "mmap" stroke=#6a7a99 color=#2a2a5a
+nvml -> mon "device" stroke=#6a7a99 color=#2a2a5a
+api -> mon "identity" stroke=#6a7a99 color=#2a2a5a
+mon -> dev stroke=#6a7a99 color=#2a2a5a
+mon -> ten stroke=#6a7a99 color=#2a2a5a
 ```
 
 ::: notes

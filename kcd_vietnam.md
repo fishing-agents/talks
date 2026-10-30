@@ -222,35 +222,21 @@ HAMi intercepts pod creation and GPU allocation through seven stages:
 
 @col
 
-```dot
-digraph G {
-  rankdir=TB
-  bgcolor=transparent
-  node [shape=box style="rounded,filled" fontname="Arial" fontsize=16 margin="0.25,0.18"]
-  edge [fontname="Arial" fontsize=12]
-
-  pod [label="Pod submitted" fillcolor="#F6ECD9" color="#F1C560" fontcolor="#3a2020"]
-  webhook [label="Mutating webhook" fillcolor="#fce8e8" color="#7A0504" fontcolor="#3a2020"]
-  sched [label="Scheduler" fillcolor="#fce8e8" color="#7A0504" fontcolor="#3a2020"]
-  device [label="HAMi driver" fillcolor="#fce8e8" color="#7A0504" fontcolor="#3a2020"]
-
-  runtime [label="Container runtime" fillcolor="#F6ECD9" color="#F1C560" fontcolor="#3a2020"]
-  core [label="HAMi core" fillcolor="#fce8e8" color="#7A0504" fontcolor="#3a2020"]
-  workload [label="Workload (isolated GPU)" fillcolor="#F6ECD9" color="#F1C560" fontcolor="#3a2020"]
-
-  { rank=same; pod; runtime }
-  { rank=same; webhook; core }
-  { rank=same; sched; workload }
-
-  pod -> webhook [label="set scheduler"]
-  webhook -> sched [label="select GPU+node"]
-  sched -> device [label="allocate device"]
-
-  device -> runtime [label="device config" constraint=false style=dashed exitX=1 exitY=0.5 entryX=0 entryY=0.5]
-
-  runtime -> core [label="enforce isolation"]
-  core -> workload [label="sees isolated GPU"]
-}
+```pdg
+graph dir=TB order=source
+pod "Pod submitted" shape=round fill=#F6ECD9 stroke=#F1C560 color=#3a2020 rank=2
+webhook "Mutating webhook" shape=round fill=#fce8e8 stroke=#7A0504 color=#3a2020 rank=3
+sched "Scheduler" shape=round fill=#fce8e8 stroke=#7A0504 color=#3a2020 rank=4
+device "HAMi driver" shape=round fill=#fce8e8 stroke=#7A0504 color=#3a2020 rank=5
+runtime "Container runtime" shape=round fill=#F6ECD9 stroke=#F1C560 color=#3a2020 rank=2
+core "HAMi core" shape=round fill=#fce8e8 stroke=#7A0504 color=#3a2020 rank=3
+workload "Workload (isolated GPU)" shape=round fill=#F6ECD9 stroke=#F1C560 color=#3a2020 rank=4
+pod -> webhook "set scheduler"
+webhook -> sched "select GPU+node"
+sched -> device "allocate device"
+device ..> runtime "device config" constraint=false
+runtime -> core "enforce isolation"
+core -> workload "sees isolated GPU"
 ```
 
 ---

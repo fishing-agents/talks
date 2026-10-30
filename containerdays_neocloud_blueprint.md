@@ -249,18 +249,15 @@ resources:
 @col
 
 ::: card {blueprint}
-```dot
-digraph G {
-  rankdir=TB
-  node [shape=box style="rounded,filled"]
-  app [label="Your app\n(unchanged)"]
-  lib [label="libvgpu.so\nmemory MB · compute %" class="yellow"]
-  drv [label="CUDA driver"]
-  gpu [label="GPU slice\n3000 MB · 30%" class="green"]
-  app -> lib [label=" CUDA calls"]
-  lib -> drv [label=" within limits"]
-  drv -> gpu
-}
+```pdg
+graph dir=TB
+app "Your app\n(unchanged)" shape=round
+lib "libvgpu.so\nmemory MB · compute %" .yellow shape=round
+drv "CUDA driver" shape=round
+gpu "GPU slice\n3000 MB · 30%" .green shape=round
+app -> lib " CUDA calls"
+lib -> drv " within limits"
+drv -> gpu
 ```
 :::
 
@@ -663,57 +660,38 @@ Dashed: HAMi-DRA, the request path for later. It needs Kubernetes 1.34+ with the
 @subtitle Follow one pod from tenant to card to bill
 
 ::: card {blueprint}
-```dot
-digraph G {
-  rankdir=TB
-  newrank=true
-  nodesep=0.25
-  ranksep=0.22
-  node [shape=box style="rounded,filled" margin="0.1,0.04"]
-
-  subgraph cluster_t {
-    label="TENANTS" labeljust=l
-    ns [label="ResourceQuota per namespace\llimits.nvidia.com/gpumem\llimits.nvidia.com/gpucores\l" class="red"]
-    pod [label="1  tenant pod\lnvidia.com/gpu\l+ gpumem + gpucores\l" class="red"]
-    {rank=same; ns; pod}
-  }
-
-  subgraph cluster_cp {
-    label="CONTROL PLANE" labeljust=l
-    dra [label="HAMi-DRA (later)\lResourceClaims\lK8s 1.34+\l" class="cyan" style="rounded,filled,dashed"]
-    wh [label="2  webhook vgpu.hami.io\lsets schedulerName:\lhami-scheduler\l" class="cyan"]
-    sch [label="3  hami-scheduler pod :9395\lkube-scheduler\l+ vgpu-scheduler-extender\l" class="cyan"]
-    bs [label="optional brain\lVolcano\lKueue / KAI\l" style="rounded,filled,dashed"]
-    {rank=same; dra; wh; sch; bs}
-  }
-
-  subgraph cluster_o {
-    label="OBSERVE AND SELL" labeljust=r
-    prom [label="6  Prometheus\l:9395 reserved\l:9394 used\l"]
-    out [label="allocation vs utilization\lKEDA scaling\lmetering, billing\l"]
-  }
-
-  subgraph cluster_n {
-    label="NODE POOLS" labeljust=l
-    nv [label="4  NVIDIA nodes, gpu=on\lhami-device-plugin DaemonSet\ldevice-plugin + vgpu-monitor :9394\l" class="green"]
-    oth [label="Ascend / Kunlunxin / Hygon\lown limiter: vNPU-Core,\lvXPU, vDCU\l" class="green"]
-    core [label="5  libvgpu.so in the pod\lvia /etc/ld.so.preload\lcaps memory, paces compute\l" class="yellow"]
-  }
-
-  {rank=same; prom; nv}
-  {rank=same; out; core; oth}
-  ns -> pod
-  pod -> wh
-  pod -> dra [style=dashed]
-  wh -> sch
-  sch -> bs [style=dotted arrowhead=none]
-  sch -> nv
-  dra -> nv [style=dashed]
-  nv -> core
-  prom -> nv [dir=back]
-  sch -> prom
-  prom -> out
+```pdg
+graph dir=TB order=source
+group t "TENANTS" {
+  ns "ResourceQuota per namespace\nlimits.nvidia.com/gpumem\nlimits.nvidia.com/gpucores\n" .red shape=round
+  pod "1  tenant pod\nnvidia.com/gpu\n+ gpumem + gpucores\n" .red shape=round
 }
+group cp "CONTROL PLANE" {
+  dra "HAMi-DRA (later)\nResourceClaims\nK8s 1.34+\n" .cyan shape=round stroke-dasharray="5 3"
+  wh "2  webhook vgpu.hami.io\nsets schedulerName:\nhami-scheduler\n" .cyan shape=round
+  sch "3  hami-scheduler pod :9395\nkube-scheduler\n+ vgpu-scheduler-extender\n" .cyan shape=round
+  bs "optional brain\nVolcano\nKueue / KAI\n" shape=round stroke-dasharray="5 3"
+}
+group o "OBSERVE AND SELL" {
+  prom "6  Prometheus\n:9395 reserved\n:9394 used\n" shape=round
+  out "allocation vs utilization\nKEDA scaling\nmetering, billing\n" shape=round
+}
+group n "NODE POOLS" {
+  nv "4  NVIDIA nodes, gpu=on\nhami-device-plugin DaemonSet\ndevice-plugin + vgpu-monitor :9394\n" .green shape=round
+  oth "Ascend / Kunlunxin / Hygon\nown limiter: vNPU-Core,\nvXPU, vDCU\n" .green shape=round
+  core "5  libvgpu.so in the pod\nvia /etc/ld.so.preload\ncaps memory, paces compute\n" .yellow shape=round
+}
+ns -> pod
+pod -> wh
+pod ..> dra
+wh -> sch
+sch .. bs
+sch -> nv
+dra ..> nv
+nv -> core
+prom <- nv
+sch -> prom
+prom -> out
 ```
 :::
 
@@ -733,72 +711,59 @@ For a seller: memory is a hard limit. gpucores on its own is a hint; we measured
 @subtitle Floor plan: three pools, one scheduler, SKU sizes are examples
 
 ::: card {blueprint}
-```dot
-digraph G {
-  rankdir=TB
-  newrank=true
-  compound=true
-  nodesep=0.08
-  ranksep=0.22
-  node [shape=box style="rounded,filled" margin="0.06,0.03"]
-  sch [label="hami-scheduler: one cluster, three pools\nroutes by what the pod asks for" class="cyan"]
-  subgraph cluster_p1 {
-    label=""
-    i1 [shape=plaintext style="" label="1  WHOLE-CARD POOL\lgpu=on, taint pool=training\lpod asks: nvidia.com/gpu: 8\l"]
-    subgraph cluster_p1g0 { label="" margin=4
-      p1g0c0 [label="GPU" class="green"]
-    }
-    subgraph cluster_p1g1 { label="" margin=4
-      p1g1c0 [label="GPU" class="green"]
-    }
-    subgraph cluster_p1g2 { label="" margin=4
-      p1g2c0 [label="GPU" class="green"]
-    }
-    subgraph cluster_p1g3 { label="" margin=4
-      p1g3c0 [label="GPU" class="green"]
-    }
-    f1 [shape=plaintext style="" label="policy: node binpack, GPU mutex\lruns: training, large LLMs\lSKU: 1 or 8 whole cards\l"]
+```pdg
+graph dir=TB order=source
+sch "hami-scheduler: one cluster, three pools\nroutes by what the pod asks for" .cyan shape=round
+group p1 {
+  i1 "1  WHOLE-CARD POOL\ngpu=on, taint pool=training\npod asks: nvidia.com/gpu: 8\n" shape=none
+  f1 "policy: node binpack, GPU mutex\nruns: training, large LLMs\nSKU: 1 or 8 whole cards\n" shape=none
+  group p1g0 {
+    p1g0c0 "GPU" .green shape=round
   }
-  subgraph cluster_p2 {
-    label=""
-    i2 [shape=plaintext style="" label="2  MIG POOL\lgpu=on, operatingmode: mig\lpod asks: vgpu-mode: mig\l"]
-    subgraph cluster_p2g0 { label="" margin=4
-      p2g0c0 [label="2g.12gb" class="green"]
-      p2g0c1 [label="1g.6gb" class="green"]
-      p2g0c2 [label="free" style="rounded,filled,dashed"]
-    }
-    subgraph cluster_p2g1 { label="" margin=4
-      p2g1c0 [label="4g.24gb" class="green"]
-    }
-    f2 [shape=plaintext style="" label="annotation: nvidia.com/vgpu-mode\lruns: untrusted tenants\lSKU: MIG profile (A30 example)\l"]
+  group p1g1 {
+    p1g1c0 "GPU" .green shape=round
   }
-  subgraph cluster_p3 {
-    label=""
-    i3 [shape=plaintext style="" label="3  SHARED POOL, HAMi-core\lgpu=on, operatingmode: hami-core\lpod asks: gpumem + gpucores\l"]
-    subgraph cluster_p3g0 { label="" margin=4
-      p3g0c0 [label="2000 MB\n30%" class="green"]
-      p3g0c1 [label="8000 MB\n20%" class="green"]
-      p3g0c2 [label="free" style="rounded,filled,dashed"]
-    }
-    subgraph cluster_p3g1 { label="" margin=4
-      p3g1c0 [label="15000 MB\n30%" class="green"]
-      p3g1c1 [label="free" style="rounded,filled,dashed"]
-    }
-    f3 [shape=plaintext style="" label="policy: node binpack, GPU spread\lruns: inference, dev, notebooks\lSKU: MB + %, sizes are examples\l"]
+  group p1g2 {
+    p1g2c0 "GPU" .green shape=round
   }
-  i1 -> p1g0c0 [style=invis]
-  p1g0c0 -> f1 [style=invis]
-  i2 -> p2g0c0 [style=invis]
-  p2g0c0 -> f2 [style=invis]
-  i3 -> p3g0c0 [style=invis]
-  p3g0c0 -> f3 [style=invis]
-  {rank=same; i1; i2; i3}
-  {rank=same; p1g0c0; p1g1c0; p1g2c0; p1g3c0; p2g0c0; p2g0c1; p2g0c2; p2g1c0; p3g0c0; p3g0c1; p3g0c2; p3g1c0; p3g1c1}
-  {rank=same; f1; f2; f3}
-  sch -> i1 [lhead=cluster_p1]
-  sch -> i2 [lhead=cluster_p2]
-  sch -> i3 [lhead=cluster_p3]
+  group p1g3 {
+    p1g3c0 "GPU" .green shape=round
+  }
 }
+group p2 {
+  i2 "2  MIG POOL\ngpu=on, operatingmode: mig\npod asks: vgpu-mode: mig\n" shape=none
+  f2 "annotation: nvidia.com/vgpu-mode\nruns: untrusted tenants\nSKU: MIG profile (A30 example)\n" shape=none
+  group p2g0 {
+    p2g0c0 "2g.12gb" .green shape=round
+    p2g0c1 "1g.6gb" .green shape=round
+    p2g0c2 "free" shape=round stroke-dasharray="5 3"
+  }
+  group p2g1 {
+    p2g1c0 "4g.24gb" .green shape=round
+  }
+}
+group p3 {
+  i3 "3  SHARED POOL, HAMi-core\ngpu=on, operatingmode: hami-core\npod asks: gpumem + gpucores\n" shape=none
+  f3 "policy: node binpack, GPU spread\nruns: inference, dev, notebooks\nSKU: MB + %, sizes are examples\n" shape=none
+  group p3g0 {
+    p3g0c0 "2000 MB\n30%" .green shape=round
+    p3g0c1 "8000 MB\n20%" .green shape=round
+    p3g0c2 "free" shape=round stroke-dasharray="5 3"
+  }
+  group p3g1 {
+    p3g1c0 "15000 MB\n30%" .green shape=round
+    p3g1c1 "free" shape=round stroke-dasharray="5 3"
+  }
+}
+i1 -> p1g0c0 opacity=0
+p1g0c0 -> f1 opacity=0
+i2 -> p2g0c0 opacity=0
+p2g0c0 -> f2 opacity=0
+i3 -> p3g0c0 opacity=0
+p3g0c0 -> f3 opacity=0
+sch -> i1
+sch -> i2
+sch -> i3
 ```
 :::
 
@@ -821,33 +786,27 @@ Install: helm install hami hami-charts/hami, then kubectl label nodes <node> gpu
 @subtitle One pod request, left to right, HAMi v2.10
 
 ::: card {blueprint}
-```dot
-digraph G {
-  rankdir=TB
-  newrank=true
-  nodesep=0.22
-  ranksep=0.28
-  node [shape=box style="rounded,filled" margin="0.1,0.04"]
-  s1 [label="1  tenant pod\lasks for MB + %\l" class="red"]
-  s2 [label="2  webhook\lvgpu.hami.io\l" class="cyan"]
-  s3 [label="3  quota check\lResourceQuota\l" class="red"]
-  s4 [label="4  hami-scheduler\lpicks node + GPU\l" class="cyan"]
-  s5 [label="5  GPU node\ldevice plugin,\llibvgpu.so\l" class="green"]
-  k1 [label="nvidia.com/gpu: 1\lnvidia.com/gpumem: 8000\lnvidia.com/gpucores: 20\l" style="rounded,filled,dashed"]
-  k2 [label="sets schedulerName:\l  hami-scheduler\lfailurePolicy: Ignore (default)\l" style="rounded,filled,dashed"]
-  k3 [label="limits.nvidia.com/gpumem: 32000\llimits.nvidia.com/gpucores: 200\lover: ResourceQuotaNotFit\l" style="rounded,filled,dashed"]
-  k4 [label="scheduler.defaultSchedulerPolicy:\l  nodeSchedulerPolicy: binpack\l  gpuSchedulerPolicy: spread\lpod: hami.io/gpu-scheduler-policy\l" style="rounded,filled,dashed"]
-  k5 [label="CUDA_DEVICE_MEMORY_LIMIT_<idx>=8000m\lCUDA_DEVICE_SM_LIMIT=20\ldevices.nvidia.gpuCorePolicy: force\l" style="rounded,filled,dashed"]
-  {rank=same; s1; s2; s3; s4; s5}
-  {rank=same; k1; k3; k5}
-  {rank=same; k2; k4}
-  s1 -> s2 -> s3 -> s4 -> s5
-  k1 -> s1 [style=dotted arrowhead=none]
-  k3 -> s3 [style=dotted arrowhead=none]
-  k5 -> s5 [style=dotted arrowhead=none]
-  s2 -> k2 [style=dotted arrowhead=none]
-  s4 -> k4 [style=dotted arrowhead=none]
-}
+```pdg
+graph dir=TB order=source
+s1 "1  tenant pod\nasks for MB + %\n" .red shape=round rank=5
+s2 "2  webhook\nvgpu.hami.io\n" .cyan shape=round rank=5
+s3 "3  quota check\nResourceQuota\n" .red shape=round rank=5
+s4 "4  hami-scheduler\npicks node + GPU\n" .cyan shape=round rank=5
+s5 "5  GPU node\ndevice plugin,\nlibvgpu.so\n" .green shape=round rank=5
+k1 "nvidia.com/gpu: 1\nnvidia.com/gpumem: 8000\nnvidia.com/gpucores: 20\n" shape=round stroke-dasharray="5 3" rank=0
+k2 "sets schedulerName:\n  hami-scheduler\nfailurePolicy: Ignore (default)\n" shape=round stroke-dasharray="5 3" rank=6
+k3 "limits.nvidia.com/gpumem: 32000\nlimits.nvidia.com/gpucores: 200\nover: ResourceQuotaNotFit\n" shape=round stroke-dasharray="5 3" rank=0
+k4 "scheduler.defaultSchedulerPolicy:\n  nodeSchedulerPolicy: binpack\n  gpuSchedulerPolicy: spread\npod: hami.io/gpu-scheduler-policy\n" shape=round stroke-dasharray="5 3" rank=6
+k5 "CUDA_DEVICE_MEMORY_LIMIT_<idx>=8000m\nCUDA_DEVICE_SM_LIMIT=20\ndevices.nvidia.gpuCorePolicy: force\n" shape=round stroke-dasharray="5 3" rank=0
+s1 -> s2
+s2 -> s3
+s3 -> s4
+s4 -> s5
+k1 .. s1
+k3 .. s3
+k5 .. s5
+s2 .. k2
+s4 .. k4
 ```
 :::
 
@@ -870,50 +829,36 @@ Viettel's summary of their rollout: it is an operations project, not a one-line 
 @subtitle Each stage ends at a gate: the signal that says it is done
 
 ::: card {blueprint}
-```dot
-digraph G {
-  rankdir=TB
-  newrank=true
-  nodesep=0.12
-  ranksep=0.26
-  node [shape=box style="rounded,filled" margin="0.1,0.04"]
-  s1 [label="1  BASELINE\l"]
-  g1 [shape=diamond width=0.45 height=0.45 fixedsize=true group=c1 label="1"]
-  d1 [label="HAMi chart, gpu=on\lPrometheus on\l:9395 + :9394\l" style="rounded,filled,dashed"]
-  x1 [group=c1 label="hami_gpu_memory_allocated_bytes\lnext to\lhami_host_gpu_utilization_ratio\lnames the 5-15% jobs\l" style="rounded,filled,dashed"]
-  s2 [label="2  DEV +\lNOTEBOOKS\l"]
-  g2 [shape=diamond width=0.45 height=0.45 fixedsize=true group=c2 label="2"]
-  d2 [label="notebook SKUs:\lgpumem + gpucores\l" style="rounded,filled,dashed"]
-  x2 [group=c2 label="hami_gpu_shared_count > 1,\lhami_vgpu_memory_used_bytes\lunder\lhami_vgpu_memory_limit_bytes\l" style="rounded,filled,dashed"]
-  s3 [label="3  INFERENCE\l+ KEDA\l"]
-  g3 [shape=diamond width=0.45 height=0.45 fixedsize=true group=c3 label="3"]
-  d3 [label="slices for small\lmodels, KEDA on\lqueue saturation\l" style="rounded,filled,dashed"]
-  x3 [group=c3 label="p95 holds while\lreplicas share a card,\lutilization climbs\l" style="rounded,filled,dashed"]
-  s4 [label="4  SELL\lSKUs\l"]
-  g4 [shape=diamond width=0.45 height=0.45 fixedsize=true group=c4 label="4"]
-  d4 [label="SKU catalog,\lquota per tenant,\lmetering\l" style="rounded,filled,dashed"]
-  x4 [group=c4 label="hami_resource_quota_used\lis what you bill,\lover quota shows\lResourceQuotaNotFit\l" style="rounded,filled,dashed"]
-  s5 [label="5  MOVE TO\lDRA\l"]
-  g5 [shape=diamond width=0.45 height=0.45 fixedsize=true group=c5 label="5"]
-  d5 [label="HAMi-DRA, CDI,\lK8s 1.34+,\lDRAConsumableCapacity\l" style="rounded,filled,dashed"]
-  x5 [group=c5 label="same pod YAML lands\lvia ResourceClaims,\lhami_dra_* report\l" style="rounded,filled,dashed"]
-  {rank=same; s1; g1; s2; g2; s3; g3; s4; g4; s5; g5}
-  {rank=same; d1; d2; d3; d4; d5}
-  {rank=same; x1; x3; x5}
-  {rank=same; x2; x4}
-  x1 -> x2 [style=invis]
-  s1 -> g1 -> s2 -> g2 -> s3 -> g3 -> s4 -> g4 -> s5 -> g5
-  d1 -> s1 [style=dotted arrowhead=none]
-  g1 -> x1 [style=dotted arrowhead=none]
-  d2 -> s2 [style=dotted arrowhead=none]
-  g2 -> x2 [style=dotted arrowhead=none]
-  d3 -> s3 [style=dotted arrowhead=none]
-  g3 -> x3 [style=dotted arrowhead=none]
-  d4 -> s4 [style=dotted arrowhead=none]
-  g4 -> x4 [style=dotted arrowhead=none]
-  d5 -> s5 [style=dotted arrowhead=none]
-  g5 -> x5 [style=dotted arrowhead=none]
+```pdg
+graph layout=grid cols=5 gap=14
+default group fill=none stroke=none padding=0
+default node shape=round
+group c1 layout=column gap=10 {
+  d1 "HAMi chart, gpu=on\nPrometheus on\n:9395 + :9394" stroke-dasharray="5 3"
+  s1 "1  BASELINE" font-weight=bold
+  x1 "hami_gpu_memory_allocated_bytes\nnext to\nhami_host_gpu_utilization_ratio\nnames the 5-15% jobs" stroke-dasharray="5 3"
 }
+group c2 layout=column gap=10 {
+  d2 "notebook SKUs:\ngpumem + gpucores" stroke-dasharray="5 3"
+  s2 "2  DEV +\nNOTEBOOKS" font-weight=bold
+  x2 "hami_gpu_shared_count > 1,\nhami_vgpu_memory_used_bytes\nunder\nhami_vgpu_memory_limit_bytes" stroke-dasharray="5 3"
+}
+group c3 layout=column gap=10 {
+  d3 "slices for small\nmodels, KEDA on\nqueue saturation" stroke-dasharray="5 3"
+  s3 "3  INFERENCE\n+ KEDA" font-weight=bold
+  x3 "p95 holds while\nreplicas share a card,\nutilization climbs" stroke-dasharray="5 3"
+}
+group c4 layout=column gap=10 {
+  d4 "SKU catalog,\nquota per tenant,\nmetering" stroke-dasharray="5 3"
+  s4 "4  SELL\nSKUs" font-weight=bold
+  x4 "hami_resource_quota_used\nis what you bill,\nover quota shows\nResourceQuotaNotFit" stroke-dasharray="5 3"
+}
+group c5 layout=column gap=10 {
+  d5 "HAMi-DRA, CDI,\nK8s 1.34+,\nDRAConsumableCapacity" stroke-dasharray="5 3"
+  s5 "5  MOVE TO\nDRA" font-weight=bold
+  x5 "same pod YAML lands\nvia ResourceClaims,\nhami_dra_* report" stroke-dasharray="5 3"
+}
+s1 -> s2 -> s3 -> s4 -> s5
 ```
 :::
 
@@ -1058,22 +1003,17 @@ The case study does not publish SKU sizes or prices, so I do not show any. Your 
 @subtitle The DaoCloud model (D.run and DCE), step by step
 
 ::: card {blueprint}
-```dot
-digraph G {
-  rankdir=TB
-  nodesep=0.2
-  ranksep=0.2
-  node [shape=box style="rounded,filled" margin="0.08,0.03"]
-  pool [label="Card pool\nNVIDIA + other vendors" class="green"]
-  slice [label="vGPU slices\nmemory + compute" class="yellow"]
-  sku [label="SKU catalog\npay by workload size" class="red"]
-  pub [label="D.run marketplace\npublic cloud"]
-  ent [label="DCE quotas + RBAC\nenterprise pool" class="red"]
-  pool -> slice [label=" HAMi-core"]
-  slice -> sku [label=" package"]
-  sku -> pub
-  sku -> ent
-}
+```pdg
+graph dir=TB
+pool "Card pool\nNVIDIA + other vendors" .green shape=round
+slice "vGPU slices\nmemory + compute" .yellow shape=round
+sku "SKU catalog\npay by workload size" .red shape=round
+pub "D.run marketplace\npublic cloud" shape=round
+ent "DCE quotas + RBAC\nenterprise pool" .red shape=round
+pool -> slice " HAMi-core"
+slice -> sku " package"
+sku -> pub
+sku -> ent
 ```
 :::
 

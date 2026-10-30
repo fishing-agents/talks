@@ -346,16 +346,13 @@ resources:
 ```
 
 ::: card {blueprint}
-```dot
-digraph G {
-  rankdir=LR
-  node [shape=box style="rounded,filled"]
-  app [label="Your app"]
-  lib [label="HAMi-core\nlibvgpu.so" class="yellow"]
-  gpu [label="H200 slice" class="green"]
-  app -> lib [label="CUDA calls"]
-  lib -> gpu [label="within limits"]
-}
+```pdg
+graph dir=LR
+app "Your app" shape=round
+lib "HAMi-core\nlibvgpu.so" .yellow shape=round
+gpu "H200 slice" .green shape=round
+app -> lib "CUDA calls"
+lib -> gpu "within limits"
 ```
 :::
 
@@ -1034,57 +1031,38 @@ Before you build: profile workloads first, not a preset ratio (CETC); share smal
 @subtitle The reference architecture, HAMi chart v2.10.0
 
 ::: card {blueprint}
-```dot
-digraph G {
-  rankdir=TB
-  newrank=true
-  nodesep=0.25
-  ranksep=0.22
-  node [shape=box style="rounded,filled" margin="0.1,0.04"]
-
-  subgraph cluster_t {
-    label="TENANTS" labeljust=l
-    ns [label="ResourceQuota per namespace\llimits.nvidia.com/gpumem\llimits.nvidia.com/gpucores\l" class="red"]
-    pod [label="1  tenant pod\lnvidia.com/gpu\l+ gpumem + gpucores\l" class="red"]
-    {rank=same; ns; pod}
-  }
-
-  subgraph cluster_cp {
-    label="CONTROL PLANE" labeljust=l
-    dra [label="HAMi-DRA (later)\lResourceClaims\lK8s 1.34+\l" class="cyan" style="rounded,filled,dashed"]
-    wh [label="2  webhook vgpu.hami.io\lsets schedulerName:\lhami-scheduler\l" class="cyan"]
-    sch [label="3  hami-scheduler pod :9395\lkube-scheduler\l+ vgpu-scheduler-extender\l" class="cyan"]
-    bs [label="optional brain\lVolcano\lKueue / KAI\l" style="rounded,filled,dashed"]
-    {rank=same; dra; wh; sch; bs}
-  }
-
-  subgraph cluster_o {
-    label="OBSERVE AND SELL" labeljust=r
-    prom [label="6  Prometheus\l:9395 reserved\l:9394 used\l"]
-    out [label="allocation vs utilization\lKEDA scaling\lmetering, billing\l"]
-  }
-
-  subgraph cluster_n {
-    label="NODE POOLS" labeljust=l
-    nv [label="4  NVIDIA nodes, gpu=on\lhami-device-plugin DaemonSet\ldevice-plugin + vgpu-monitor :9394\l" class="green"]
-    oth [label="Ascend / Kunlunxin / Hygon\lown limiter: vNPU-Core,\lvXPU, vDCU\l" class="green"]
-    core [label="5  libvgpu.so in the pod\lvia /etc/ld.so.preload\lcaps memory, paces compute\l" class="yellow"]
-  }
-
-  {rank=same; prom; nv}
-  {rank=same; out; core; oth}
-  ns -> pod
-  pod -> wh
-  pod -> dra [style=dashed]
-  wh -> sch
-  sch -> bs [style=dotted arrowhead=none]
-  sch -> nv
-  dra -> nv [style=dashed]
-  nv -> core
-  prom -> nv [dir=back]
-  sch -> prom
-  prom -> out
+```pdg
+graph dir=TB order=source
+group t "TENANTS" {
+  ns "ResourceQuota per namespace\nlimits.nvidia.com/gpumem\nlimits.nvidia.com/gpucores\n" .red shape=round
+  pod "1  tenant pod\nnvidia.com/gpu\n+ gpumem + gpucores\n" .red shape=round
 }
+group cp "CONTROL PLANE" {
+  dra "HAMi-DRA (later)\nResourceClaims\nK8s 1.34+\n" .cyan shape=round stroke-dasharray="5 3"
+  wh "2  webhook vgpu.hami.io\nsets schedulerName:\nhami-scheduler\n" .cyan shape=round
+  sch "3  hami-scheduler pod :9395\nkube-scheduler\n+ vgpu-scheduler-extender\n" .cyan shape=round
+  bs "optional brain\nVolcano\nKueue / KAI\n" shape=round stroke-dasharray="5 3"
+}
+group o "OBSERVE AND SELL" {
+  prom "6  Prometheus\n:9395 reserved\n:9394 used\n" shape=round
+  out "allocation vs utilization\nKEDA scaling\nmetering, billing\n" shape=round
+}
+group n "NODE POOLS" {
+  nv "4  NVIDIA nodes, gpu=on\nhami-device-plugin DaemonSet\ndevice-plugin + vgpu-monitor :9394\n" .green shape=round
+  oth "Ascend / Kunlunxin / Hygon\nown limiter: vNPU-Core,\nvXPU, vDCU\n" .green shape=round
+  core "5  libvgpu.so in the pod\nvia /etc/ld.so.preload\ncaps memory, paces compute\n" .yellow shape=round
+}
+ns -> pod
+pod -> wh
+pod ..> dra
+wh -> sch
+sch .. bs
+sch -> nv
+dra ..> nv
+nv -> core
+prom <- nv
+sch -> prom
+prom -> out
 ```
 :::
 
