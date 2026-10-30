@@ -23,7 +23,7 @@ style: |
 @speaker name="Reza Jelveh" role="Engineering · Dynamia"
 
 <!--
-Welcome to the HAMi demo. This deck showcases all slidr features: layouts, grids, cards, tables, quotes, speaker notes, and the new @layout directive.
+Welcome to the HAMi demo. This deck showcases all decktile features: layouts, grids, cards, tables, quotes, speaker notes, and the new @layout directive.
 -->
 
 ---
