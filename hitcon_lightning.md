@@ -151,13 +151,13 @@ Five stages from pod submission to isolated GPU. The mutating webhook routes the
 
 ```pdg
 graph dir=TB order=source
-pod "Pod submitted" shape=round fill=#F6ECD9 stroke=#F1C560 color=#3a2020 rank=2
-webhook "Mutating webhook" shape=round fill=#fce8e8 stroke=#7A0504 color=#3a2020 rank=3
-sched "Scheduler" shape=round fill=#fce8e8 stroke=#7A0504 color=#3a2020 rank=4
-device "HAMi driver" shape=round fill=#fce8e8 stroke=#7A0504 color=#3a2020 rank=5
-runtime "Container runtime" shape=round fill=#F6ECD9 stroke=#F1C560 color=#3a2020 rank=2
-core "HAMi core" shape=round fill=#fce8e8 stroke=#7A0504 color=#3a2020 rank=3
-workload "Workload (isolated GPU)" shape=round fill=#F6ECD9 stroke=#F1C560 color=#3a2020 rank=4
+pod "Pod submitted" shape=round fill=#F6ECD9 stroke=#F1C560 color=#3a2020 rank=0
+webhook "Mutating webhook" shape=round fill=#fce8e8 stroke=#7A0504 color=#3a2020 rank=1
+sched "Scheduler" shape=round fill=#fce8e8 stroke=#7A0504 color=#3a2020 rank=2
+device "HAMi driver" shape=round fill=#fce8e8 stroke=#7A0504 color=#3a2020 rank=3
+runtime "Container runtime" shape=round fill=#F6ECD9 stroke=#F1C560 color=#3a2020 rank=0
+core "HAMi core" shape=round fill=#fce8e8 stroke=#7A0504 color=#3a2020 rank=1
+workload "Workload (isolated GPU)" shape=round fill=#F6ECD9 stroke=#F1C560 color=#3a2020 rank=2
 pod -> webhook "set scheduler"
 webhook -> sched "select GPU+node"
 sched -> device "allocate device"

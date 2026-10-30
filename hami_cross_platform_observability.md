@@ -465,13 +465,13 @@ lib -> gpu "slice only"
 
 ```pdg
 graph dir=TB order=source
-core "Pod: app + HAMi-core" shape=round fill=#e3f0ff stroke=#3939D8 color=#2a2a5a rank=3
-nvml "NVML (driver)" shape=round fill=#fff9e6 stroke=#f9a825 color=#2a2a5a rank=3
-cache "usage.cache\nmemory, sm_util per process" shape=round fill=#e3f0ff stroke=#3939D8 color=#2a2a5a rank=3
-api "Kubernetes API\n(Pod names)" shape=round fill=#e8f5e9 stroke=#2e7d32 color=#2a2a5a rank=3
-mon "vGPUmonitor :9394" shape=round fill=#ffe8eb stroke=#DB1E3D color=#2a2a5a rank=3
-dev "hami_host_gpu_*\ndevice" shape=round fill=#fff9e6 stroke=#f9a825 color=#2a2a5a rank=4
-ten "hami_vgpu_*, hami_container_*\ntenant" shape=round fill=#e3f0ff stroke=#3939D8 color=#2a2a5a rank=4
+core "Pod: app + HAMi-core" shape=round fill=#e3f0ff stroke=#3939D8 color=#2a2a5a rank=0
+nvml "NVML (driver)" shape=round fill=#fff9e6 stroke=#f9a825 color=#2a2a5a rank=0
+cache "usage.cache\nmemory, sm_util per process" shape=round fill=#e3f0ff stroke=#3939D8 color=#2a2a5a rank=0
+api "Kubernetes API\n(Pod names)" shape=round fill=#e8f5e9 stroke=#2e7d32 color=#2a2a5a rank=0
+mon "vGPUmonitor :9394" shape=round fill=#ffe8eb stroke=#DB1E3D color=#2a2a5a rank=0
+dev "hami_host_gpu_*\ndevice" shape=round fill=#fff9e6 stroke=#f9a825 color=#2a2a5a rank=1
+ten "hami_vgpu_*, hami_container_*\ntenant" shape=round fill=#e3f0ff stroke=#3939D8 color=#2a2a5a rank=1
 nvml -> core "per-PID samples" stroke=#6a7a99 color=#2a2a5a
 core -> cache "writes" stroke=#6a7a99 color=#2a2a5a
 cache -> mon "mmap" stroke=#6a7a99 color=#2a2a5a
