@@ -38,26 +38,30 @@ Lab commands and outputs on these slides are from a run on 2026-10-20 (kind 0.33
 @layout timeline-horizontal
 @subtitle Tuesday, November 10, 4:40 to 6:00 pm · Salt Palace 255 D
 
-::: grid {cols=5}
+::: grid {cols=6}
 ::: card {label="4:40"}
 ### Lab 1
 Install HAMi
 :::
-::: card {label="4:55"}
+::: card {label="4:52"}
 ### Lab 2
 Share a GPU
 :::
-::: card {label="5:10"}
+::: card {label="5:04"}
 ### Lab 3
-binpack vs spread
+Placement policies
 :::
-::: card {focus, label="5:25"}
+::: card {label="5:20"}
 ### Lab 4
-DRA
+Flexible MIG
 :::
-::: card {label="5:45"}
-### Contribute
-First PR
+::: card {focus, label="5:30"}
+### Lab 5
+Volcano and DRA
+:::
+::: card {label="5:50"}
+### PRs
+First contribution
 :::
 :::
 
@@ -368,7 +372,7 @@ Produces HAMi's usage metrics (normally from vGPUmonitor and HAMi-core) from a l
 :::
 
 <!--
-What you do not get without a GPU: memory and compute isolation inside the container. That part is HAMi-core, shown live on a real card in the wrap-up.
+What you do not get without a GPU: memory and compute isolation inside the container. That part is HAMi-core, which needs a real card.
 -->
 
 ---
@@ -391,7 +395,7 @@ What you do not get without a GPU: memory and compute isolation inside the conta
 The script:
 
 1. Creates a kind cluster `hami-lab` and labels the node `gpu=on`
-2. Installs HAMi 2.10.0 with the real device plugin off and the mock plugin on
+2. Installs HAMi 2.11.0 with the real device plugin off and the mock plugin on
 3. Fakes two A100-40GB cards. Two pieces:
     - the count resource `nvidia.com/gpu=20`: the mock plugin's health gate, 2 cards x 10 splits
     - the node annotation `hami.io/node-nvidia-register` from `fake-gpus.json`, what the real device plugin writes after it reads NVML
@@ -493,102 +497,35 @@ On a real node, step 4 also injects `libvgpu.so` via `ld.so.preload`, and HAMi-c
 12:50. Target: 12 minutes, now with four concept slides up front (scheduling policies, GPU binpack, GPU spread, topology): keep them to ~3 minutes together, or cut topology to one sentence. The whole workshop already runs over 45 min (see practice/workshop.md cut list). One node, so the node axis has a single candidate. The card axis is fully observable on the two fake A100s.
 -->
 
-# Lab 3: Scheduler policies
+# Lab 3: Placement policies
 
 ---
 
-@layout image-right
+## Binpack and spread
 
-## Scheduling policies
+@subtitle Two axes, two policies, one annotation each
 
-@subtitle Binpack & spread, on nodes and on GPUs
-
-<!--
-Two axes, four patterns. Node binpack saves money, node spread saves uptime. GPU binpack saves whole GPUs for training, GPU spread saves tail latency. Pick by workload: training and small fleets want binpack, inference with SLOs wants spread. (From the KubeCon Japan SNOW talk and OSS Summit Korea.)
--->
-
-![Binpack vs Spread scheduling](assets/hami_intro/scheduling_strategies.png)
-
-- **Node binpack** frees whole machines: reduces cost, helps cluster autoscaler
-- **Node spread** isolates faults: HA across zones, blast radius control
-- **GPU binpack** prevents fragmentation: frees entire GPUs for training
-- **GPU spread** protects tail latency: reduces HBM and NVLink contention
-
----
-
-@layout two-col
-
-## GPU binpack
-
-@subtitle Fill one card, run many workloads
-
-<!--
-GPU binpack puts several workloads on the same card, each with its own slice of memory and compute. It matters most when cards are scarce: small workloads stop blocking whole cards, so the job that cannot share still finds an empty one.
--->
-
-- Several workloads share one card, each with its own slice of memory and compute
-- Prevents fragmentation: scattered small workloads no longer block whole cards
-- Frees whole cards for the job that cannot share
-- Best for: fleets of small workloads, batch jobs, dev and test
-
-@col
-
-![GPU Binpack](drawings/gpu_binpack.drawio.png)
-
----
-
-@layout two-col
-
-## GPU spread
-
-@subtitle One workload per card, no shared bottlenecks
-
-<!--
-GPU spread puts each workload on its own card. No tenant shares compute or memory bandwidth with another, so a thrashing neighbour does not slow the others. Use it for latency-sensitive serving. Next: try both on the two fake A100s.
--->
-
-- One workload per card: compute and memory bandwidth are never shared
-- Isolates noisy neighbours: a thrasher on one card does not slow the others
-- Protects tail latency: no cross-tenant contention
-- Best for: latency-sensitive serving with strict SLOs
-
-@col
-
-![GPU Spread](drawings/gpu_spread.drawio.png)
-
----
-
-@layout image-right
-
-## Scheduling policies
-
-@subtitle Topology-aware
-
-<!--
-NVLink vs PCIe is a 7-14x bandwidth gap. HAMi schedules multi-GPU workloads to NVLink-connected pairs and avoids PCIe bridge pairs. Ascend uses HCCS, other vendors have their own high-speed interconnects: same topology logic applies. This matters for tensor parallelism and large-model training. (From the KubeCon Japan SNOW talk.)
--->
-
-![NUMA topology-aware scheduling](assets/hami_intro/topology_numa.png)
-
-- **NVLink 3 (A100):** 600 GB/s, 12 links
-- **NVLink 4 (H100/H200):** 900 GB/s bidirectional across 18 links
-- **NVLink 5 (B200/B300):** 1.8 TB/s, 14x PCIe 5.0
-- **NVLink 6 (Rubin):** ~3.6 TB/s target
-- **PCIe 5.0 x16:** 128 GB/s. **PCIe 6.0:** 242 GB/s
-- **HAMi topology policy:** prefers NVLink (NVIDIA), HCCS (Ascend), and other high-speed interconnects, avoids PCIe bridge pairs
-
----
-
-## Placement happens on two axes
+::: grid {cols=2}
+::: card {tag=green}
+### GPU binpack
+Several workloads fill one card, each with its own memory and compute slice. Keeps whole cards free for the job that cannot share.
+Best for: small workloads, batch, dev and test.
+:::
+::: card {tag=cyan}
+### GPU spread
+One workload per card. No shared compute or memory bandwidth, so a noisy neighbour stays on its own card.
+Best for: latency-sensitive serving.
+:::
+:::
 
 | Axis | Annotation | binpack | spread |
 | --- | --- | --- | --- |
-| Which node | `hami.io/node-scheduler-policy` | fewer nodes | across nodes |
-| Which card on that node | `hami.io/gpu-scheduler-policy` | same card | across cards |
+| Which node | `hami.io/node-scheduler-policy` | fewer nodes, autoscaler frees machines | across nodes, smaller blast radius |
+| Which card | `hami.io/gpu-scheduler-policy` | same card | across cards |
 
-- Both axes score cards by utilization ratios: binpack prefers the fuller card (consolidation), spread prefers the emptier one (dispersion)
-- This lab has one node, so the node axis has a single candidate
-- The card axis is fully observable on the two fake A100s
+<!--
+Two axes, four patterns. Node binpack saves money, node spread saves uptime. GPU binpack saves whole GPUs, GPU spread saves tail latency. Both score cards by utilization: binpack prefers the fuller card, spread the emptier one. This lab has one node, so only the card axis is observable, on the two fake A100s.
+-->
 
 ---
 
@@ -623,6 +560,42 @@ metadata:
   annotations:
     hami.io/gpu-scheduler-policy: spread   # or binpack, per Pod
 ```
+
+---
+
+## Mutex: a card nobody else is using
+
+@subtitle `hami.io/gpu-scheduler-policy: mutex`, HAMi v2.10+
+
+- Only cards with no workload on them (`used == 0`) are candidates; busy cards are skipped with `ExclusiveDeviceAllocateConflict`
+- No idle card on the node: the Pod stays `Pending` instead of landing next to a neighbour
+- It is a filter, so it chains with a sort key: `mutex,binpack` packs the shared work, keeps exclusive work apart
+
+**When you need it**
+
+- Benchmarks: a neighbour skews the numbers
+- Profiling with Nsight or DCGM: per-card counters only mean something with one tenant
+- Latency SLOs where spread is only a preference, not a guarantee
+
+<!--
+Spread prefers an empty card; mutex requires one. Mutex only checks at scheduling time: a later Pod can still land on that card. To keep it exclusive for the workload's lifetime, request the whole card (gpumem-percentage 100, gpucores 100) or pin it with nvidia.com/use-gpuuuid. Source: pkg/device/nvidia/device.go (isMutex && dev.Used > 0), website docs/developers/scheduling.md.
+-->
+
+---
+
+## Lab 3: mutex
+
+```bash
+kubectl apply -f spread.yaml          # spread-1 and spread-2: one Pod per card
+kubectl apply -f mutex.yaml           # asks for an idle card
+kubectl get events --field-selector involvedObject.name=mutex-1 | tail -1
+# 0/1 nodes are available: 1 2/2 ExclusiveDeviceAllocateConflict.
+kubectl delete pod spread-2           # free one card
+kubectl get pod mutex-1 -o jsonpath='{.metadata.annotations.hami\.io/vgpu-devices-allocated}'
+# GPU-mock-0,NVIDIA,15000,30:;
+```
+
+Both cards have room for `mutex-1`'s memory, but neither is empty. It waits until one is.
 
 ---
 
@@ -674,89 +647,142 @@ Every register annotation also carries a numa field per card. Kunlunxin: 1, 2, 4
 
 ---
 
-@variant dark
-<!--
-13:00. Target: 10 minutes. Read-along section: no live installs, 10 minutes does not fit them and one fake node does not need them.
--->
+## CPU and GPU on the same NUMA node
 
-# Lab 4: Beyond the default scheduler
-
----
-
-## HAMi is two things
-
-@subtitle One isolation layer, several scheduling brains
+@subtitle The scheduler picks the GPU, kubelet picks the CPUs. They have to agree.
 
 ```pdg
-graph layout=column theme=hami gap=22
-group inputs layout=row gap=90 .bare {
-  pod "GPU Pod" sub="fractional request"
-  adm "Admission" sub="mutating webhook"
-  dra "HAMi-DRA" sub="gpu → claim"
-}
-group brains "Scheduling brains" layout=row gap=60 {
-  ext "HAMi extender" sub="gpumem · gpucores" .blue
-  vol "Volcano" sub="vgpu-* · gang · queue" .blue
-  kai "KAI Scheduler" sub="gpu-fraction · topo" .blue
-  ks "kube-scheduler" sub="DRA driver · 1.34+"
-}
-core "HAMi-core" sub="libvgpu.so · hard isolation" .green border=glow
-pod -> adm
-adm -> ext "default"
-adm -> vol "volcano"
-adm -> kai "KAI"
-adm -> dra "DRA"
-dra -> ks
-ext -> core
-vol -> core
-kai -> core
-ks -> core "via isolator"
-css { group.bare { fill: none; stroke: none; padding: 0; } }
+graph layout=row theme=hami gap=40 steps=auto
+hs "hami-scheduler" sub="picks GPU-3" .blue
+tm "kubelet Topology Manager" sub="CPUs on NUMA 0 · allows GPU-0..1"
+dp "HAMi device plugin" sub="GPU-3 not allowed"
+rf "/refit" sub="re-run the fit on GPU-0..1" .green border=glow
+pod "Pod" sub="CPUs + GPU on NUMA 0" .green
+hs -> tm flow=forward
+tm -> dp flow=forward
+dp -> rf "ask" flow=forward
+rf -> pod "annotations + accounting moved" flow=forward
 ```
 
+- `enableNumaTopology`: the device plugin advertises each card's NUMA node, so the Topology Manager can restrict the choice
+- When that excludes the scheduler's pick, the plugin calls the scheduler's `/refit`: same policy, allowed cards only, reservation moved
+- Before the refit, the container ran on one GPU while HAMi's annotations and accounting recorded another
+
 <!--
-A capacity model: the extended resources plus the scheduler extender you just used. HAMi-core: the isolation library. Other schedulers can replace the placement brain and keep the isolation layer.
+Shipped in HAMi v2.11.0 (#2729 groundwork, #2731 refit, #3364 metrics). The lab runs 2.11.0, but kind has one NUMA node, so this is read-along. Validated on 8x RTX PRO 6000 Blackwell, Kubernetes 1.35. hami-core mode only, MIG nodes excluded. Code: pkg/util/numa_alignment.go, pkg/device-plugin/nvidiadevice/nvinternal/plugin/numa_refit_client.go.
 -->
 
 ---
 
-## Three ways to use HAMi
+## NUMA alignment: turning it on
 
-::: grid {cols=3}
-::: card {tag=cyan}
-### Standard HAMi
-HAMi scheduler extender + HAMi device plugin.
-`nvidia.com/gpu`, `gpumem`, `gpucores`
-:::
-::: card {tag=green}
-### Volcano vGPU
-Volcano `deviceshare` + volcano-vgpu-device-plugin.
-`volcano.sh/vgpu-number`, `vgpu-memory`, `vgpu-cores`
-:::
-::: card {tag=yellow}
-### KAI Scheduler
-KAI GPU sharing + kai-resource-isolator.
-`gpu-memory` or `gpu-fraction` annotation
-:::
-:::
+```yaml
+# kubelet config
+cpuManagerPolicy: static
+topologyManagerPolicy: single-numa-node
+topologyManagerScope: container
+```
 
-All three use **HAMi-core** in the container for isolation. One rule: one device-plugin path per GPU node.
+```yaml
+metadata:
+  annotations:
+    hami.io/numa-alignment: best-effort   # or strict
+```
+
+- Helm: `devices.nvidia.enableNumaTopology`, `devicePlugin.numaRefit.enabled`, and per node `enablegetpreferredallocation`. All off by default
+- `best-effort`: refit fails, kubelet's choice stands and is logged. `strict`: refit fails, the allocation fails
+- Not the same as `nvidia.com/numa-bind`, which keeps a multi-GPU Pod's cards on one NUMA node. Policy `numa` sorts by NUMA node in a chain such as `numa,binpack`
+
+<!--
+A successful refit emits a NumaRefitSucceed event on the Pod. Pods pinned with use-gpuuuid are never refitted. Guaranteed-QoS Pods with integer CPUs only: the static CPU manager ignores everything else.
+-->
 
 ---
 
-## KAI Scheduler: composes with HAMi
+@variant dark
+<!--
+5:20. Target: 10 minutes. Read-along: MIG needs Ampere or newer hardware, the fake A100s cannot create GPU instances.
+-->
 
-NVIDIA's scheduler for AI workloads (CNCF Sandbox): gang scheduling, hierarchical fair queues, fractional GPU, topology-aware placement.
+# Lab 4: Flexible MIG
 
-```bash
-helm install kai-scheduler oci://ghcr.io/nvidia/kai-scheduler --version v0.17.0 \
-  --set global.gpuSharing=true --set binder.plugins.hamicore.enabled=true \
-  -n kai-scheduler --create-namespace
+@subtitle Hardware isolation without pre-carved templates
+
+---
+
+## Static MIG vs HAMi dynamic MIG
+
+::: grid {cols=2}
+::: card {tag=red}
+### Static: MIG Manager
+Pick a whole-GPU layout up front (`all-1g.10gb`, `all-balanced`). Changing it means draining the card. Pods ask for `nvidia.com/mig-1g.10gb`.
+:::
+::: card {tag=green}
+### Dynamic: HAMi v2.10+
+The scheduler reserves a profile and placement per Pod. The device plugin creates that GPU instance at `Allocate` and destroys it when the Pod ends. Pods keep asking for `nvidia.com/gpumem`.
+:::
+:::
+
+```pdg
+graph layout=row theme=hami gap=36 steps=auto
+nvml "NVML on the node" sub="profiles + legal placements"
+sch "HAMi scheduler" sub="smallest profile that fits · no overlap" .blue
+ann "Pod annotation" sub="hami.io/vgpu-mig-allocations"
+dp "Device plugin" sub="creates GI/CI at Allocate" .green
+nvml -> sch "migProfiles" flow=forward
+sch -> ann "reserve" flow=forward
+ann -> dp flow=forward
 ```
 
-- Since v0.16.4 the kai-resource-isolator DaemonSet plus a mutating webhook deliver the same `libvgpu.so` into Pods
-- `CUDA_DEVICE_MEMORY_LIMIT` injected from `gpu-fraction` or `gpu-memory` annotations
-- KAI makes the placement decisions, HAMi-core makes the memory cap hard
+<!--
+Source: website docs/developers/dynamic-mig.md and userguide/nvidia-device/dynamic-mig-support.md. Four authorities: NVML owns capability, the scheduler owns placement, the device plugin owns hardware mutation, the Pod annotation is the handoff. HAMi and NVIDIA MIG Manager must never manage the same GPU.
+-->
+
+---
+
+## Lab 4: a MIG Pod
+
+```yaml
+# node config: "operatingmode": "mig"
+# device config: which profiles are allowed, not their sizes
+nvidia:
+  migProfileAllowlist:
+    - models: ["A100-SXM4-40GB"]
+      profiles: ["1g.5gb", "2g.10gb", "3g.20gb", "7g.40gb"]
+```
+
+```yaml
+metadata: { annotations: { nvidia.com/vgpu-mode: "mig" } }
+# limits: { nvidia.com/gpu: 1, nvidia.com/gpumem: 8000 }
+```
+
+8000 MiB gets the smallest allowed profile that fits, `2g.10gb`. Same Pod spec as Lab 2, hard isolation.
+
+<!--
+Inspect: kubectl get pod <p> -o json | jq -r '.metadata.annotations["hami.io/vgpu-mig-allocations"] | fromjson' shows gpuUUID, profile, placement, migUUID, GI and CI IDs. Metric hami_node_gpu_mig_instance_info joins to DCGM via UUID + GPU_I_ID.
+-->
+
+---
+
+## Dynamic MIG: when to pick it, and its limits
+
+- **Pick MIG** when tenants need hard isolation: separate memory, cache and fault domains. **Pick HAMi-core** for finer slices (1 MiB) and oversubscription
+- Without `nvidia.com/vgpu-mode`, a Pod can land in either a HAMi-core or a MIG pool
+- **Fragmentation:** enough free slices, but no legal contiguous placement for a bigger profile. The Pod stays `Pending`
+- HAMi never moves a running instance to defragment a card
+- Enabling MIG mode can still need a reset or reboot. Ampere or newer only
+
+---
+
+
+@variant dark
+<!--
+5:30. Target: 20 minutes. Volcano first, then DRA. Read-along plus the claim YAML. Live only on the presenter's 1.34+ cluster.
+-->
+
+# Lab 5: Volcano and DRA
+
+@subtitle Gang scheduling on shared GPUs, then a different resource model
 
 ---
 
@@ -769,37 +795,19 @@ spec:
   minAvailable: 2            # both workers or none
   queue: vgpu-queue
   tasks:
-  - replicas: 2
-    template:
-      spec:
-        containers:
-        - resources:
-            limits:
-              volcano.sh/vgpu-number: 1
-              volcano.sh/vgpu-memory: 2000
-              volcano.sh/vgpu-cores: 30
+  - replicas: 2              # each container limits:
+      # volcano.sh/vgpu-number: 1, vgpu-memory: 2000, vgpu-cores: 30
 ```
 
-- Volcano `deviceshare` plugin plus the volcano-vgpu-device-plugin, not the standard HAMi chart
-- Queue `capability` caps vGPU memory per team
+- Volcano `deviceshare` (`VGPUEnable: true`) plus the volcano-vgpu-device-plugin. No HAMi scheduler
+- HAMi-core still isolates inside the container
+- Gang scheduling and per-team queue `capability` on fractional GPUs
 
 <!--
-Never run the standard HAMi device plugin and a Volcano vGPU plugin on the same node.
+Volcano > v1.9. Never run the standard HAMi device plugin and the Volcano vGPU plugin on the same node. Exclusive cards: see docs userguide/volcano-vgpu/nvidia-gpu/examples/use-exclusive-gpu.md.
 -->
 
 ---
-
-@variant dark
-<!--
-5:25. Target: 20 minutes. Read-along plus the claim YAML. Live only on the presenter's 1.34+ cluster.
--->
-
-# Lab 4: DRA
-
-@subtitle Same Pod spec, a different resource model
-
----
-
 ## Device plugin vs DRA
 
 ```pdg
@@ -916,7 +924,7 @@ github.com/Project-HAMi/HAMi-DRA
 
 ## DRA and the schedulers above it
 
-::: grid {cols=3}
+::: grid {cols=2}
 ::: card {tag=cyan}
 ### Kueue
 Admits ResourceClaimTemplates. Needs the HAMi DeviceClass in `deviceClassMappings`.
@@ -924,10 +932,6 @@ Admits ResourceClaimTemplates. Needs the HAMi DeviceClass in `deviceClassMapping
 ::: card {tag=green}
 ### Volcano
 Today: `deviceshare` plus the vGPU device plugin. Gang and queue capacity on shared GPUs.
-:::
-::: card {tag=yellow}
-### KAI Scheduler
-Today: GPU fractions with HAMi-Core as the isolation layer.
 :::
 :::
 
@@ -937,7 +941,7 @@ Open questions for the room: who decides partitioning, the driver or the schedul
 
 @variant dark
 <!--
-13:10. Target: 5 minutes. The sim oscillates over 2 minutes, give it time. Then the live isolation demo if the real node is up.
+13:10. Target: 5 minutes. The sim oscillates over 2 minutes, give it time.
 -->
 
 # Wrap-up
@@ -968,33 +972,6 @@ alloc -> usage "alloc ≥ used"
 
 ---
 
-## Two metric sources
-
-::: grid {cols=2}
-::: card {tag=cyan}
-### Scheduler :9395, allocation
-- `gpu_memory_allocated_bytes`
-- `gpu_core_allocated_ratio`
-- `node_gpu_memory_allocated_ratio`
-- `gpu_shared_count`
-- `vgpu_memory_allocated_bytes`
-- `resource_quota_used`
-:::
-::: card {tag=green}
-### vGPUmonitor :9394, usage
-- `vgpu_memory_used_bytes`
-- `vgpu_memory_limit_bytes`
-- `container_device_utilization_ratio`
-- `host_gpu_utilization_ratio`
-- `host_gpu_memory_used_bytes`
-- `container_last_kernel_elapsed_seconds`
-:::
-:::
-
-All names start with `hami_`. Same labels: `node`, `device_uuid`, `namespace`, `pod`. Join them in PromQL.
-
----
-
 ## Give the mock a realistic load
 
 ```bash
@@ -1012,27 +989,6 @@ hami_host_gpu_utilization_ratio{device_uuid="GPU-mock-1"}      20.0
 - Memory stays at 0.9 x the limit, because vLLM preallocates its KV cache
 
 **Question.** Card `GPU-mock-1` shows 73% memory allocated but 20% used. Which number goes on a capacity dashboard, and which on a cost report?
-
----
-
-## Live: isolation on a real GPU
-
-::: grid {cols=2}
-::: card {tag=cyan}
-### Ask
-`nvidia.com/gpumem: 3000`
-:::
-::: card {tag=green}
-### See
-`nvidia-smi` in the Pod reports 3000 MiB total.
-:::
-:::
-
-Allocating past the limit fails inside the Pod with out of memory. Neighbours keep running.
-
-<!--
-Presenter only, real NVIDIA node. This is the part the lab cannot show: HAMi-core enforcement. Pre-recorded fallback if the node is down.
--->
 
 ---
 
