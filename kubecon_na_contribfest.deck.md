@@ -563,22 +563,22 @@ metadata:
 
 ---
 
-## Mutex: a card nobody else is using
+## Mutex: start on an idle card
 
-@subtitle `hami.io/gpu-scheduler-policy: mutex`, HAMi v2.10+
+@subtitle `hami.io/gpu-scheduler-policy: mutex`, new in HAMi v2.10.0 (#2011)
 
-- Only cards with no workload on them (`used == 0`) are candidates; busy cards are skipped with `ExclusiveDeviceAllocateConflict`
-- No idle card on the node: the Pod stays `Pending` instead of landing next to a neighbour
-- It is a filter, so it chains with a sort key: `mutex,binpack` packs the shared work, keeps exclusive work apart
+- A filter: only cards with zero tenants are eligible. One small workload on a card is enough to rule it out
+- No idle card: the Pod stays `Pending` with `ExclusiveDeviceAllocateConflict`
+- Checked **at placement only**. A later plain Pod can still join the card
 
-**When you need it**
+**When it is necessary**
 
-- Benchmarks: a neighbour skews the numbers
-- Profiling with Nsight or DCGM: per-card counters only mean something with one tenant
-- Latency SLOs where spread is only a preference, not a guarantee
+- Latency-sensitive inference that must not share a die, but should not have to request the whole card
+- Spread is only a preference: it takes the least-used card, even a busy one
+- For exclusivity over the Pod's lifetime, request all of the card's memory and cores, or pin it with `nvidia.com/use-gpuuuid`
 
 <!--
-Spread prefers an empty card; mutex requires one. Mutex only checks at scheduling time: a later Pod can still land on that card. To keep it exclusive for the workload's lifetime, request the whole card (gpumem-percentage 100, gpucores 100) or pin it with nvidia.com/use-gpuuuid. Source: pkg/device/nvidia/device.go (isMutex && dev.Used > 0), website docs/developers/scheduling.md.
+Sources: v2.10.0 release blog ("placed only on GPUs that have no existing users ... latency-sensitive inference or workloads that must not share a die"), composable-scheduler-policies blog (placement-time only, lifetime exclusivity needs full resources or use-gpuuuid). Before mutex, the only way was gpucores: 100, which also takes the whole card's compute. Same PR #2011 made utilization the primary sort key, NUMA only a tiebreaker (#1806). v2.11.0 added the scheduler policy e2e suite (#2793).
 -->
 
 ---
@@ -596,6 +596,8 @@ kubectl get pod mutex-1 -o jsonpath='{.metadata.annotations.hami\.io/vgpu-device
 ```
 
 Both cards have room for `mutex-1`'s memory, but neither is empty. It waits until one is.
+
+Since v2.10.0 policies chain: filters first (`mutex`, `topology-aware`), then sort keys in the order written (`binpack`, `spread`, `numa`). `mutex,binpack,numa`: an idle card, then the best-packed of those, NUMA as the tiebreaker.
 
 ---
 
@@ -706,20 +708,24 @@ A successful refit emits a NumaRefitSucceed event on the Pod. Pods pinned with u
 
 # Lab 4: Flexible MIG
 
-@subtitle Hardware isolation without pre-carved templates
+@subtitle MIG slices per Pod, no whole-GPU templates
 
 ---
 
-## Static MIG vs HAMi dynamic MIG
+## Three generations of MIG in HAMi
 
-::: grid {cols=2}
+::: grid {cols=3}
 ::: card {tag=red}
-### Static: MIG Manager
-Pick a whole-GPU layout up front (`all-1g.10gb`, `all-balanced`). Changing it means draining the card. Pods ask for `nvidia.com/mig-1g.10gb`.
+### Static MIG
+NVIDIA MIG Manager. A whole-GPU layout chosen up front; changing it means draining. Pods ask for `nvidia.com/mig-1g.10gb`.
+:::
+::: card {tag=yellow}
+### Dynamic MIG, v2.5.0
+The device plugin switches the card's MIG template with mig-parted to fit submitted jobs. Same `nvidia.com/gpumem` API, one pool with HAMi-core nodes.
 :::
 ::: card {tag=green}
-### Dynamic: HAMi v2.10+
-The scheduler reserves a profile and placement per Pod. The device plugin creates that GPU instance at `Allocate` and destroys it when the Pod ends. Pods keep asking for `nvidia.com/gpumem`.
+### Flexible MIG, v2.10.0
+No templates. The scheduler reserves a profile and placement per Pod, the device plugin creates that instance at `Allocate` and removes it when the Pod ends. No drain.
 :::
 :::
 
@@ -735,7 +741,7 @@ ann -> dp flow=forward
 ```
 
 <!--
-Source: website docs/developers/dynamic-mig.md and userguide/nvidia-device/dynamic-mig-support.md. Four authorities: NVML owns capability, the scheduler owns placement, the device plugin owns hardware mutation, the Pod annotation is the handoff. HAMi and NVIDIA MIG Manager must never manage the same GPU.
+Dynamic MIG: v2.5.0 changelog (#708, archlitchi), mig-parted based, knownMigGeometries. Flexible MIG: v2.10.0 (#2378, FouoF), NVML discovery, migProfileAllowlist, reservations survive device-plugin restarts. Legacy knownMigGeometries is not converted: migration means drain. HAMi and NVIDIA MIG Manager must never manage the same GPU.
 -->
 
 ---
@@ -764,13 +770,12 @@ Inspect: kubectl get pod <p> -o json | jq -r '.metadata.annotations["hami.io/vgp
 
 ---
 
-## Dynamic MIG: when to pick it, and its limits
+## Flexible MIG in v2.11.0, and its limits
 
-- **Pick MIG** when tenants need hard isolation: separate memory, cache and fault domains. **Pick HAMi-core** for finer slices (1 MiB) and oversubscription
-- Without `nvidia.com/vgpu-mode`, a Pod can land in either a HAMi-core or a MIG pool
-- **Fragmentation:** enough free slices, but no legal contiguous placement for a bigger profile. The Pod stays `Pending`
-- HAMi never moves a running instance to defragment a card
-- Enabling MIG mode can still need a reset or reboot. Ampere or newer only
+- **v2.10.0 limits:** no CDI, multi-device MIG not validated
+- **v2.11.0:** CDI for dynamic MIG devices (#3070), placement scoring with backtracking (#2855), `nvidia.com/mig-profile-preference` per Pod (#3014), Cluster Autoscaler support via `reportNodeCapacity` (#2874)
+- **Pick MIG** for hard isolation: separate memory, cache and fault domains. **Pick HAMi-core** for 1 MiB slices and oversubscription
+- **Still true:** free slices but no legal contiguous placement leaves the Pod `Pending`; HAMi never moves a running instance. Ampere or newer
 
 ---
 
