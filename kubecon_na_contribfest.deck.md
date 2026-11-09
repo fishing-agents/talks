@@ -575,10 +575,11 @@ metadata:
 
 - Latency-sensitive inference that must not share a die, but should not have to request the whole card
 - Spread is only a preference: it takes the least-used card, even a busy one
+- `mutex,topology-aware`: idle cards first, then the best NVLink-linked set among them
 - For exclusivity over the Pod's lifetime, request all of the card's memory and cores, or pin it with `nvidia.com/use-gpuuuid`
 
 <!--
-Sources: v2.10.0 release blog ("placed only on GPUs that have no existing users ... latency-sensitive inference or workloads that must not share a die"), composable-scheduler-policies blog (placement-time only, lifetime exclusivity needs full resources or use-gpuuuid). Before mutex, the only way was gpucores: 100, which also takes the whole card's compute. Same PR #2011 made utilization the primary sort key, NUMA only a tiebreaker (#1806). v2.11.0 added the scheduler policy e2e suite (#2793).
+Sources: v2.10.0 release blog ("placed only on GPUs that have no existing users ... latency-sensitive inference or workloads that must not share a die"), composable-scheduler-policies blog (placement-time only, lifetime exclusivity needs full resources or use-gpuuuid). Before mutex, the only way was gpucores: 100, which also takes the whole card's compute. Same PR #2011 made utilization the primary sort key, NUMA only a tiebreaker (#1806). v2.11.0 added the scheduler policy e2e suite (#2793). Mutex is not NVLink-aware itself; with topology-aware, the mutex check runs before topology collects candidates (pkg/device/nvidia/device.go), so a busy card in the best-linked set forces a worse set or Pending. Lifetime exclusivity bug: #3038 (closed, unfixed).
 -->
 
 ---
@@ -809,8 +810,8 @@ Inspect: kubectl get pod <p> -o json | jq -r '.metadata.annotations["hami.io/vgp
 
 ## v2.11.0: Flexible MIG matures
 
-- **v2.10.0 limits:** no CDI, multi-device MIG not validated
-- **v2.11.0:** CDI for dynamic MIG devices (#3070), placement scoring with backtracking (#2855), `nvidia.com/mig-profile-preference` per Pod (#3014), Cluster Autoscaler support via `reportNodeCapacity` (#2874)
+- **v2.10.0 limits:** MIG didn't work with CDI device injection; multi-GPU MIG not yet validated
+- **v2.11.0:** a CDI spec per MIG instance (#3070), placement scoring with backtracking (#2855), `nvidia.com/mig-profile-preference` per Pod (#3014), Cluster Autoscaler support via `reportNodeCapacity` (#2874)
 - **Pick MIG** for hard isolation: separate memory, cache and fault domains. **Pick HAMi-core** for 1 MiB slices and oversubscription
 - **Still true:** free slices but no legal contiguous placement leaves the Pod `Pending`; HAMi never moves a running instance. Ampere or newer
 
