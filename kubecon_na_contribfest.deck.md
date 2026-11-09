@@ -712,22 +712,55 @@ A successful refit emits a NumaRefitSucceed event on the Pod. Pods pinned with u
 
 ---
 
-## Three generations of MIG in HAMi
+## MIG in HAMi
 
-::: grid {cols=3}
-::: card {tag=red}
+@layout timeline-horizontal
+@subtitle From pre-carved layouts to a slice per Pod
+
+::: grid {cols=4}
+::: card {label="Before"}
 ### Static MIG
-NVIDIA MIG Manager. A whole-GPU layout chosen up front; changing it means draining. Pods ask for `nvidia.com/mig-1g.10gb`.
+MIG Manager, fixed layout
 :::
-::: card {tag=yellow}
-### Dynamic MIG, v2.5.0
-The device plugin switches the card's MIG template with mig-parted to fit submitted jobs. Same `nvidia.com/gpumem` API, one pool with HAMi-core nodes.
+::: card {label="v2.5.0"}
+### Dynamic MIG
+Whole-card templates
 :::
-::: card {tag=green}
-### Flexible MIG, v2.10.0
-No templates. The scheduler reserves a profile and placement per Pod, the device plugin creates that instance at `Allocate` and removes it when the Pod ends. No drain.
+::: card {focus, label="v2.10.0"}
+### Flexible MIG
+A slice per Pod
+:::
+::: card {label="v2.11.0"}
+### Matures
+CDI, autoscaler
 :::
 :::
+
+<!--
+Dynamic MIG: v2.5.0 changelog (#708, archlitchi), mig-parted, knownMigGeometries. Flexible MIG: v2.10.0 (#2378, FouoF). v2.11.0: #3070, #2855, #3014, #2874. Legacy knownMigGeometries is not converted: migration means drain.
+-->
+
+---
+
+## v2.5.0: Dynamic MIG
+
+@subtitle Templates, switched by the device plugin
+
+- `knownMigGeometries` lists whole-GPU templates per model, with each profile's memory and count, e.g. A100-40GB `2g.10gb ×3 + 1g.5gb ×1`
+- The scheduler takes the **first template that fits** the job; the device plugin applies it with mig-parted
+- Same API as HAMi-core: `nvidia.com/gpu` + `nvidia.com/gpumem`, `nvidia.com/vgpu-mode: mig` to force a MIG node
+
+**The catch:** a template covers the whole card. A new profile mix means switching the template, so the card has to be empty first
+
+<!--
+Source: v2.5.0 changelog (#708), v2.9.0 docs developers/dynamic-mig.md and userguide dynamic-mig-support.md. The geometry was hand-maintained in the ConfigMap: memory, count, layout. Flexible MIG removes all of that.
+-->
+
+---
+
+## v2.10.0: Flexible MIG
+
+@subtitle NVML says what is possible, the scheduler reserves, the device plugin creates
 
 ```pdg
 graph layout=row theme=hami gap=36 steps=auto
@@ -740,13 +773,17 @@ sch -> ann "reserve" flow=forward
 ann -> dp flow=forward
 ```
 
+- Profiles and legal placements come from NVML; `migProfileAllowlist` only says which profiles are allowed
+- The scheduler picks the smallest allowed profile that fits the `gpumem` request, at a placement that does not overlap
+- The reservation lives in a Pod annotation, so it survives device-plugin restarts. The instance is removed when the Pod ends
+
 <!--
-Dynamic MIG: v2.5.0 changelog (#708, archlitchi), mig-parted based, knownMigGeometries. Flexible MIG: v2.10.0 (#2378, FouoF), NVML discovery, migProfileAllowlist, reservations survive device-plugin restarts. Legacy knownMigGeometries is not converted: migration means drain. HAMi and NVIDIA MIG Manager must never manage the same GPU.
+HAMi and NVIDIA MIG Manager must never manage the same GPU.
 -->
 
 ---
 
-## Lab 4: a MIG Pod
+## v2.10.0: a Flexible MIG Pod
 
 ```yaml
 # node config: "operatingmode": "mig"
@@ -770,7 +807,7 @@ Inspect: kubectl get pod <p> -o json | jq -r '.metadata.annotations["hami.io/vgp
 
 ---
 
-## Flexible MIG in v2.11.0, and its limits
+## v2.11.0: Flexible MIG matures
 
 - **v2.10.0 limits:** no CDI, multi-device MIG not validated
 - **v2.11.0:** CDI for dynamic MIG devices (#3070), placement scoring with backtracking (#2855), `nvidia.com/mig-profile-preference` per Pod (#3014), Cluster Autoscaler support via `reportNodeCapacity` (#2874)
