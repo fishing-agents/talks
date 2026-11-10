@@ -847,7 +847,33 @@ spec:
 - Gang scheduling and per-team queue `capability` on fractional GPUs
 
 <!--
-Volcano > v1.9. Never run the standard HAMi device plugin and the Volcano vGPU plugin on the same node. Exclusive cards: see docs userguide/volcano-vgpu/nvidia-gpu/examples/use-exclusive-gpu.md.
+volcano-vgpu v1.13.0 needs Volcano v1.15.0 or later; v1.12.0 and below for v1.15.0 and below. Never run the standard HAMi device plugin and the Volcano vGPU plugin on the same node. Exclusive cards: see docs userguide/volcano-vgpu/nvidia-gpu/examples/use-exclusive-gpu.md.
+-->
+
+---
+
+## Volcano: install the vGPU plugin
+
+@subtitle [Project-HAMi/volcano-vgpu-device-plugin](https://github.com/Project-HAMi/volcano-vgpu-device-plugin)
+
+```yaml
+# volcano-scheduler-configmap, namespace volcano-system
+- name: deviceshare
+  arguments:
+    deviceshare.VGPUEnable: true
+    deviceshare.SchedulePolicy: binpack   # or spread
+```
+
+```bash
+git clone https://github.com/Project-HAMi/volcano-vgpu-device-plugin
+cd volcano-vgpu-device-plugin   # no Helm repo published yet
+helm install volcano-vgpu-device-plugin deployments/helm/volcano-vgpu-device-plugin \
+  --set nvmlMock.enabled=true   # no GPUs: scheduling and registration only
+kubectl get node <node> -o jsonpath='{.status.allocatable}'   # volcano.sh/vgpu-number, vgpu-memory
+```
+
+<!--
+Source: the repo README. Without Helm: kubectl apply -f deployments/static/volcano-vgpu-device-plugin.yml. cdi.enabled=true injects via CDI, cannot be combined with nvmlMock. vgpu-number = GPUs × deviceSplitCount (10 by default). Per-node mode hami-core or mig (dynamic MIG, Ampere+); Pods pick with volcano.sh/vgpu-mode. Metrics on port 9394. Requires NVIDIA driver + container toolkit with nvidia as default runtime on real nodes.
 -->
 
 ---
