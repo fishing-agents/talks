@@ -10,6 +10,9 @@ transition: fade
 paginate: true
 size: 16:9
 style: |
+  :root { --bg-overlay: rgba(255,255,255,0.95); }
+  [data-theme="dark"] { --bg-overlay: rgba(5,34,67,0.92); }
+  .layout-title { background: linear-gradient(rgba(5,34,67,0.2), rgba(5,34,67,0.2)), var(--bg-image) left top / cover no-repeat; }
   section.lab h1 { font-size: 3em; }
   img[src$=".svg"] { max-height: 360px; }
   img[src*="containerdays-lab-architecture"] { max-height: 290px; }
@@ -1005,6 +1008,44 @@ Today: `deviceshare` plus the vGPU device plugin. Gang and queue capacity on sha
 :::
 
 Open questions for the room: who decides partitioning, the driver or the scheduler? How do quotas count fractional devices?
+
+---
+
+## New in v2.11.0: Remote GPU
+
+@subtitle CUDA on a node with no GPU, served over the network by [Lupine](https://github.com/lupinemachines)
+
+- **Client nodes** need no GPU and no driver: an init container delivers the Lupine client libraries and `nvidia-smi`, HAMi injects `LUPINE_SERVER`
+- **GPU nodes** with `operatingmode: remote` serve Lupine instead of advertising local devices. Pools by Node label, picked with `hami.io/remote-server`
+- `nvidia.com/remote-gpu` reserves a whole server; `nvidia.com/remote-gpu-memory` caps memory per GPU through HAMi-core
+
+```yaml
+command: ["vllm", "serve", "Qwen/Qwen3-8B"]   # on a GPU-less node
+resources: { limits: { nvidia.com/remote-gpu: 2, nvidia.com/remote-gpu-memory: 20480 } }
+```
+
+<!--
+Source: v2.11.0 release blog, #3004, #3013, #3195. Chart: devices.remotegpu.enabled, node label gpu=on + a label matched by nodelabelselector. Limits: client and server nodes separate, CUDA and vLLM 0.19-0.26 images only, a workload reserves the entire server. Examples: HAMi examples/remotegpu.
+-->
+
+---
+
+## New in v2.11.0: AMD Instinct sharing
+
+@subtitle The NVIDIA resource model, hard limits in the container
+
+- **Memory:** `amd.com/gpumem` or `amd.com/gpumem-percentage`, enforced by amd-hami-core
+- **Compute:** `amd.com/gpucores` sets the CU share through `HSA_CU_MASK`
+- **Placement:** `amd.com/numa-bind`, XGMI-linked cards with `amd.com/link-bind`, and `binpack`, `spread`, `mutex`, `topology-aware`
+- **Node side:** amd-device-plugin v0.0.4 adds SPX/DPX/QPX/CPX compute partitions; amd-dra-driver brings the same limits to DRA
+
+```yaml
+resources: { limits: { amd.com/gpu: 1, amd.com/gpumem: 24000, amd.com/gpucores: 50 } }
+```
+
+<!--
+Source: v2.11.0 release blog. v2.10.0 laid the basics (MI300X, memory, cores, type, UUID); v2.11.0 completed it: #3179 memory, #3174 cores, #3186 numa-bind, #3191 topology-aware via XGMI. HAMi-dra converts amd.com/gpu requests into claims. Test machines from Vultr; initial compute and memory partition work by fishman. Validated hardware: docs userguide/amd-device/verification-status.
+-->
 
 ---
 
