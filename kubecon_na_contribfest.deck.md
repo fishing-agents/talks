@@ -1217,29 +1217,29 @@ kind delete cluster --name hami-lab
 
 ::: grid {cols=4}
 ::: card {metric}
-0
-Driver, kernel, code changes needed
-SF Technology
+10,000+
+GPU cards under HAMi across D.run and DCE
+DaoCloud
 :::
 ::: card {metric}
-1-2 GB
-Memory per small-model inference service
-KE Holdings
+80%+
+average utilization per card, 20-30% lower GPU opex
+DaoCloud
 :::
 ::: card {metric}
-4x
-GPU utilization: 5-10% to 30-50%
-NIO
+2x
+fewer GPUs for training + inference, 700% traffic spikes handled
+SNOW Corp.
 :::
 ::: card {metric}
-90%
-GPU infra managed by HAMi on RTX 4070/4090
-Prep Edu
+15x
+dev pods on the same device: 2 to 30, throughput within 5%
+CETC Cloud
 :::
 :::
 
 ::: notes{ tag="green" }
-China Merchants Bank - SNOW Corp. - NIO - KE Holdings - DaoCloud - SF Technology - Prep Education - cncf.io/case-studies
+DaoCloud - SNOW Corp. - CETC Cloud - China Merchants Bank - NIO - Sangfor - cncf.io/case-studies
 :::
 
 ---
