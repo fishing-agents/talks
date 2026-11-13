@@ -1,6 +1,6 @@
 ---
 theme: kubecon_na
-
+seaborn_theme: hami
 title: "HAMi"
 logo: assets/brand/dynamia-logo.svg
 logo_dark: assets/brand/dynamia-logo-white.png
@@ -84,7 +84,7 @@ plt.rcParams["patch.force_edgecolor"] = False
 
 fg = plt.rcParams["text.color"]
 dim = plt.rcParams["xtick.color"]
-hami = "#22c55e"
+hami = plt.rcParams["axes.prop_cycle"].by_key()["color"][0]  # HAMi green from seaborn_theme: hami
 free = "#dfe2ec"
 
 fig, ax = plt.subplots(figsize=(12.5, 4.2))
