@@ -1,7 +1,7 @@
 ---
 theme: kubecon_na
-seaborn_theme: kubecon_na
-title: "HAMi: GPU sharing on Kubernetes"
+
+title: "HAMi"
 logo: assets/brand/dynamia-logo.svg
 logo_dark: assets/brand/dynamia-logo-white.png
 watermark: assets/brand/cncf-logo.png
@@ -25,13 +25,13 @@ CNCF project booth loop, cut from kubecon_na_contribfest.deck.md: diagrams, char
 @variant dark
 @kicker KubeCon + CloudNativeCon North America 2026 · HAMi project booth
 
-# HAMi: GPU sharing on Kubernetes
+# HAMi
 
 @speaker name="Reza Jelveh" role="Solution Architect, Dynamia AI  -  Makers of HAMi" github=github.com/fishman linkedin=linkedin.com/in/rezajelveh
 
 ---
 
-## Lab setup: real scheduler, fake GPUs
+## Workshop lab cluster
 
 ```pdg
 graph layout=row theme=hami gap=48
@@ -58,7 +58,7 @@ css { group.bare { fill: none; stroke: none; padding: 0; } }
 
 ---
 
-## Reserved is not used
+## Allocation and usage metrics
 
 ```pdg
 graph layout=row theme=hami gap=70
@@ -75,9 +75,7 @@ alloc -> usage "alloc ≥ used"
 
 ---
 
-## Flexible MIG: a slice per Pod
-
-@subtitle One A100, 7 compute slices, binpacked
+## Flexible MIG on one A100
 
 ```seaborn
 import matplotlib.pyplot as plt
@@ -120,19 +118,19 @@ Live demo (hamidemo run pitch, A100s, 2026-11-10): the 10 GB server got 2g.10gb,
 
 ---
 
-## One GPU per task is the default
+## Whole GPU vs partitioned GPU
 
 ![Device Plugin vs DRA](assets/hami/device-plugin-vs-dra.png)
 
 ---
 
-## What is HAMi
+## Sharing a node with HAMi
 
 ![After HAMi](assets/hami_intro/after-hami.png)
 
 ---
 
-## Where HAMi sits in the GPU stack
+## The GPU stack
 
 ```pdg
 graph layout=column align=stretch gap=8 theme=hami
@@ -171,7 +169,7 @@ css {
 
 ---
 
-## A Pod's path to the GPU
+## From Pod to GPU
 
 ```pdg
 graph layout=row theme=hami gap=40 steps=auto
@@ -199,7 +197,7 @@ css { group.bare { fill: none; stroke: none; padding: 0; } }
 
 ---
 
-## How the HAMi components work together
+## HAMi components
 
 ```pdg
 graph layout=row theme=hami gap=56
@@ -227,7 +225,7 @@ prom -> ui
 
 ---
 
-## Why `nvidia-smi` can fail when `lsmod` looks fine
+## `nvidia-smi` vs `lsmod`
 
 ```pdg
 graph layout=column align=stretch gap=8 theme=hami
@@ -260,7 +258,7 @@ css {
 
 ---
 
-## Where topology information comes from
+## Topology sources
 
 ```pdg
 graph layout=row theme=hami gap=56
@@ -283,7 +281,7 @@ anno -> hs "reads" flow=forward
 
 ---
 
-## CPU and GPU on the same NUMA node
+## NUMA refit
 
 ```pdg
 graph layout=row theme=hami gap=40 steps=auto
@@ -300,7 +298,7 @@ rf -> pod "annotations + accounting moved" flow=forward
 
 ---
 
-## v2.10.0: Flexible MIG
+## Flexible MIG allocation
 
 ```pdg
 graph layout=row theme=hami gap=36 steps=auto
@@ -337,7 +335,7 @@ rs -> ks "reads"
 
 ---
 
-## HAMi-DRA: keep the HAMi Pod spec
+## HAMi-DRA
 
 ```pdg
 graph layout=row theme=hami gap=36 steps=auto
@@ -354,9 +352,9 @@ ks -> core flow=forward
 
 ---
 
-## Where HAMi Is Today
+## HAMi in production
 
-@subtitle Production metrics from CNCF case studies
+@subtitle From CNCF case studies
 
 ::: grid {cols=4}
 ::: card {metric}
@@ -385,8 +383,6 @@ CETC Cloud
 
 @layout ecosystem
 ## Community & Adopters
-
-@subtitle Devices, integrations, and who uses HAMi
 
 #### Open Source, CNCF Backed, Production Ready
 ::: grid {cols=5}
